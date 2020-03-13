@@ -192,3 +192,25 @@
 and other localization data needed by YGOPro.")
       (home-page "https://github.com/mycard/ygopro")
       (license #f))))
+
+(define-public ygopro-database-ja
+  (package
+    (inherit ygopro-database-en)
+    (name "ygopro-database-ja")
+    (arguments
+     `(#:install-plan
+       `(("locales/ja-JP" "share/ygopro/data"))))
+    (synopsis "Japanese database for YGOPro")
+    (description "ygopro-database-en provides a japanese card database
+and other localization data needed by YGOPro.")))
+
+(define-public ygopro-database-zh
+  (package
+    (inherit ygopro-database-en)
+    (name "ygopro-database-zh")
+    (arguments
+     `(#:install-plan
+       `(("locales/zh-CN" "share/ygopro/data"))))
+    (synopsis "Chinese database for YGOPro")
+    (description "ygopro-database-en provides a chinese card database
+and other localization data needed by YGOPro.")))
