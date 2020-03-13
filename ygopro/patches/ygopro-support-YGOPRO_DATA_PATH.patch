@@ -1,0 +1,202 @@
+---
+ gframe/data_manager.cpp | 15 +++++++
+ gframe/data_manager.h   |  3 ++
+ gframe/deck_manager.cpp |  2 -
+ gframe/game.cpp         | 88 +++++++++++++++++++----------------------
+ gframe/game.h           |  2 +-
+ 5 files changed, 59 insertions(+), 51 deletions(-)
+
+diff --git a/gframe/data_manager.cpp b/gframe/data_manager.cpp
+index c603ae52..020fc8b5 100644
+--- a/gframe/data_manager.cpp
++++ b/gframe/data_manager.cpp
+@@ -12,6 +12,17 @@ byte DataManager::scriptBuffer[0x20000];
+ IFileSystem* DataManager::FileSystem;
+ DataManager dataManager;
+ 
++bool DataManager::LoadDB(const char* file) {
++#ifdef _WIN32
++	char wfile[256];
++	BufferIO::DecodeUTF8(file, wfile);
++	IReadFile* reader = FileSystem->createAndOpenFile(wfile);
++#else
++	IReadFile* reader = FileSystem->createAndOpenFile(file);
++#endif
++	return LoadDB(file, reader);
++}
++
+ bool DataManager::LoadDB(const wchar_t* wfile) {
+ 	char file[256];
+ 	BufferIO::EncodeUTF8(wfile, file);
+@@ -20,6 +31,10 @@ bool DataManager::LoadDB(const wchar_t* wfile) {
+ #else
+ 	IReadFile* reader = FileSystem->createAndOpenFile(file);
+ #endif
++	return LoadDB(file, reader);
++}
++
++bool DataManager::LoadDB(const char* file, IReadFile* reader) {
+ 	if(reader == NULL)
+ 		return false;
+ 	spmemvfs_db_t db;
+diff --git a/gframe/data_manager.h b/gframe/data_manager.h
+index 00b611d2..221ccc9d 100644
+--- a/gframe/data_manager.h
++++ b/gframe/data_manager.h
+@@ -10,8 +10,11 @@
+ namespace ygo {
+ 
+ class DataManager {
++private:
++	bool LoadDB(const char* file, IReadFile* reader);
+ public:
+ 	DataManager(): _datas(8192), _strings(8192) {}
++	bool LoadDB(const char* file);
+ 	bool LoadDB(const wchar_t* wfile);
+ 	bool LoadStrings(const char* file);
+ 	bool LoadStrings(IReadFile* reader);
+diff --git a/gframe/deck_manager.cpp b/gframe/deck_manager.cpp
+index a91fd72d..7b3f203b 100644
+--- a/gframe/deck_manager.cpp
++++ b/gframe/deck_manager.cpp
+@@ -48,8 +48,6 @@ void DeckManager::LoadLFListSingle(const char* path) {
+ 	}
+ }
+ void DeckManager::LoadLFList() {
+-	LoadLFListSingle("expansions/lflist.conf");
+-	LoadLFListSingle("lflist.conf");
+ 	LFList nolimit;
+ 	nolimit.listName = L"N/A";
+ 	nolimit.hash = 0;
+diff --git a/gframe/game.cpp b/gframe/game.cpp
+index 1f7d2e77..09adb935 100644
+--- a/gframe/game.cpp
++++ b/gframe/game.cpp
+@@ -9,6 +9,8 @@
+ #include "duelclient.h"
+ #include "netserver.h"
+ #include "single_mode.h"
++#include <iostream>
++#include <sstream>
+ 
+ const unsigned short PRO_VERSION = 0x1350;
+ 
+@@ -59,16 +61,8 @@ bool Game::Initialize() {
+ 		return false;
+ 	}
+ 	dataManager.FileSystem = device->getFileSystem();
+-	LoadExpansions();
+-	if(!dataManager.LoadDB(L"cards.cdb")) {
+-		ErrorLog("Failed to load card database (cards.cdb)!");
++	if (!LoadDataDirs())
+ 		return false;
+-	}
+-	if(!dataManager.LoadStrings("strings.conf")) {
+-		ErrorLog("Failed to load strings!");
+-		return false;
+-	}
+-	dataManager.LoadStrings("./expansions/strings.conf");
+ 	env = device->getGUIEnvironment();
+ 	numFont = irr::gui::CGUITTFont::createTTFont(env, gameConf.numfont, 16);
+ 	adFont = irr::gui::CGUITTFont::createTTFont(env, gameConf.numfont, 12);
+@@ -928,47 +922,45 @@ void Game::SetStaticText(irr::gui::IGUIStaticText* pControl, u32 cWidth, irr::gu
+ 	dataManager.strBuffer[pbuffer] = 0;
+ 	pControl->setText(dataManager.strBuffer);
+ }
+-void Game::LoadExpansions() {
+-	FileSystem::TraversalDir(L"./expansions", [](const wchar_t* name, bool isdir) {
+-		if(!isdir && wcsrchr(name, '.') && !mywcsncasecmp(wcsrchr(name, '.'), L".cdb", 4)) {
+-			wchar_t fpath[1024];
+-			myswprintf(fpath, L"./expansions/%ls", name);
+-			dataManager.LoadDB(fpath);
+-		}
+-		if(!isdir && wcsrchr(name, '.') && !mywcsncasecmp(wcsrchr(name, '.'), L".zip", 4)) {
+-			wchar_t fpath[1024];
+-			myswprintf(fpath, L"./expansions/%ls", name);
+-#ifdef _WIN32
+-			dataManager.FileSystem->addFileArchive(fpath, true, false);
+-#else
+-			char upath[1024];
+-			BufferIO::EncodeUTF8(fpath, upath);
+-			dataManager.FileSystem->addFileArchive(upath, true, false);
+-#endif
+-		}
+-	});
+-	for(u32 i = 0; i < DataManager::FileSystem->getFileArchiveCount(); ++i) {
+-		const IFileList* archive = DataManager::FileSystem->getFileArchive(i)->getFileList();
+-		for(u32 j = 0; j < archive->getFileCount(); ++j) {
+-#ifdef _WIN32
+-			const wchar_t* fname = archive->getFullFileName(j).c_str();
+-#else
+-			wchar_t fname[1024];
+-			const char* uname = archive->getFullFileName(j).c_str();
+-			BufferIO::DecodeUTF8(uname, fname);
+-#endif
+-			if(wcsrchr(fname, '.') && !mywcsncasecmp(wcsrchr(fname, '.'), L".cdb", 4))
+-				dataManager.LoadDB(fname);
+-			if(wcsrchr(fname, '.') && !mywcsncasecmp(wcsrchr(fname, '.'), L".conf", 5)) {
+-#ifdef _WIN32
+-				IReadFile* reader = DataManager::FileSystem->createAndOpenFile(fname);
+-#else
+-				IReadFile* reader = DataManager::FileSystem->createAndOpenFile(uname);
+-#endif
+-				dataManager.LoadStrings(reader);
++
++bool Game::LoadDataDirs() {
++	const char* _data_path = getenv("YGOPRO_DATA_PATH");
++	if (!_data_path) {
++		ErrorLog("No data dirs");
++		return false;
++	}
++	std::istringstream data_path(_data_path);
++	std::string prefix;
++	bool found_cdb = false;
++	bool found_strings = false;
++
++	while(getline(data_path, prefix, ':'))
++		FileSystem::TraversalDir(prefix.c_str(),
++					 [&](const char* name, bool isdir) {
++			if (isdir) return;
++			size_t len = strlen(name);
++
++			std::string full_path = prefix + "/" + name;
++			if (len > 4 && !strncmp(name + len - 4, ".cdb", 4)) {
++				dataManager.LoadDB(full_path.c_str());
++				found_cdb = true;
+ 			}
+-		}
++			if (len == 12 && !strncmp(name, "strings.conf", 12)) {
++				dataManager.LoadStrings(full_path.c_str());
++				found_strings = true;
++			}
++			if (len == 11 && !strncmp(name, "lflist.conf", 11)) {
++				deckManager.LoadLFListSingle(full_path.c_str());
++			}
++					 });
++	if (!found_cdb) {
++		ErrorLog("No card database found");
++		return false;
++	} else if (!found_strings) {
++		ErrorLog("No strings found");
++		return false;
+ 	}
++	return true;
+ }
+ void Game::RefreshDeck(irr::gui::IGUIComboBox* cbDeck) {
+ 	cbDeck->clear();
+diff --git a/gframe/game.h b/gframe/game.h
+index f865a4b0..ef76b59a 100644
+--- a/gframe/game.h
++++ b/gframe/game.h
+@@ -114,7 +114,7 @@ public:
+ 	void BuildProjectionMatrix(irr::core::matrix4& mProjection, f32 left, f32 right, f32 bottom, f32 top, f32 znear, f32 zfar);
+ 	void InitStaticText(irr::gui::IGUIStaticText* pControl, u32 cWidth, u32 cHeight, irr::gui::CGUITTFont* font, const wchar_t* text);
+ 	void SetStaticText(irr::gui::IGUIStaticText* pControl, u32 cWidth, irr::gui::CGUITTFont* font, const wchar_t* text, u32 pos = 0);
+-	void LoadExpansions();
++	bool LoadDataDirs();
+ 	void RefreshDeck(irr::gui::IGUIComboBox* cbDeck);
+ 	void RefreshReplay();
+ 	void RefreshSingleplay();
+-- 
+2.25.1
+
