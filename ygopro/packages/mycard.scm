@@ -26,7 +26,7 @@
 (define-public ygopro
   (package
     (name "ygopro")
-    (version "1.035.0-2")
+    (version "1.035.0-4")
     (source
      (origin
        (method git-fetch)
@@ -35,7 +35,7 @@
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "14iixsacc51v4ayriwdk3qblgxlf0bjyilbsn7gm6pihkd7jvv5l"))
+        (base32 "1nfn9gjcddzbnzk816pfh2yzpld2lzx6ji8pv88cirk6k8sd0zc5"))
        (modules '((guix build utils)))
        (patches
         (search-patches
@@ -122,8 +122,8 @@
        ("premake" ,premake4)
        ("ygopro-core"
         ,(ygopro-core
-          version "70d429495313513963ba4fbe9f892373585d27a2"
-          "1pw8715pan2nj9cyr69zm6n7pli7wvf97xxna68khmz6jqaafjwz"))))
+          version "465f5b0794ed6fd582a05e570b18f1cfba8e2961"
+          "1wd1da6sdvsavzqy1jhzl5ybg6l61vzdf2warw644zz0xfw3zg8l"))))
     (native-search-paths
      (list (search-path-specification
             (variable "YGOPRO_DATA_PATH")
@@ -141,8 +141,8 @@
     (license license:gpl2)))
 
 (define-public ygopro-scripts
-  (let ((commit "35bd216d0dddb67ad3f786ff0c9ffc637bb9ccc7")
-        (revision "1"))
+  (let ((commit "069ee66a59c210f0e972443c9e95ed41c7c8b8ef")
+        (revision "0"))
     (package
       (name "ygopro-scripts")
       (version (git-version (package-version ygopro)
@@ -156,7 +156,7 @@
          (file-name (git-file-name "ygopro-scripts" version))
          (sha256
           (base32
-           "0yqg0pjg3a7v6cfiii24p77ilrrcn402pd5ijirr3hn64ywyjxhr"))))
+           "08m5fzpc0wa2l92l9w27r52j4njva9qqg8vjv078jkb8r3xflnwm"))))
       (build-system copy-build-system)
       (arguments
        `(#:install-plan
@@ -167,8 +167,8 @@
       (license #f))))
 
 (define-public ygopro-database-en
-  (let ((commit "6ae94d855f52502b1576dd4a8fc397390a598259")
-        (revision "1"))
+  (let ((commit "60ed7ce730abf8b158dcaed95b1e0369146f8288")
+        (revision "0"))
     (package
       (name "ygopro-database-en")
       (version (git-version (package-version ygopro)
@@ -182,7 +182,7 @@
          (file-name (git-file-name "ygopro-database" version))
          (sha256
           (base32
-           "13dwn841h05m2xn88f2pmcr5w99gdhkyrj5nya3653m911dgmg43"))))
+           "1f5cw7242q2vzhqqg7iw24w36gzlbs8k3ic7jnyfw4r0rldh7asv"))))
       (build-system copy-build-system)
       (arguments
        `(#:install-plan
