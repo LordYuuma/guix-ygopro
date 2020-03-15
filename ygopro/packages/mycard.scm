@@ -14,19 +14,21 @@
   #:use-module (gnu packages lua)
   #:use-module (gnu packages sqlite))
 
-(define (ygopro-core version commit hash)
+(define %ygopro-version "1.035.0-4")
+
+(define (ygopro-core commit hash)
   (origin
     (method git-fetch)
     (uri (git-reference
           (url "https://github.com/mycard/ygopro-core.git")
           (commit commit)))
-    (file-name (git-file-name "ygopro-core" version))
+    (file-name (git-file-name "ygopro-core" %ygopro-version))
     (sha256 (base32 hash))))
 
 (define-public ygopro
   (package
     (name "ygopro")
-    (version "1.035.0-4")
+    (version %ygopro-version)
     (source
      (origin
        (method git-fetch)
@@ -122,7 +124,7 @@
        ("premake" ,premake4)
        ("ygopro-core"
         ,(ygopro-core
-          version "465f5b0794ed6fd582a05e570b18f1cfba8e2961"
+          "465f5b0794ed6fd582a05e570b18f1cfba8e2961"
           "1wd1da6sdvsavzqy1jhzl5ybg6l61vzdf2warw644zz0xfw3zg8l"))))
     (native-search-paths
      (list (search-path-specification
@@ -145,8 +147,7 @@
         (revision "0"))
     (package
       (name "ygopro-scripts")
-      (version (git-version (package-version ygopro)
-                            revision commit))
+      (version (git-version %ygopro-version revision commit))
       (source
        (origin
          (method git-fetch)
@@ -171,8 +172,7 @@
         (revision "0"))
     (package
       (name "ygopro-database-en")
-      (version (git-version (package-version ygopro)
-                            revision commit))
+      (version (git-version %ygopro-version revision commit))
       (source
        (origin
          (method git-fetch)
@@ -220,8 +220,7 @@ and other localization data needed by YGOPro.")))
         (revision "0"))
     (package
       (name "ygopro-images-field")
-      (version (git-version (package-version ygopro)
-                            revision commit))
+      (version (git-version %ygopro-version revision commit))
       (source
        (origin
          (method git-fetch)
