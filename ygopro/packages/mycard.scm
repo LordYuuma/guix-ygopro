@@ -16,14 +16,84 @@
 
 (define %ygopro-version "1.035.0-4")
 
-(define (ygopro-core commit hash)
-  (origin
-    (method git-fetch)
-    (uri (git-reference
-          (url "https://github.com/mycard/ygopro-core.git")
-          (commit commit)))
-    (file-name (git-file-name "ygopro-core" %ygopro-version))
-    (sha256 (base32 hash))))
+(define-public ygopro-core
+  (package
+    (name "ygopro-core")
+    (version %ygopro-version)
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/mycard/ygopro-core.git")
+             (commit "465f5b0794ed6fd582a05e570b18f1cfba8e2961")))
+       (file-name (git-file-name "ygopro-core" %ygopro-version))
+       (sha256
+        (base32
+         "1wd1da6sdvsavzqy1jhzl5ybg6l61vzdf2warw644zz0xfw3zg8l"))
+       (modules '((guix build utils)
+                  (ice-9 textual-ports)))
+       (snippet
+        '(begin
+           (with-output-to-file "-premake4.lua"
+             (lambda ()
+               (display "solution \"ygopro-core\"\n")
+               (display "   location \"build\"\n")
+               (display "   language \"C++\"\n")
+               (display "   objdir \"obj\"\n")
+               (display "   configurations { \"Debug\", \"Release\" }\n\n")
+               (call-with-input-file "premake4.lua"
+                 (lambda (in)
+                   (let loop ((line (get-line in)))
+                     (if (eof-object? line)
+                         #t
+                         (begin
+                           (display "   ")
+                           (display line)
+                           (newline)
+                           (loop (get-line in)))))))))
+           (rename-file "-premake4.lua" "premake4.lua")
+           (substitute* "premake4.lua"
+             (("StaticLib")
+              "SharedLib"))))))
+    (build-system gnu-build-system)
+    (arguments
+     `(#:tests? #f ; no `check' target
+       #:make-flags `("CC=gcc" "--directory=build")
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'unpack 'patch-sources
+           (lambda* (#:key inputs #:allow-other-keys)
+             (substitute* "CMakeLists.txt"
+               (("../lua")
+                (string-append (assoc-ref inputs "lua") "/include"))
+               (("add_library \\(ocgcore .*\\)$" all)
+                (string-append all "target_link_libraries (ocgcore lua)")))
+             (substitute* "interpreter.h"
+               (("#include \"l([a-z]+).h\"" all lua-cont)
+                (string-append "extern \"C\" {\n"
+                               "#include <l" lua-cont ".h>\n"
+                               "}")))
+             #t))
+         (delete 'bootstrap)
+         (replace 'configure (lambda _ (invoke "premake4" "gmake")))
+         (replace 'install
+           (lambda* (#:key outputs #:allow-other-keys)
+             (let* ((out (assoc-ref outputs "out"))
+                    (lib (string-append out "/lib"))
+                    (inc (string-append out "/include/ygopro-core")))
+               (for-each (lambda (f) (install-file f inc))
+                         (find-files "." ".*\\.h"))
+               (install-file "libocgcore.so" lib)
+               #t))))))
+    (inputs
+     `(("lua" ,lua)))
+    (native-inputs
+     `(("premake4" ,premake4)))
+    (synopsis "Yu-Gi-Oh! script engine")
+    (description
+     "YGOPro-Core is a lua-based engine for Yu-Gi-Oh! with automatic ruling.")
+    (home-page "https://github.com/mycard/ygopro")
+    (license license:gpl2)))
 
 (define-public ygopro
   (package
@@ -52,8 +122,10 @@
            (substitute* "premake4.lua"
              ((", \"LinkTimeOptimization\"")
               "")
+             (("include \"ocgcore\"")
+              "")
              (("include \"lua\"")
-              "includedirs { \"lua/include\" }"))
+              ""))
            #t))))
     (build-system gnu-build-system)
     (arguments
@@ -61,17 +133,13 @@
        #:make-flags `("CC=gcc" "--directory=build")
        #:phases
        (modify-phases %standard-phases
-         (add-after 'unpack 'combine-and-patch-sources
+         (add-after 'unpack 'patch-sources
            (lambda* (#:key inputs outputs #:allow-other-keys)
              (let* ((out (assoc-ref outputs "out"))
                     (font (string-append
                            (assoc-ref inputs "font-google-noto")
                            "/share/fonts/truetype/NotoSans-Regular.ttf"))
                     (datadir (string-append out "/share/ygopro")))
-               (copy-recursively (assoc-ref inputs "ygopro-core") "ocgcore")
-               (substitute* "premake4.lua"
-                 (("lua")
-                  (assoc-ref inputs "lua")))
                (substitute* "gframe/premake4.lua"
                  (("/usr/include/freetype2")
                   (string-append (assoc-ref inputs "freetype")
@@ -79,11 +147,9 @@
                  (("/usr/include/irrlicht")
                   (string-append (assoc-ref inputs "irrlicht")
                                  "/include/irrlicht")))
-               (substitute* "ocgcore/interpreter.h"
-                 (("#include \"l([a-z]+).h\"" all lua-cont)
-                  (string-append "extern \"C\" {\n"
-                                 "#include <l" lua-cont ".h>\n"
-                                 "}")))
+               (substitute* (find-files "gframe/" ".*\\.(h|cpp)")
+                 (("\"\\.\\./ocgcore/([a-z_]+\\.h)\"" all header)
+                  (string-append "<ygopro-core/" header ">")))
                (substitute* "gframe/image_manager.cpp"
                  (("textures/") (string-append datadir "/textures/")))
                (substitute* "gframe/game.cpp"
@@ -121,11 +187,9 @@
        ("lua" ,lua)
        ("mesa" ,mesa)
        ("sqlite" ,sqlite)
-       ("premake" ,premake4)
-       ("ygopro-core"
-        ,(ygopro-core
-          "465f5b0794ed6fd582a05e570b18f1cfba8e2961"
-          "1wd1da6sdvsavzqy1jhzl5ybg6l61vzdf2warw644zz0xfw3zg8l"))))
+       ("ygopro-core" ,ygopro-core)))
+    (native-inputs
+     `(("premake4" ,premake4)))
     (native-search-paths
      (list (search-path-specification
             (variable "YGOPRO_DATA_PATH")
@@ -136,9 +200,9 @@
            (search-path-specification
             (variable "YGOPRO_IMAGE_PATH")
             (files '("share/ygopro/pics")))))
-    (synopsis "Yu-Gi-Oh! script engine and sample GUI")
+    (synopsis "Yu-Gi-Oh! card game simulator")
     (description
-     "YGOPro is a lua-based engine for Yu-Gi-Oh! with full ruling support.")
+     "YGOPro is a sample GUI for the YGPro-Core card game engine.")
     (home-page "https://github.com/mycard/ygopro")
     (license license:gpl2)))
 
