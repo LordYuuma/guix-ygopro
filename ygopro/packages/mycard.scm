@@ -63,11 +63,6 @@
        (modify-phases %standard-phases
          (add-after 'unpack 'patch-sources
            (lambda* (#:key inputs #:allow-other-keys)
-             (substitute* "CMakeLists.txt"
-               (("../lua")
-                (string-append (assoc-ref inputs "lua") "/include"))
-               (("add_library \\(ocgcore .*\\)$" all)
-                (string-append all "target_link_libraries (ocgcore lua)")))
              (substitute* "interpreter.h"
                (("#include \"l([a-z]+).h\"" all lua-cont)
                 (string-append "extern \"C\" {\n"
