@@ -1,5 +1,6 @@
 (define-module (ygopro packages mycard)
   #:use-module (guix packages)
+  #:use-module (guix download)
   #:use-module (guix git-download)
   #:use-module (guix build-system copy)
   #:use-module (guix build-system gnu)
@@ -299,3 +300,32 @@ and other localization data needed by YGOPro.")))
 YGOPro, which are displayed across the board when a field spell is in play.")
       (home-page "https://github.com/mycard/ygopro")
       (license #f))))
+
+(define-public (ygopro-images locale hash)
+  (package
+    (name (string-append "ygopro-images-" (string-take locale 2)))
+    (version (package-version ygopro))
+    (source
+     (origin
+       (method url-fetch/zipbomb)
+       (uri (string-append "https://cdn01.moecube.com/images/ygopro-images-"
+                           locale ".zip"))
+       (sha256 (base32 hash))))
+    (build-system copy-build-system)
+    (arguments
+     `(#:install-plan
+       `(("." "share/ygopro/pics"))))
+    (synopsis "Images for YGOPro")
+    (description "Card and field images for YGOPro, snarfed directly from
+Mycard's CI.")
+    (home-page "https://github.com/mycard/ygopro")
+    (license #f)))
+
+(define-public ygopro-images-en
+  (ygopro-images "en-US" "0f12zrslipdghvz4vg62a12mm2n6sx435r0zcww3n4lvx81h4mi1"))
+
+(define-public ygopro-images-ja
+  (ygopro-images "ja-JP" "12vbhbjq8khnzg2c85vi2l6lf5bqj6cy39qn8wkm0nwk23z4wikz"))
+
+(define-public ygopro-images-zh
+  (ygopro-images "zh-CN" "16yqwma1myf817j4qdwla5vdvan4vx1mzlcc3kc9bcngsw1yri6c"))
