@@ -1,3 +1,35 @@
 # -*- mode: org -*-
+#+TITLE: Guix channel for YGOPro
 
-Guix channel for YGOPro.
+This channel contains various packages associated in some way with the
+card game simulation engine YGOPro, including various script cores,
+scripts, databases, images, and of course the games themselves ;)
+
+* Available packages
+** Cores
+- ~ygopro-core~
+- ~edopro-core~
+** Games
+- ~ygopro~
+- ~edopro~
+** Databases
+- ~ygopro-database-en~
+- ~ygopro-database-ja~
+- ~ygopro-database-zh~
+** Images
+- ~ygopro-images-field~
+- ~ygopro-images-en~
+- ~ygopro-images-ja~
+- ~ygopro-images-zh~
+* Patches
+The cores and games are patched moderately to heavily in order to make them
+build and run "as expected".
+** Unbundling
+The cores and the Lua library are unbundled from the main sources, with the
+latter being pulled separately from Guix upstream.
+** Additional PATH variables
+The games read the following paths
+- ~YGOPRO_IMAGE_PATH~ :: Path in which images are to be found.
+- ~YGOPRO_SCRIPT_PATH~ :: Path in which scripts are to be found.
+- ~YGOPRO_DATA_PATH~ :: Path in which databases, strings and
+     Forbidden/Limited lists are to be found.
