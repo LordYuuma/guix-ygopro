@@ -1,3 +1,8 @@
 ;; -*- mode: scheme -*-
 (channel-news
- (version 0))
+ (version 0)
+ (entry (commit "5eeeffaaa5605bd3370290ac2cb0df52d8bb3a56")
+        (title (en "ygoprotest-images removed"))
+        (body (en "The procedure ygoprotest-images and the packages built
+using it were removed in favor of ygopro-images, which are taken directly
+from the CDN used by ygopro itself."))))
