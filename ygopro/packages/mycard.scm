@@ -135,6 +135,7 @@
                     (font (string-append
                            (assoc-ref inputs "font-google-noto")
                            "/share/fonts/truetype/NotoSans-Regular.ttf"))
+                    (sysconfdir (string-append out "/etc/ygopro"))
                     (datadir (string-append out "/share/ygopro")))
                (substitute* "gframe/premake4.lua"
                  (("/usr/include/freetype2")
@@ -151,7 +152,7 @@
                (substitute* "gframe/game.cpp"
                  (("fopen\\(\"system.conf\", \"r\"\\);" all)
                   (string-append all
-                                 "\n\tif(!fp)\n\t\tfp = fopen(\"" datadir
+                                 "\n\tif(!fp)\n\t\tfp = fopen(\"" sysconfdir
                                  "/system.conf\", \"r\");")))
                (substitute* "system.conf"
                  (("textfont = .*$")
@@ -167,9 +168,10 @@
            (lambda* (#:key inputs outputs #:allow-other-keys)
              (let* ((out (assoc-ref outputs "out"))
                     (bindir (string-append out "/bin"))
+                    (sysconfdir (string-append out "/etc/ygopro"))
                     (datadir (string-append out "/share/ygopro")))
                (install-file "lflist.conf" (string-append datadir "/data"))
-               (install-file "system.conf" datadir)
+               (install-file "system.conf" sysconfdir)
                (copy-recursively "textures"
                                  (string-append datadir "/textures"))
                (install-file "bin/debug/ygopro" bindir)
