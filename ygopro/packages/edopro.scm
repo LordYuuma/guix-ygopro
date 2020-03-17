@@ -170,7 +170,7 @@ trivial integration and 100% testing.")
                (substitute* "gframe/image_manager.cpp"
                  (("./textures/") (string-append datadir "/textures/")))
                (substitute* "gframe/game.cpp"
-                 (("./config") datadir))
+                 (("./config") (string-append out "/etc/ygopro")))
                (substitute* "config/system.conf"
                  (("textfont = .*$")
                   (string-append "textfont = " font " 12\n"))
@@ -190,7 +190,7 @@ trivial integration and 100% testing.")
              (let* ((out (assoc-ref outputs "out"))
                     (bindir (string-append out "/bin"))
                     (datadir (string-append out "/share/ygopro")))
-               (copy-recursively "config" datadir)
+               (copy-recursively "config" (string-append out "/etc/ygopro"))
                (copy-recursively "textures"
                                  (string-append datadir "/textures"))
                (install-file "bin/debug/ygopro" bindir)
