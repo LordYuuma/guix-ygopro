@@ -217,3 +217,45 @@ on its own fork of the ygopro-core, it is incompatible with other clients not
 built on top of that.")
     (home-page "https://github.com/mycard/ygopro")
     (license license:agpl3+)))
+
+(define-public edopro-database
+  (let ((commit "00175928c9669b1bef640fe56573f4d68b84928b")
+        (revision "0"))
+    (package
+      (name "edopro-database")
+      (version (git-version "0.2019.09.18" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/YgoproStaff/live2019.git")
+               (commit commit)))
+         (file-name (git-file-name "edopro-database" version))
+         (sha256
+          (base32
+           "0vkj63sjk6bcc1na7zns4sqiz2aharbs4ybzx4qpaclfd2133ga4"))))
+      (build-system copy-build-system)
+      (arguments
+       `(#:install-plan
+         `(("cards.cdb" "share/ygopro/data/")
+           ("script" "share/ygopro/script"
+            #:include-regexp (".*\\.lua"))
+           ("lflist.conf" "share/ygopro/data/"))
+         #:modules ((guix build copy-build-system)
+                    (guix build utils)
+                    (srfi srfi-26))
+         #:phases
+         (modify-phases %standard-phases
+          (add-before 'install 'build-lflist
+            (lambda _
+              (call-with-output-file "lflist.conf"
+                (lambda (port)
+                  (for-each
+                   (lambda (f)
+                     (call-with-input-file f
+                       (cute dump-port <> port)))
+                   (find-files "lflists")))))))))
+      (synopsis "Database and scripts for edopro")
+      (description "Database and scripts compatible with edopro.")
+      (home-page "https://github.com/YgoproStaff/live2019")
+      (license license:agpl3+))))
