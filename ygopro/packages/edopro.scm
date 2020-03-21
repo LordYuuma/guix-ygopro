@@ -20,32 +20,6 @@
   #:use-module (gnu packages version-control)
   #:use-module (ygopro packages mycard))
 
-;; see <http://debbugs.gnu.org/cgi/bugreport.cgi?bug=40066>
-(define premake5
-  (package
-    (inherit premake4)
-    (version "5.0.0-alpha14")
-    (source (origin
-              (method url-fetch)
-              (uri (string-append "https://github.com/premake/premake-core/";
-                                  "releases/download/v" version
-                                  "/premake-" version "-src.zip"))
-              (sha256
-               (base32
-                "0236s7bjvxf7x1l5faywmfzjywflpx42ngyhkn0mqqjnh54a97vw"))))
-    (arguments
-     (substitute-keyword-arguments (package-arguments premake4)
-       ((#:phases phases)
-        `(modify-phases ,phases
-           (replace 'install
-             (lambda* (#:key outputs #:allow-other-keys)
-               (install-file "../../bin/release/premake5"
-                             (string-append (assoc-ref outputs "out") "/bin"))
-               #t))))))
-    (description "@code{premake5} is a command line utility that reads a
-scripted definition of a software project and outputs @file{Makefile}s or
-other lower-level build files.")))
-
 (define-public edopro-core
   (package
    (name "edopro-core")
