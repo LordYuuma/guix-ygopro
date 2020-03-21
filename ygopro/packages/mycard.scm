@@ -223,11 +223,12 @@
       (build-system copy-build-system)
       (arguments
        `(#:install-plan
-         `(("." "share/ygopro/script/"))))
+         `(("." "share/ygopro/script/"
+            #:include-regexp (".*\\.lua")))))
       (synopsis "Script files for YGOPro")
       (description "ygopro-scripts provides scripts needed by YGOPro.")
       (home-page "https://github.com/mycard/ygopro")
-      (license #f))))
+      (license license:gpl2))))
 
 (define-public ygopro-database-en
   (let ((commit "60ed7ce730abf8b158dcaed95b1e0369146f8288")
