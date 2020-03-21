@@ -1,12 +1,52 @@
 ---
- gframe/deck_manager.cpp |  3 --
- gframe/game.cpp         | 65 ++++++++++++++++++++++++++---------------
- gframe/game.h           |  6 ++--
- gframe/utils.cpp        | 10 ++++---
- 4 files changed, 51 insertions(+), 33 deletions(-)
+ gframe/data_handler.cpp | 20 +++++++++++++-----
+ gframe/deck_manager.cpp |  3 ---
+ gframe/game.cpp         | 45 ++++++++++++++++++++++++++---------------
+ gframe/utils.cpp        | 10 +++++----
+ 4 files changed, 50 insertions(+), 28 deletions(-)
 
+diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
+index eb1650a4..9e1b73fa 100644
+--- a/gframe/data_handler.cpp
++++ b/gframe/data_handler.cpp
+@@ -1,4 +1,6 @@
+ #include "data_handler.h"
++#include <iostream>
++#include <sstream>
+ #include <fstream>
+ #include <curl/curl.h>
+ #include <irrlicht.h>
+@@ -10,15 +12,23 @@
+ #include "IrrlichtCommonIncludes1.9/CFileSystem.h"
+ #include "Android/porting_android.h"
+ #endif
++#include "deck_manager.h"
+ 
+ namespace ygo {
+ 
+ void DataHandler::LoadDatabases() {
+-	if(std::ifstream("cards.cdb").good())
+-		dataManager->LoadDB(EPRO_TEXT("cards.cdb"));
+-	for(auto& file : Utils::FindFiles(EPRO_TEXT("./expansions/"), { EPRO_TEXT("cdb") }, 2))
+-		dataManager->LoadDB(EPRO_TEXT("./expansions/") + file);
+-	LoadArchivesDB();
++	const char* data_path_env = getenv("YGOPRO_DATA_PATH");
++	if(!data_path_env) return;
++	path_string data_path_s = ygo::Utils::ToPathString(data_path_env);
++	std::basic_stringstream<path_char> data_path(data_path_s);
++	path_string prefix;
++	while(std::getline(data_path, prefix, EPRO_TEXT(':'))) {
++		prefix = ygo::Utils::NormalizePath(prefix);
++		for (auto& file : Utils::FindFiles(prefix, { EPRO_TEXT("cdb") }))
++			dataManager->LoadDB(prefix + file);
++		deckManager.LoadLFListSingle(prefix + "lflist.conf");
++		dataManager->LoadStrings(prefix + "strings.conf");
++	}
+ }
+ void DataHandler::LoadArchivesDB() {
+ 	std::vector<char> buffer;
 diff --git a/gframe/deck_manager.cpp b/gframe/deck_manager.cpp
-index 36c15fd6..d6a0b76b 100644
+index b46884be..f57f1ef3 100644
 --- a/gframe/deck_manager.cpp
 +++ b/gframe/deck_manager.cpp
 @@ -74,9 +74,6 @@ bool DeckManager::LoadLFListFolder(path_string path) {
@@ -17,13 +57,13 @@ index 36c15fd6..d6a0b76b 100644
 -	LoadLFListSingle(EPRO_TEXT("./lflist.conf"));
 -	LoadLFListFolder(EPRO_TEXT("./lflists/"));
  	LFList nolimit;
- 	nolimit.listName = dataManager.GetSysString(1442); // N/A
+ 	nolimit.listName = gDataManager->GetSysString(1442); // N/A
  	nolimit.hash = 0;
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index 443035ef..c06b639e 100644
+index ce093f7a..70a614ed 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
-@@ -39,6 +39,8 @@
+@@ -43,6 +43,8 @@
  #include "logging.h"
  #include "utils_gui.h"
  #include "custom_skin_enum.h"
@@ -32,27 +72,7 @@ index 443035ef..c06b639e 100644
  
  #ifdef __ANDROID__
  #include "CGUICustomComboBox/CGUICustomComboBox.h"
-@@ -158,10 +160,7 @@ bool Game::Initialize() {
- 		return false;
- 	}
- 	LoadPicUrls();
--	if (std::ifstream("cards.cdb").good()) {
--		dataManager.LoadDB(EPRO_TEXT("cards.cdb"));
--	}
--	LoadExpansionDB();
-+	LoadDataDirs();
- 	LoadZipArchives();
- 	LoadArchivesDB();
- 	RefreshAiDecks();
-@@ -172,7 +171,6 @@ bool Game::Initialize() {
- 	discord.Initialize(filesystem->getWorkingDirectory().c_str());
- 	mainGame->discord.UpdatePresence(DiscordWrapper::INITIALIZE);
- 	PopulateResourcesDirectories();
--	dataManager.LoadStrings(EPRO_TEXT("./expansions/strings.conf"));
- 	deckManager.LoadLFList();
- 	env = device->getGUIEnvironment();
- 	numFont = irr::gui::CGUITTFont::createTTFont(env, gameConf.numfont.c_str(), Scale(16));
-@@ -1334,7 +1332,7 @@ void Game::MainLoop() {
+@@ -1323,7 +1325,7 @@ bool Game::MainLoop() {
  	irr::core::matrix4 mProjection;
  	BuildProjectionMatrix(mProjection, CAMERA_LEFT, CAMERA_RIGHT, CAMERA_BOTTOM, CAMERA_TOP, 1.0f, 100.0f);
  	camera->setProjectionMatrix(mProjection);
@@ -61,7 +81,7 @@ index 443035ef..c06b639e 100644
  	mProjection.buildCameraLookAtMatrixLH(vector3df(FIELD_X, FIELD_Y, FIELD_Z), vector3df(FIELD_X, 0, 0), vector3df(0, 0, 1));
  	camera->setViewMatrixAffector(mProjection);
  	smgr->setAmbientLight(irr::video::SColorf(1.0f, 1.0f, 1.0f));
-@@ -1550,7 +1548,7 @@ void Game::MainLoop() {
+@@ -1492,7 +1494,7 @@ bool Game::MainLoop() {
  			driver->setMaterial(irr::video::IdentityMaterial);
  			driver->clearZBuffer();)
  		} else if(is_building) {
@@ -70,30 +90,16 @@ index 443035ef..c06b639e 100644
  			if(is_siding)
  				discord.UpdatePresence(DiscordWrapper::DECK_SIDING);
  			else
-@@ -1787,9 +1785,19 @@ void Game::LoadZipArchives() {
- 		}
- 	}
- }
--void Game::LoadExpansionDB() {
--	for (auto& file : Utils::FindFiles(EPRO_TEXT("./expansions/"), { EPRO_TEXT("cdb") }, 2))
--		dataManager.LoadDB(EPRO_TEXT("./expansions/") + file);
-+void Game::LoadDataDirs() {
-+	const char* _data_path = getenv("YGOPRO_DATA_PATH");
-+	if(!_data_path) return;
-+	path_string _data_path_s(ygo::Utils::ToPathString(_data_path));
-+	std::basic_stringstream<path_char> data_path(_data_path_s);
-+	path_string prefix;
-+	while(std::getline(data_path, prefix, EPRO_TEXT(':'))) {
-+		prefix = ygo::Utils::NormalizePath(prefix);
-+		for (auto& file : Utils::FindFiles(prefix, { EPRO_TEXT("cdb") }))
-+			dataManager.LoadDB(prefix + file);
-+		deckManager.LoadLFListSingle(prefix + "lflist.conf");
-+		dataManager.LoadStrings(prefix + "strings.conf");
-+	}
- }
- void Game::LoadArchivesDB() {
- 	for(auto& archive: Utils::archives) {
-@@ -2994,21 +3002,32 @@ void Game::MessageHandler(void* payload, const char* string, int type) {
+@@ -2530,7 +2532,7 @@ void Game::ReloadElementsStrings() {
+ 	prev = cbFilterBanlist->getSelected();
+ 	ReloadCBFilterBanlist();
+ 	cbFilterBanlist->setSelected(prev);
+-	
++
+ 	prev = cbDuelRule->getSelected();
+ 	if (prev >= 5) {
+ 		UpdateDuelParam();
+@@ -2886,21 +2888,32 @@ void Game::MessageHandler(void* payload, const char* string, int type) {
  	}
  }
  void Game::PopulateResourcesDirectories() {
@@ -106,10 +112,10 @@ index 443035ef..c06b639e 100644
 -	script_dirs.insert(script_dirs.end(), script_subdirs.begin(), script_subdirs.end());
 -	pic_dirs.push_back(EPRO_TEXT("./expansions/pics/"));
 -	pic_dirs.push_back(EPRO_TEXT("archives"));
-+	const char* _script_path = getenv("YGOPRO_SCRIPT_PATH");
-+	if(_script_path) {
-+		path_string _script_path_s(ygo::Utils::ToPathString(_script_path));
-+		std::basic_stringstream<path_char> script_path(_script_path_s);
++	const char* script_path_env = getenv("YGOPRO_SCRIPT_PATH");
++	if(script_path_env) {
++		path_string script_path_s = ygo::Utils::ToPathString(script_path_env);
++		std::basic_stringstream<path_char> script_path(script_path_s);
 +		path_string script_dir;
 +		while(std::getline(script_path, script_dir, EPRO_TEXT(':'))) {
 +			script_dir = ygo::Utils::NormalizePath(script_dir);
@@ -118,10 +124,10 @@ index 443035ef..c06b639e 100644
 +			script_dirs.insert(script_dirs.end(), script_subdirs.begin(), script_subdirs.end());
 +		}
 +	}
-+	const char* _image_path = getenv("YGOPRO_IMAGE_PATH");
-+	if(_image_path) {
-+		path_string _image_path_s(ygo::Utils::ToPathString(_image_path));
-+		std::basic_stringstream<path_char> image_path(_image_path_s);
++	const char* image_path_env = getenv("YGOPRO_IMAGE_PATH");
++	if(image_path_env) {
++		path_string image_path_s(ygo::Utils::ToPathString(image_path_env));
++		std::basic_stringstream<path_char> image_path(image_path_s);
 +		path_string image_dir;
 +		while(std::getline(image_path, image_dir, EPRO_TEXT(':'))) {
 +			image_dir = ygo::Utils::NormalizePath(image_dir);
@@ -139,39 +145,8 @@ index 443035ef..c06b639e 100644
  	field_dirs.push_back(EPRO_TEXT("./pics/field/"));
  }
  
-diff --git a/gframe/game.h b/gframe/game.h
-index 1aa531cd..a72b7daf 100644
---- a/gframe/game.h
-+++ b/gframe/game.h
-@@ -118,7 +118,7 @@ public:
- 	path_string NoSkinLabel();
- 	bool ApplySkin(const path_string& skin, bool reload = false);
- 	void LoadZipArchives();
--	void LoadExpansionDB();
-+	void LoadDataDirs();
- 	void LoadArchivesDB();
- 	void RefreshDeck(irr::gui::IGUIComboBox* cbDeck);
- 	void RefreshLFLists();
-@@ -212,7 +212,7 @@ public:
- 	irr::core::recti ResizeWin(irr::s32 x, irr::s32 y, irr::s32 x2, irr::s32 y2, bool chat = false);
- 	void SetCentered(irr::gui::IGUIElement* elem);
- 	void ValidateName(irr::gui::IGUIElement* box);
--	
-+
- 	std::wstring ReadPuzzleMessage(const std::wstring& script_name);
- 	OCG_Duel SetupDuel(OCG_DuelOptions opts);
- 	std::vector<char> LoadScript(const std::string& script_name);
-@@ -704,7 +704,7 @@ irr::core::rect<T> Game::Scale(irr::core::rect<T> rect) {
- 
- }
- 
--#define FIELD_X			4.2f	
-+#define FIELD_X			4.2f
- #define FIELD_Y			8.0f
- #define FIELD_Z			7.8f
- #define FIELD_ANGLE		atan(FIELD_Y / FIELD_Z)
 diff --git a/gframe/utils.cpp b/gframe/utils.cpp
-index df2f696d..6bbe5f52 100644
+index 963125ce..cdbe6097 100644
 --- a/gframe/utils.cpp
 +++ b/gframe/utils.cpp
 @@ -234,7 +234,10 @@ namespace ygo {
@@ -205,7 +180,7 @@ index df2f696d..6bbe5f52 100644
  			if((*it).empty()) {
  				it = paths.erase(it);
 @@ -411,4 +414,3 @@ namespace ygo {
- 		return input.find(token) != std::wstring::npos;
+ 		return (convertInputCasing ? ToUpperNoAccents(input) : input).find(convertTokenCasing ? ToUpperNoAccents(token) : token) != std::wstring::npos;
  	}
  }
 -

@@ -47,22 +47,20 @@ scripted definition of a software project and outputs @file{Makefile}s or
 other lower-level build files.")))
 
 (define-public edopro-core
-  (let ((commit "b91379d2f9c47d5e59a8951feca226267a204c26")
-        (revision "0"))
-   (package
-    (name "edopro-core")
-    (version (git-version "6.1" revision commit))
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/edo9300/ygopro-core.git")
-             (commit commit)))
-       (file-name (git-file-name "edopro-core" version))
-       (sha256
-        (base32
-         "1zk6x77m6vwwnw0iy3vrp6dy59xfj2wgxvidr8rbnxyzsff95z5j"))))
-    (build-system gnu-build-system)
+  (package
+   (name "edopro-core")
+   (version "7.0")
+   (source
+    (origin
+     (method git-fetch)
+     (uri (git-reference
+           (url "https://github.com/edo9300/ygopro-core.git")
+           (commit (string-append "v" version))))
+     (file-name (git-file-name "edopro-core" version))
+     (sha256
+      (base32
+       "11jrg90f08j8p3gspgp0if3660g66qvcwqlj6wayj9fajbqmclng"))))
+   (build-system gnu-build-system)
     (arguments
      `(#:tests? #f ; no `check' target
        #:make-flags `("CC=gcc" "--directory=build")
@@ -97,7 +95,7 @@ other lower-level build files.")))
 accommodate for new cards and features.  It is incompatible with forks not
 derived from itself.")
     (home-page "https://github.com/edo9300/ygopro")
-    (license license:agpl3+))))
+    (license license:agpl3+)))
 
 (define nlohmann-json
   (package
@@ -126,7 +124,7 @@ trivial integration and 100% testing.")
 (define-public edopro
   (package
     (name "edopro")
-    (version "37.0.3")
+    (version "37.1.0")
     (source
      (origin
        (method git-fetch)
@@ -135,7 +133,7 @@ trivial integration and 100% testing.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0ksl1453cnm0mwqrf2kv00fm8jklnqzmgc407miskak5737ahybs"))
+        (base32 "16kgm2vp6d1h04rw3sjrlgfqvj3i77czrjvg70xrzsh6f8n7hkm6"))
        (patches
         (search-patches
          "edopro-respect-YGOPRO_-_PATH.patch"))))
@@ -169,7 +167,7 @@ trivial integration and 100% testing.")
                  (("nullptr,clip") "clip"))
                (substitute* "gframe/image_manager.cpp"
                  (("./textures/") (string-append datadir "/textures/")))
-               (substitute* "gframe/game.cpp"
+               (substitute* (find-files "gframe" ".*\\.cpp")
                  (("./config") (string-append out "/etc/ygopro")))
                (substitute* "config/system.conf"
                  (("textfont = .*$")
