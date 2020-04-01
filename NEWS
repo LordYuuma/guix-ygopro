@@ -1,6 +1,15 @@
 ;; -*- mode: scheme -*-
 (channel-news
  (version 0)
+ (entry (commit "955506a40dac8f71bbee328ab65eab9b918beaac")
+        (title (en "ygopro now respects XDG_*_HOME"))
+        (body (en "ygopro now reads configuration from XDG_CONFIG_HOME and
+data from XDG_DATA_HOME -- both times in the ygopro subdirectory --
+defaulting to the installation path for files that are not found there while
+still respecting YGOPRO_*_PATH as before.
+Please move your configuration to $XDG_CONFIG_HOME/ygopro and your decks,
+replays, and other data to $XDG_DATA_HOME/ygopro.  If those variables are not
+set, use the default ~/.config and ~/.local/share respectively.")))
  (entry (commit "5eeeffaaa5605bd3370290ac2cb0df52d8bb3a56")
         (title (en "ygoprotest-images removed"))
         (body (en "The procedure ygoprotest-images and the packages built
