@@ -15,7 +15,7 @@
   #:use-module (gnu packages lua)
   #:use-module (gnu packages sqlite))
 
-(define %ygopro-version "1.035.0-4")
+(define %ygopro-version "1.035.0-5")
 
 (define-public ygopro-core
   (package
@@ -26,11 +26,11 @@
        (method git-fetch)
        (uri (git-reference
              (url "https://github.com/mycard/ygopro-core.git")
-             (commit "465f5b0794ed6fd582a05e570b18f1cfba8e2961")))
+             (commit "caa7d62afc1052d441b647a1f1d187a38777bbfa")))
        (file-name (git-file-name "ygopro-core" %ygopro-version))
        (sha256
         (base32
-         "1wd1da6sdvsavzqy1jhzl5ybg6l61vzdf2warw644zz0xfw3zg8l"))
+         "15ydvlh2h6ha3xw21pl36gcn770zkh9v9yp2h1wg0m42h5jrxdq1"))
        (modules '((guix build utils)
                   (ice-9 textual-ports)))
        (snippet
@@ -103,13 +103,12 @@
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1nfn9gjcddzbnzk816pfh2yzpld2lzx6ji8pv88cirk6k8sd0zc5"))
+        (base32 "17qx87rqz3kqzcsw6j51fd0r9ls4iai9x4zbj04vhqwzkdg5akhz"))
        (modules '((guix build utils)))
        (patches
         (search-patches
-         "ygopro-support-YGOPRO_DATA_PATH.patch"
-         "ygopro-support-YGOPRO_SCRIPT_PATH.patch"
-         "ygopro-support-YGOPRO_IMAGE_PATH.patch"))
+         "ygopro-respect-YGOPRO_-_PATH.patch"
+         "ygopro-respect-XDG-environment-variables.patch"))
        (snippet
         '(begin
            ;; Drop bundled lua
@@ -147,13 +146,11 @@
                (substitute* (find-files "gframe/" ".*\\.(h|cpp)")
                  (("\"\\.\\./ocgcore/([a-z_]+\\.h)\"" all header)
                   (string-append "<ygopro-core/" header ">")))
-               (substitute* "gframe/image_manager.cpp"
-                 (("textures/") (string-append datadir "/textures/")))
-               (substitute* "gframe/game.cpp"
-                 (("fopen\\(\"system.conf\", \"r\"\\);" all)
-                  (string-append all
-                                 "\n\tif(!fp)\n\t\tfp = fopen(\"" sysconfdir
-                                 "/system.conf\", \"r\");")))
+               (substitute* "gframe/game.h"
+                 (("/etc/ygopro" all)
+                  (string-append (assoc-ref outputs "out") all))
+                 (("/usr(/share/ygopro)" all rest)
+                  (string-append (assoc-ref outputs "out") rest)))
                (substitute* "system.conf"
                  (("textfont = .*$")
                   (string-append "textfont = " font " 12\n"))
@@ -163,7 +160,7 @@
          (delete 'bootstrap)
          (replace 'configure
            (lambda _
-            (invoke "premake4" "gmake")))
+            (invoke "premake4" "--xdg-environment" "--environment-paths" "gmake")))
          (replace 'install
            (lambda* (#:key inputs outputs #:allow-other-keys)
              (let* ((out (assoc-ref outputs "out"))
@@ -206,7 +203,7 @@
 
 (define-public ygopro-scripts
   (let ((commit "894fb6c7c0647ed0924b3e2006bc4a737a8376ca")
-        (revision "1"))
+        (revision "0"))
     (package
       (name "ygopro-scripts")
       (version (git-version %ygopro-version revision commit))
@@ -232,7 +229,7 @@
 
 (define-public ygopro-database-en
   (let ((commit "852465b0900fd9b26ceee446c04e6f81b75ffe62")
-        (revision "1"))
+        (revision "0"))
     (package
       (name "ygopro-database-en")
       (version (git-version %ygopro-version revision commit))

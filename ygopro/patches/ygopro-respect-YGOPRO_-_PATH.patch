@@ -1,0 +1,488 @@
+From 155b3333560628fac8df4f7ba5a1872d49606f66 Mon Sep 17 00:00:00 2001
+From: LordYuuma <lordyuuma@gmail.com>
+Date: Tue, 17 Mar 2020 11:08:18 +0100
+Subject: [PATCH] ygopro: Respect YGOPRO_*_PATH.
+
+* premake4.lua [linux](environment-paths): New option.
+* premake5.lua [linux](environment-paths): New option.
+* gframe/config.h (path_foreach): New function template.
+* gframe/data_manager.h (LoadDB): Public override for const char*.
+Private override for (const char*, IReadFile*).
+* gframe/data_manager.cpp (LoadDB): Implement the above.
+[YGOPRO_ENVIRONMENT_PATHS](ScriptReaderEx):
+Read scripts from YGOPRO_SCRIPT_PATH.
+* gframe/game.h [YGOPRO_ENVIRONMENT_PATHS]: Remove LoadExpansions.
+Add LoadDataDirs.
+* gframe/game.cpp [YGOPRO_ENVIRONMENT_PATHS]: Implement LoadDataDirs.
+Do not load databases or strings from working directory.
+Load N/A LFList after data dirs.
+* gframe/deck_manager.cpp [YGOPRO_ENVIRONMENT_PATHS]:
+Do not load LFLists from working directory.
+* gframe/image_manager.h [YGOPRO_ENVIRONMENT_PATHS]:
+(image_path): New private member variable.
+(GetTextureFromImagePath): New method.
+* gframe/image_manager.cpp:
+[YGOPRO_ENVIRONMENT_PATHS](Initial): Setup image_path.
+(GetTextureFromImagePath): Implement.
+(GetTexture, GetTextureField, GetTextureThumb): Reorganize and implement
+with support for YGOPRO_ENVIRONMENT_PATHS.
+---
+ gframe/config.h          | 12 +++++++-
+ gframe/data_manager.cpp  | 29 ++++++++++++++++++
+ gframe/data_manager.h    |  3 ++
+ gframe/deck_manager.cpp  |  2 ++
+ gframe/game.cpp          | 49 ++++++++++++++++++++++++++++++
+ gframe/game.h            |  4 +++
+ gframe/image_manager.cpp | 64 ++++++++++++++++++++++++++++++++--------
+ gframe/image_manager.h   |  7 +++++
+ premake4.lua             |  8 +++++
+ premake5.lua             | 10 ++++++-
+ 10 files changed, 173 insertions(+), 15 deletions(-)
+
+diff --git a/gframe/config.h b/gframe/config.h
+index 2d3f47a1..f516220d 100644
+--- a/gframe/config.h
++++ b/gframe/config.h
+@@ -54,7 +54,6 @@ template<size_t N, typename... TR>
+ inline int myswprintf(wchar_t(&buf)[N], const wchar_t* fmt, TR... args) {
+ 	return swprintf(buf, N, fmt, args...);
+ }
+-
+ #include <irrlicht.h>
+ #ifdef __APPLE__
+ #include <OpenGL/gl.h>
+@@ -66,6 +65,7 @@ inline int myswprintf(wchar_t(&buf)[N], const wchar_t* fmt, TR... args) {
+ #include "CGUITTFont.h"
+ #include "CGUIImageButton.h"
+ #include <iostream>
++#include <sstream>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <memory.h>
+@@ -73,12 +73,22 @@ inline int myswprintf(wchar_t(&buf)[N], const wchar_t* fmt, TR... args) {
+ #include <thread>
+ #include <mutex>
+ #include <algorithm>
++#include <functional>
+ #include "bufferio.h"
+ #include "myfilesystem.h"
+ #include "mysignal.h"
+ #include "../ocgcore/ocgapi.h"
+ #include "../ocgcore/common.h"
+ 
++template<typename CharT>
++inline void path_foreach(const std::basic_string<CharT>& path, CharT pathSep,
++						 const std::function<void(const std::basic_string<CharT>&)>& cb) {
++	std::basic_istringstream<CharT> path_(path);
++	std::basic_string<CharT> dir;
++	while(std::getline(path_, dir, pathSep))
++		cb(dir);
++}
++
+ using namespace irr;
+ using namespace core;
+ using namespace scene;
+diff --git a/gframe/data_manager.cpp b/gframe/data_manager.cpp
+index 7d5951eb..985c072b 100644
+--- a/gframe/data_manager.cpp
++++ b/gframe/data_manager.cpp
+@@ -10,6 +10,17 @@ byte DataManager::scriptBuffer[0x20000];
+ IFileSystem* DataManager::FileSystem;
+ DataManager dataManager;
+ 
++bool DataManager::LoadDB(const char* file) {
++#ifdef _WIN32
++	char wfile[256];
++	BufferIO::DecodeUTF8(file, wfile);
++	IReadFile* reader = FileSystem->createAndOpenFile(wfile);
++#else
++	IReadFile* reader = FileSystem->createAndOpenFile(file);
++#endif
++	return LoadDB(file, reader);
++}
++
+ bool DataManager::LoadDB(const wchar_t* wfile) {
+ 	char file[256];
+ 	BufferIO::EncodeUTF8(wfile, file);
+@@ -18,6 +29,10 @@ bool DataManager::LoadDB(const wchar_t* wfile) {
+ #else
+ 	IReadFile* reader = FileSystem->createAndOpenFile(file);
+ #endif
++	return LoadDB(file, reader);
++}
++
++bool DataManager::LoadDB(const char* file, IReadFile* reader) {
+ 	if(reader == NULL)
+ 		return false;
+ 	spmemvfs_db_t db;
+@@ -350,6 +365,19 @@ int DataManager::CardReader(int code, void* pData) {
+ 	return 0;
+ }
+ byte* DataManager::ScriptReaderEx(const char* script_name, int* slen) {
++#ifdef YGOPRO_ENVIRONMENT_PATHS
++	// default script name: ./script/c%d.lua -> /c%d.lua
++	std::string file_name(script_name + 8);
++	const char* _script_path = getenv("YGOPRO_SCRIPT_PATH");
++	if (!_script_path) return NULL;
++	byte* res = NULL;
++	path_foreach<char>(std::string(_script_path), ':',
++					   [&](const std::string& prefix) {
++						   std::string full_path = prefix + file_name;
++						   res = res ? res : ScriptReader(full_path.c_str(), slen);
++					   });
++	return res;
++#else
+ 	// default script name: ./script/c%d.lua
+ 	char first[256];
+ 	char second[256];
+@@ -364,6 +392,7 @@ byte* DataManager::ScriptReaderEx(const char* script_name, int* slen) {
+ 		return scriptBuffer;
+ 	else
+ 		return ScriptReader(second, slen);
++#endif
+ }
+ byte* DataManager::ScriptReader(const char* script_name, int* slen) {
+ #ifdef _WIN32
+diff --git a/gframe/data_manager.h b/gframe/data_manager.h
+index 00b611d2..fb1fe214 100644
+--- a/gframe/data_manager.h
++++ b/gframe/data_manager.h
+@@ -10,8 +10,11 @@
+ namespace ygo {
+ 
+ class DataManager {
++private:
++	bool LoadDB(const char* file, IReadFile* reader);
+ public:
+ 	DataManager(): _datas(8192), _strings(8192) {}
++	bool LoadDB(const char* file);
+ 	bool LoadDB(const wchar_t* wfile);
+ 	bool LoadStrings(const char* file);
+ 	bool LoadStrings(IReadFile* reader);
+diff --git a/gframe/deck_manager.cpp b/gframe/deck_manager.cpp
+index a91fd72d..a5a01f42 100644
+--- a/gframe/deck_manager.cpp
++++ b/gframe/deck_manager.cpp
+@@ -48,8 +48,10 @@ void DeckManager::LoadLFListSingle(const char* path) {
+ 	}
+ }
+ void DeckManager::LoadLFList() {
++#ifndef YGOPRO_DATA_PATH
+ 	LoadLFListSingle("expansions/lflist.conf");
+ 	LoadLFListSingle("lflist.conf");
++#endif
+ 	LFList nolimit;
+ 	nolimit.listName = L"N/A";
+ 	nolimit.hash = 0;
+diff --git a/gframe/game.cpp b/gframe/game.cpp
+index 1f7d2e77..cc5f9cd5 100644
+--- a/gframe/game.cpp
++++ b/gframe/game.cpp
+@@ -49,7 +49,9 @@ bool Game::Initialize() {
+ 	menuHandler.prev_sel = -1;
+ 	memset(&dInfo, 0, sizeof(DuelInfo));
+ 	memset(chatTiming, 0, sizeof(chatTiming));
++#ifndef YGOPRO_ENVIRONMENT_PATHS
+ 	deckManager.LoadLFList();
++#endif
+ 	driver = device->getVideoDriver();
+ 	driver->setTextureCreationFlag(irr::video::ETCF_CREATE_MIP_MAPS, false);
+ 	driver->setTextureCreationFlag(irr::video::ETCF_OPTIMIZED_FOR_QUALITY, true);
+@@ -59,6 +61,10 @@ bool Game::Initialize() {
+ 		return false;
+ 	}
+ 	dataManager.FileSystem = device->getFileSystem();
++#ifdef YGOPRO_ENVIRONMENT_PATHS
++	LoadDataDirs();
++	deckManager.LoadLFList();
++#else
+ 	LoadExpansions();
+ 	if(!dataManager.LoadDB(L"cards.cdb")) {
+ 		ErrorLog("Failed to load card database (cards.cdb)!");
+@@ -69,6 +75,7 @@ bool Game::Initialize() {
+ 		return false;
+ 	}
+ 	dataManager.LoadStrings("./expansions/strings.conf");
++#endif
+ 	env = device->getGUIEnvironment();
+ 	numFont = irr::gui::CGUITTFont::createTTFont(env, gameConf.numfont, 16);
+ 	adFont = irr::gui::CGUITTFont::createTTFont(env, gameConf.numfont, 12);
+@@ -928,6 +935,47 @@ void Game::SetStaticText(irr::gui::IGUIStaticText* pControl, u32 cWidth, irr::gu
+ 	dataManager.strBuffer[pbuffer] = 0;
+ 	pControl->setText(dataManager.strBuffer);
+ }
++#ifdef YGOPRO_ENVIRONMENT_PATHS
++bool Game::LoadDataDirs() {
++	const char* data_path = getenv("YGOPRO_DATA_PATH");
++	if(!data_path) {
++		ErrorLog("No data dirs");
++		return false;
++	}
++	bool found_cdb = false;
++	bool found_strings = false;
++	path_foreach<char>(// Explicit template needed for implicit lambda conversion
++		std::string(data_path), ':',
++		[&](const std::string& prefix) {
++			FileSystem::TraversalDir(
++				prefix.c_str(),
++				[&](const char* name, bool isdir) {
++					if (isdir) return;
++					size_t len = strlen(name);
++					std::string full_path = prefix + "/" + name;
++					if (len > 4 && !strncmp(name + len - 4, ".cdb", 4)) {
++						dataManager.LoadDB(full_path.c_str());
++						found_cdb = true;
++					}
++					if (len == 12 && !strncmp(name, "strings.conf", 12)) {
++						dataManager.LoadStrings(full_path.c_str());
++						found_strings = true;
++					}
++					if (len == 11 && !strncmp(name, "lflist.conf", 11)) {
++						deckManager.LoadLFListSingle(full_path.c_str());
++					}
++				});
++		});
++	if(!found_cdb) {
++		ErrorLog("No card database found");
++		return false;
++	} else if (!found_strings) {
++		ErrorLog("No strings found");
++		return false;
++	}
++	return true;
++}
++#else
+ void Game::LoadExpansions() {
+ 	FileSystem::TraversalDir(L"./expansions", [](const wchar_t* name, bool isdir) {
+ 		if(!isdir && wcsrchr(name, '.') && !mywcsncasecmp(wcsrchr(name, '.'), L".cdb", 4)) {
+@@ -970,6 +1018,7 @@ void Game::LoadExpansions() {
+ 		}
+ 	}
+ }
++#endif // USE_ENVIRONMENT_PATHS
+ void Game::RefreshDeck(irr::gui::IGUIComboBox* cbDeck) {
+ 	cbDeck->clear();
+ 	FileSystem::TraversalDir(L"./deck", [cbDeck](const wchar_t* name, bool isdir) {
+diff --git a/gframe/game.h b/gframe/game.h
+index f865a4b0..fb910b52 100644
+--- a/gframe/game.h
++++ b/gframe/game.h
+@@ -114,7 +114,11 @@ public:
+ 	void BuildProjectionMatrix(irr::core::matrix4& mProjection, f32 left, f32 right, f32 bottom, f32 top, f32 znear, f32 zfar);
+ 	void InitStaticText(irr::gui::IGUIStaticText* pControl, u32 cWidth, u32 cHeight, irr::gui::CGUITTFont* font, const wchar_t* text);
+ 	void SetStaticText(irr::gui::IGUIStaticText* pControl, u32 cWidth, irr::gui::CGUITTFont* font, const wchar_t* text, u32 pos = 0);
++#ifdef YGOPRO_ENVIRONMENT_PATHS
++	bool LoadDataDirs();
++#else
+ 	void LoadExpansions();
++#endif
+ 	void RefreshDeck(irr::gui::IGUIComboBox* cbDeck);
+ 	void RefreshReplay();
+ 	void RefreshSingleplay();
+diff --git a/gframe/image_manager.cpp b/gframe/image_manager.cpp
+index 5c9fc0e9..ed94b81f 100644
+--- a/gframe/image_manager.cpp
++++ b/gframe/image_manager.cpp
+@@ -6,6 +6,10 @@ namespace ygo {
+ ImageManager imageManager;
+ 
+ bool ImageManager::Initial() {
++#ifdef YGOPRO_ENVIRONMENT_PATHS
++	const char *_image_path = getenv("YGOPRO_IMAGE_PATH");
++	image_path = _image_path ? _image_path : "";
++#endif
+ 	tCover[0] = NULL;
+ 	tCover[1] = NULL;
+ 	tCover[2] = GetTextureFromFile("textures/cover.jpg", CARD_IMG_WIDTH, CARD_IMG_HEIGHT);
+@@ -183,6 +187,18 @@ void imageScaleNNAA(irr::video::IImage *src, irr::video::IImage *dest) {
+ 			dest->setPixel(dx, dy, pxl);
+ 		}
+ }
++#ifdef YGOPRO_ENVIRONMENT_PATHS
++irr::video::ITexture* ImageManager::GetTextureFromImagePath(const char* file, s32 width, s32 height) {
++	irr::video::ITexture* img = NULL;
++	path_foreach<char>(image_path, ':',
++					   [&](const std::string& prefix) {
++						   std::string full_path = prefix + "/" + file;
++						   if(!img && FileSystem::IsFileExists(full_path.c_str()))
++							   img = GetTextureFromFile(full_path.c_str(), width, height);
++					   });
++	return img;
++}
++#endif
+ irr::video::ITexture* ImageManager::GetTextureFromFile(const char* file, s32 width, s32 height) {
+ 	if(mainGame->gameConf.use_image_scale) {
+ 		irr::video::ITexture* texture;
+@@ -217,13 +233,20 @@ irr::video::ITexture* ImageManager::GetTexture(int code, bool fit) {
+ 	}
+ 	auto tit = tMap[fit ? 1 : 0].find(code);
+ 	if(tit == tMap[fit ? 1 : 0].end()) {
++		irr::video::ITexture* img;
++#ifdef YGOPRO_ENVIRONMENT_PATHS
++		char file[32];
++		sprintf(file, "%d.jpg", code);
++		img = GetTextureFromImagePath(file, width, height);
++#else
+ 		char file[256];
+ 		sprintf(file, "expansions/pics/%d.jpg", code);
+-		irr::video::ITexture* img = GetTextureFromFile(file, width, height);
++		img = GetTextureFromFile(file, width, height);
+ 		if(img == NULL) {
+ 			sprintf(file, "pics/%d.jpg", code);
+ 			img = GetTextureFromFile(file, width, height);
+ 		}
++#endif
+ 		if(img == NULL && !mainGame->gameConf.use_image_scale) {
+ 			tMap[fit ? 1 : 0][code] = NULL;
+ 			return GetTextureThumb(code);
+@@ -243,20 +266,32 @@ irr::video::ITexture* ImageManager::GetTextureThumb(int code) {
+ 	int width = CARD_THUMB_WIDTH * mainGame->xScale;
+ 	int height = CARD_THUMB_HEIGHT * mainGame->yScale;
+ 	if(tit == tThumb.end()) {
++		irr::video::ITexture* img;
++#ifdef YGOPRO_ENVIRONMENT_PATHS
++		char file[64];
++		sprintf(file, "thumbnail/%d.jpg", code);
++		img = GetTextureFromImagePath(file, width, height);
++#else
+ 		char file[256];
+ 		sprintf(file, "expansions/pics/thumbnail/%d.jpg", code);
+-		irr::video::ITexture* img = GetTextureFromFile(file, width, height);
++		img = GetTextureFromFile(file, width, height);
+ 		if(img == NULL) {
+ 			sprintf(file, "pics/thumbnail/%d.jpg", code);
+ 			img = GetTextureFromFile(file, width, height);
+ 		}
++#endif
+ 		if(img == NULL && mainGame->gameConf.use_image_scale) {
++#ifdef YGOPRO_ENVIRONMENT_PATHS
++			sprintf(file, "%d.jpg", code);
++			img = GetTextureFromImagePath(file, width, height);
++#else
+ 			sprintf(file, "expansions/pics/%d.jpg", code);
+ 			img = GetTextureFromFile(file, width, height);
+ 			if(img == NULL) {
+ 				sprintf(file, "pics/%d.jpg", code);
+ 				img = GetTextureFromFile(file, width, height);
+ 			}
++#endif
+ 		}
+ 		tThumb[code] = img;
+ 		return (img == NULL) ? tUnknownThumb : img;
+@@ -271,9 +306,19 @@ irr::video::ITexture* ImageManager::GetTextureField(int code) {
+ 		return NULL;
+ 	auto tit = tFields.find(code);
+ 	if(tit == tFields.end()) {
++		irr::video::ITexture* img;
++#ifdef YGOPRO_ENVIRONMENT_PATHS
++		char png_file[64];
++		char jpg_file[64];
++		sprintf(png_file, "field/%d.png", code);
++		sprintf(jpg_file, "field/%d.jpg", code);
++		img = GetTextureFromImagePath(png_file, 512 * mainGame->xScale, 512 * mainGame->yScale);
++		if (img == NULL)
++			img = GetTextureFromImagePath(jpg_file, 512 * mainGame->xScale, 512 * mainGame->yScale);
++#else
+ 		char file[256];
+ 		sprintf(file, "expansions/pics/field/%d.png", code);
+-		irr::video::ITexture* img = GetTextureFromFile(file, 512 * mainGame->xScale, 512 * mainGame->yScale);
++		img = GetTextureFromFile(file, 512 * mainGame->xScale, 512 * mainGame->yScale);
+ 		if(img == NULL) {
+ 			sprintf(file, "expansions/pics/field/%d.jpg", code);
+ 			img = GetTextureFromFile(file, 512 * mainGame->xScale, 512 * mainGame->yScale);
+@@ -285,17 +330,10 @@ irr::video::ITexture* ImageManager::GetTextureField(int code) {
+ 		if(img == NULL) {
+ 			sprintf(file, "pics/field/%d.jpg", code);
+ 			img = GetTextureFromFile(file, 512 * mainGame->xScale, 512 * mainGame->yScale);
+-			if(img == NULL) {
+-				tFields[code] = NULL;
+-				return NULL;
+-			} else {
+-				tFields[code] = img;
+-				return img;
+-			}
+-		} else {
+-			tFields[code] = img;
+-			return img;
+ 		}
++#endif
++		tFields[code] = img;
++		return img;
+ 	}
+ 	if(tit->second)
+ 		return tit->second;
+diff --git a/gframe/image_manager.h b/gframe/image_manager.h
+index 971e2412..799cda18 100644
+--- a/gframe/image_manager.h
++++ b/gframe/image_manager.h
+@@ -8,6 +8,10 @@
+ namespace ygo {
+ 
+ class ImageManager {
++#ifdef YGOPRO_ENVIRONMENT_PATHS
++private:
++	std::string image_path;
++#endif
+ public:
+ 	bool Initial();
+ 	void SetDevice(irr::IrrlichtDevice* dev);
+@@ -15,6 +19,9 @@ public:
+ 	void RemoveTexture(int code);
+ 	void ResizeTexture();
+ 	irr::video::ITexture* GetTextureFromFile(const char* file, s32 width, s32 height);
++#ifdef YGOPRO_ENVIRONMENT_PATHS
++	irr::video::ITexture* GetTextureFromImagePath(const char* file, s32 width, s32 height);
++#endif
+ 	irr::video::ITexture* GetTexture(int code, bool fit = false);
+ 	irr::video::ITexture* GetTextureThumb(int code);
+ 	irr::video::ITexture* GetTextureField(int code);
+diff --git a/premake4.lua b/premake4.lua
+index 4763c736..82a1656c 100644
+--- a/premake4.lua
++++ b/premake4.lua
+@@ -22,6 +22,14 @@ solution "ygo"
+ 
+     configuration "linux"
+         defines { "LUA_USE_LINUX" }
++        newoption
++        {
++            trigger = "environment-paths",
++            description = "Read databases, scripts and images from YGOPRO_*_PATH"
++        }
++        if _OPTIONS["environment-paths"] then
++            defines { "YGOPRO_ENVIRONMENT_PATHS" }
++        end
+ 
+     configuration "vs*"
+         flags "EnableSSE2"
+diff --git a/premake5.lua b/premake5.lua
+index 8e1d5659..fbccede1 100644
+--- a/premake5.lua
++++ b/premake5.lua
+@@ -31,6 +31,14 @@ solution "ygo"
+ 
+     configuration "linux"
+         defines { "LUA_USE_LINUX" }
++        newoption
++        {
++            trigger = "environment-paths",
++            description = "Read databases, scripts and images from YGOPRO_*_PATH"
++        }
++        if _OPTIONS["environment-paths"] then
++            defines { "YGOPRO_ENVIRONMENT_PATHS" }
++        end
+ 
+     configuration "Release"
+         optimize "Speed"
+@@ -57,7 +65,7 @@ solution "ygo"
+     configuration "vs*"
+         vectorextensions "SSE2"
+         defines { "_CRT_SECURE_NO_WARNINGS" }
+-    
++
+     configuration "not vs*"
+         buildoptions { "-fno-strict-aliasing", "-Wno-multichar" }
+ 
+-- 
+2.26.0
+

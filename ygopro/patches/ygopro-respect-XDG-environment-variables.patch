@@ -1,0 +1,945 @@
+From 5b4a327ab4466aecd3081ff0c6d05a786b24e20e Mon Sep 17 00:00:00 2001
+From: LordYuuma <lordyuuma@gmail.com>
+Date: Thu, 19 Mar 2020 19:10:25 +0100
+Subject: [PATCH] ygopro: Respect XDG environment variables.
+
+* premake4.lua [linux](xdg-environment): New option.
+* premake5.lua [linux](xdg-environment): New option.
+* gframe/data_manager.cpp (ScriptReaderEx): Forward absolute paths to
+ScriptReader.  Such paths come with the introduction of XDG_ENVIRONMENT,
+where single duel scripts are looked up in XDG_DATA_HOME.
+Without that, ScriptReaderEx would try to look up single mode scripts in
+YGOPRO_SCRIPT_PATH, where they don't belong.  Specifically, this will be a
+bug for those trying to use YGOPRO_ENVIRONMENT_PATHS without XDG_ENVIRONMENT.
+* gframe/deck_manager.cpp (LoadDeck)[XDG_ENVIRONMENT]:
+Search in $XDG_DATA_HOME/ygopro/deck instead of working directory.
+(SaveDeck)[XDG_ENVIRONMENT]: Save in $XDG_DATA_HOME/ygopro/deck.
+(DeleteDeck)[XDG_ENVIRONMENT]: Delete from $XDG_DATA_HOME/ygopro/deck.
+* gframe/game.h [XDG_ENVIRONMENT](sysconfdir,sysdatadir,CONFIG_HOME)
+(DATA_HOME): New variables.
+[XDG_ENVIRONMENT](FindConfigFile, FindDataFile): New methods.
+* gframe/game.cpp [XDG_ENVIRONMENT](FindConfigFile, FindDataFile): Implement.
+(Initialize)[XDG_ENVIRONMENT]: Setup CONFIG_HOME and DATA_HOME before reading
+config files.
+(LoadConfig)[XDG_ENVIRONMENT]: Use system.conf from CONFIG_HOME or sysconfdir.
+(SaveConfig)[XDG_ENVIRONMENT]: Save system.conf in CONFIG_HOME.
+(RefreshDeck)[XDG_ENVIRONMENT]: Traverse $XDG_DATA_HOME/ygopro/deck.
+(RefreshReplay)[XDG_ENVIRONMENT]: Traverse $XDG_DATA_HOME/ygopro/replay.
+(RefreshSingleplay)[XDG_ENVIRONMENT]: Traverse $XDG_DATA_HOME/ygopro/single.
+* gframe/image_manager.cpp [XDG_ENVIRONMENT](DATA): New macro.
+[!XDG_ENVIRONMENT](DATA): New macro.
+(Initial, ResizeTexture): Define in terms of DATA macro.
+* gframe/replay.cpp (BeginRecord)[XDG_ENVIRONMENT]:
+Ensure $XDG_DATA_HOME/ygopro/replay exists.  Save last replay there.
+(OpenReplay)[XDG_ENVIRONMENT]: Read from $XDG_DATA_HOME/ygopro/replay.
+(CheckReplay)[XDG_ENVIRONMENT]: Likewise.
+(DeleteReplay)[XDG_ENVIRONMENT]: Delete from $XDG_DATA_HOME/ygopro/replay.
+(RenameReplay)[XDG_ENVIRONMENT]: Find replays in data dirs, save in
+$XDG_DATA_HOME/ygopro/replay.
+* gframe/single_mode.cpp [XDG_ENVIRONMENT](DATA): New macro.
+[!XDG_ENVIRONMENT](DATA): New macro.
+(SinglePlayThread): Define in terms of DATA macro.
+* gframe/sound_manager.h [XDG_ENVIRONMENT](BGMList): Store std::strings.
+[XDG_ENVIRONMENT](RefreshBGMDir,RefreshBGMDir1): New private methods.
+[XDG_ENVIRONMENT](RefershBGMDir): Hide.
+* gframe/sound_manager.cpp [XDG_ENVIRONMENT](DATA): New macro.
+[!XDG_ENVIRONMENT](DATA): New macro.
+[XDG_ENVIRONMENT](RefreshBGMDir,RefreshBGMDir1): Implement.
+(RefreshBGMList)[XDG_ENVIRONMENT]: Use RefreshBGMDir.
+(PlaySoundEffect): Implement in terms of DATA macro.
+(PlayBGM)[XDG_ENVIRONMENT]: Use full path directly.
+---
+ gframe/data_manager.cpp  |   2 +
+ gframe/deck_manager.cpp  |  34 ++++++++++++
+ gframe/game.cpp          | 110 +++++++++++++++++++++++++++++++++++++++
+ gframe/game.h            |  11 +++-
+ gframe/image_manager.cpp |  68 +++++++++++++-----------
+ gframe/replay.cpp        |  53 +++++++++++++++++++
+ gframe/single_mode.cpp   |  10 +++-
+ gframe/sound_manager.cpp | 102 +++++++++++++++++++++++++-----------
+ gframe/sound_manager.h   |   9 ++++
+ premake4.lua             |   8 +++
+ premake5.lua             |   8 +++
+ 11 files changed, 352 insertions(+), 63 deletions(-)
+
+diff --git a/gframe/data_manager.cpp b/gframe/data_manager.cpp
+index 985c072b..61c7a530 100644
+--- a/gframe/data_manager.cpp
++++ b/gframe/data_manager.cpp
+@@ -365,6 +365,8 @@ int DataManager::CardReader(int code, void* pData) {
+ 	return 0;
+ }
+ byte* DataManager::ScriptReaderEx(const char* script_name, int* slen) {
++	if (script_name[0] == '/') // absolute path
++		return ScriptReader(script_name, slen);
+ #ifdef YGOPRO_ENVIRONMENT_PATHS
+ 	// default script name: ./script/c%d.lua -> /c%d.lua
+ 	std::string file_name(script_name + 8);
+diff --git a/gframe/deck_manager.cpp b/gframe/deck_manager.cpp
+index a5a01f42..4d712bc6 100644
+--- a/gframe/deck_manager.cpp
++++ b/gframe/deck_manager.cpp
+@@ -208,7 +208,17 @@ bool DeckManager::LoadDeck(const wchar_t* file) {
+ 	int sp = 0, ct = 0, mainc = 0, sidec = 0, code;
+ 	wchar_t localfile[64];
+ 	myswprintf(localfile, L"./deck/%ls.ydk", file);
++#ifdef XDG_ENVIRONMENT
++	FILE* fp;
++	{
++		char file2[256];
++		BufferIO::EncodeUTF8(localfile, file2);
++		std::string path = mainGame->FindDataFile(file2);
++		fp = fopen(path.c_str(), "r");
++	}
++#else
+ 	FILE* fp = OpenDeckFile(localfile, "r");
++#endif
+ 	if(!fp) {
+ 		fp = OpenDeckFile(file, "r");
+ 	}
+@@ -237,11 +247,30 @@ bool DeckManager::LoadDeck(const wchar_t* file) {
+ 	return true;
+ }
+ bool DeckManager::SaveDeck(Deck& deck, const wchar_t* name) {
++#ifdef XDG_ENVIRONMENT
++	std::string deck_path = mainGame->DATA_HOME + "/deck";
++	if(!FileSystem::IsDirExists(mainGame->DATA_HOME.c_str()) &&
++	   !FileSystem::MakeDir(mainGame->DATA_HOME.c_str()))
++		return false;
++	if(!FileSystem::IsDirExists(deck_path.c_str()) &&
++	   !FileSystem::MakeDir(deck_path.c_str()))
++		return false;
++	wchar_t file[64];
++	myswprintf(file, L"deck/%ls.ydk", name);
++	FILE* fp;
++	{
++		char file2[256];
++		BufferIO::EncodeUTF8(file, file2);
++		std::string real_file = mainGame->FindDataFile(file2, false);
++		fp = fopen(real_file.c_str(), "w");
++	}
++#else
+ 	if(!FileSystem::IsDirExists(L"./deck") && !FileSystem::MakeDir(L"./deck"))
+ 		return false;
+ 	wchar_t file[64];
+ 	myswprintf(file, L"./deck/%ls.ydk", name);
+ 	FILE* fp = OpenDeckFile(file, "w");
++#endif
+ 	if(!fp)
+ 		return false;
+ 	fprintf(fp, "#created by ...\n#main\n");
+@@ -265,7 +294,12 @@ bool DeckManager::DeleteDeck(Deck& deck, const wchar_t* name) {
+ #else
+ 	char filefn[256];
+ 	BufferIO::EncodeUTF8(file, filefn);
++#ifdef XDG_ENVIRONMENT
++	std::string real_file = mainGame->FindDataFile(filefn);
++	int result = unlink(real_file.c_str());
++#else
+ 	int result = unlink(filefn);
++#endif
+ 	return result == 0;
+ #endif
+ }
+diff --git a/gframe/game.cpp b/gframe/game.cpp
+index cc5f9cd5..8258722f 100644
+--- a/gframe/game.cpp
++++ b/gframe/game.cpp
+@@ -16,8 +16,62 @@ namespace ygo {
+ 
+ Game* mainGame;
+ 
++#ifdef XDG_ENVIRONMENT
++std::string Game::FindConfigFile(const std::string& file, bool existing) {
++	{
++		std::string base(CONFIG_HOME);
++		base += "/";
++		base += file;
++		if (!existing || FileSystem::IsFileExists(base.c_str()))
++			return base;
++	}
++	{
++		std::string base(sysconfdir);
++		base += "/";
++		base += file;
++		return base;
++	}
++}
++
++std::string Game::FindDataFile(const std::string& file, bool existing) {
++	{
++		std::string base(DATA_HOME);
++		base += "/";
++		base += file;
++		if (!existing || FileSystem::IsFileExists(base.c_str()))
++			return base;
++	}
++	{
++		std::string base(sysdatadir);
++		base += "/";
++		base += file;
++		return base;
++	}
++}
++#endif
++
+ bool Game::Initialize() {
+ 	srand(time(0));
++#ifdef XDG_ENVIRONMENT
++	{
++		const char* xdg_config_home = getenv("XDG_CONFIG_HOME");
++		const char* xdg_data_home = getenv("XDG_DATA_HOME");
++		if (xdg_config_home)
++			CONFIG_HOME = xdg_config_home;
++		else {
++			CONFIG_HOME = getenv("HOME");
++			CONFIG_HOME += "/.config";
++		}
++		if (xdg_data_home)
++			DATA_HOME = xdg_data_home;
++		else {
++			DATA_HOME = getenv("HOME");
++			DATA_HOME += "/.local/share";
++		}
++		CONFIG_HOME += "/ygopro";
++		DATA_HOME += "/ygopro";
++	}
++#endif
+ 	LoadConfig();
+ 	irr::SIrrlichtCreationParameters params = irr::SIrrlichtCreationParameters();
+ 	params.AntiAlias = gameConf.antialias;
+@@ -1021,6 +1075,18 @@ void Game::LoadExpansions() {
+ #endif // USE_ENVIRONMENT_PATHS
+ void Game::RefreshDeck(irr::gui::IGUIComboBox* cbDeck) {
+ 	cbDeck->clear();
++#ifdef XDG_ENVIRONMENT
++	std::string deck_dir = DATA_HOME + "/deck";
++	FileSystem::TraversalDir(deck_dir.c_str(), [cbDeck](const char* name, bool isdir) {
++		if(!isdir && strchr(name, '.') && !strncmp(strchr(name, '.'), ".ydk", 4)) {
++			size_t len = strlen(name);
++			wchar_t deckname[256];
++			BufferIO::DecodeUTF8(name, deckname);
++			deckname[wcslen(deckname) - 4] = 0;
++			cbDeck->addItem(deckname);
++		}
++	});
++#else
+ 	FileSystem::TraversalDir(L"./deck", [cbDeck](const wchar_t* name, bool isdir) {
+ 		if(!isdir && wcsrchr(name, '.') && !mywcsncasecmp(wcsrchr(name, '.'), L".ydk", 4)) {
+ 			size_t len = wcslen(name);
+@@ -1030,6 +1096,7 @@ void Game::RefreshDeck(irr::gui::IGUIComboBox* cbDeck) {
+ 			cbDeck->addItem(deckname);
+ 		}
+ 	});
++#endif
+ 	for(size_t i = 0; i < cbDeck->getItemCount(); ++i) {
+ 		if(!wcscmp(cbDeck->getItem(i), gameConf.lastdeck)) {
+ 			cbDeck->setSelected(i);
+@@ -1039,24 +1106,54 @@ void Game::RefreshDeck(irr::gui::IGUIComboBox* cbDeck) {
+ }
+ void Game::RefreshReplay() {
+ 	lstReplayList->clear();
++#ifdef XDG_ENVIRONMENT
++	std::string replay_dir = DATA_HOME + "/replay";
++	FileSystem::TraversalDir(replay_dir.c_str(), [this](const char* name, bool isdir) {
++		if(!isdir && strchr(name, '.') && !strncmp(strchr(name, '.'), ".yrp", 4)) {
++			size_t len = strlen(name);
++			wchar_t replay[256];
++			BufferIO::DecodeUTF8(name, replay);
++			if (Replay::CheckReplay(replay))
++				lstReplayList->addItem(replay);
++		}
++	});
++#else
+ 	FileSystem::TraversalDir(L"./replay", [this](const wchar_t* name, bool isdir) {
+ 		if(!isdir && wcsrchr(name, '.') && !mywcsncasecmp(wcsrchr(name, '.'), L".yrp", 4) && Replay::CheckReplay(name))
+ 			lstReplayList->addItem(name);
+ 	});
++#endif
+ }
+ void Game::RefreshSingleplay() {
+ 	lstSinglePlayList->clear();
+ 	stSinglePlayInfo->setText(L"");
++#ifdef XDG_ENVIRONMENT
++	std::string single_dir = DATA_HOME + "/single";
++	FileSystem::TraversalDir(single_dir.c_str(), [this](const char* name, bool isdir) {
++		if(!isdir && strchr(name, '.') && !strncmp(strchr(name, '.'), ".lua", 4)) {
++			size_t len = strlen(name);
++			wchar_t single[256];
++			BufferIO::DecodeUTF8(name, single);
++			lstSinglePlayList->addItem(single);
++		}
++	});
++#else
+ 	FileSystem::TraversalDir(L"./single", [this](const wchar_t* name, bool isdir) {
+ 		if(!isdir && wcsrchr(name, '.') && !mywcsncasecmp(wcsrchr(name, '.'), L".lua", 4))
+ 			lstSinglePlayList->addItem(name);
+ 	});
++#endif
+ }
+ void Game::RefreshBot() {
+ 	if(!gameConf.enable_bot_mode)
+ 		return;
+ 	botInfo.clear();
++#ifdef XDG_ENVIRONMENT
++	FILE* fp;
++	{ std::string path = FindConfigFile("bot.conf"); fp = fopen(path.c_str(), "r"); }
++#else
+ 	FILE* fp = fopen("bot.conf", "r");
++#endif
+ 	char linebuf[256];
+ 	char strbuf[256];
+ 	if(fp) {
+@@ -1096,7 +1193,12 @@ void Game::RefreshBot() {
+ 		SetStaticText(stBotInfo, 200, guiFont, dataManager.GetSysString(1385));
+ }
+ void Game::LoadConfig() {
++#ifdef XDG_ENVIRONMENT
++	FILE* fp;
++	{ std::string path = FindConfigFile("system.conf"); fp = fopen(path.c_str(), "r"); }
++#else
+ 	FILE* fp = fopen("system.conf", "r");
++#endif
+ 	if(!fp)
+ 		return;
+ 	char linebuf[256];
+@@ -1259,7 +1361,15 @@ void Game::LoadConfig() {
+ 	fclose(fp);
+ }
+ void Game::SaveConfig() {
++#ifdef XDG_ENVIRONMENT
++	if (!FileSystem::IsDirExists(CONFIG_HOME.c_str()) &&
++		!FileSystem::MakeDir(CONFIG_HOME.c_str()))
++		return;
++	FILE* fp;
++	{ std::string path = FindConfigFile("system.conf", false); fp = fopen(path.c_str(), "w"); }
++#else
+ 	FILE* fp = fopen("system.conf", "w");
++#endif
+ 	fprintf(fp, "#config file\n#nickname & gamename should be less than 20 characters\n");
+ 	char linebuf[256];
+ 	fprintf(fp, "use_d3d = %d\n", gameConf.use_d3d ? 1 : 0);
+diff --git a/gframe/game.h b/gframe/game.h
+index fb910b52..8d245e93 100644
+--- a/gframe/game.h
++++ b/gframe/game.h
+@@ -107,7 +107,6 @@ struct FadingUnit {
+ };
+ 
+ class Game {
+-
+ public:
+ 	bool Initialize();
+ 	void MainLoop();
+@@ -181,6 +180,16 @@ public:
+ 	void FlashWindow();
+ 	void SetCursor(ECURSOR_ICON icon);
+ 
++#ifdef XDG_ENVIRONMENT
++	std::string FindConfigFile(const std::string& file, bool existing = true);
++	std::string FindDataFile(const std::string& file, bool existing = true);
++
++	constexpr static const char* sysconfdir = "/etc/ygopro";
++	constexpr static const char* sysdatadir = "/usr/share/ygopro";
++	std::string CONFIG_HOME;
++	std::string DATA_HOME;
++#endif
++
+ 	std::mutex gMutex;
+ 	Signal frameSignal;
+ 	Signal actionSignal;
+diff --git a/gframe/image_manager.cpp b/gframe/image_manager.cpp
+index fa576951..a3bf8f53 100644
+--- a/gframe/image_manager.cpp
++++ b/gframe/image_manager.cpp
+@@ -1,6 +1,12 @@
+ #include "image_manager.h"
+ #include "game.h"
+ 
++#ifdef XDG_ENVIRONMENT
++#define DATA(x) mainGame->FindDataFile(x).c_str()
++#else
++#define DATA(x) x
++#endif
++
+ namespace ygo {
+ 
+ ImageManager imageManager;
+@@ -12,36 +18,36 @@ bool ImageManager::Initial() {
+ #endif
+ 	tCover[0] = NULL;
+ 	tCover[1] = NULL;
+-	tCover[2] = GetTextureFromFile("textures/cover.jpg", CARD_IMG_WIDTH, CARD_IMG_HEIGHT);
+-	tCover[3] = GetTextureFromFile("textures/cover2.jpg", CARD_IMG_WIDTH, CARD_IMG_HEIGHT);
++	tCover[2] = GetTextureFromFile(DATA("textures/cover.jpg"), CARD_IMG_WIDTH, CARD_IMG_HEIGHT);
++	tCover[3] = GetTextureFromFile(DATA("textures/cover2.jpg"), CARD_IMG_WIDTH, CARD_IMG_HEIGHT);
+ 	if(!tCover[3])
+ 		tCover[3] = tCover[2];
+ 	tUnknown = NULL;
+ 	tUnknownFit = NULL;
+ 	tUnknownThumb = NULL;
+-	tAct = driver->getTexture("textures/act.png");
+-	tAttack = driver->getTexture("textures/attack.png");
+-	tChain = driver->getTexture("textures/chain.png");
+-	tNegated = driver->getTexture("textures/negated.png");
+-	tNumber = driver->getTexture("textures/number.png");
+-	tLPBar = driver->getTexture("textures/lp.png");
+-	tLPFrame = driver->getTexture("textures/lpf.png");
+-	tMask = driver->getTexture("textures/mask.png");
+-	tEquip = driver->getTexture("textures/equip.png");
+-	tTarget = driver->getTexture("textures/target.png");
+-	tChainTarget = driver->getTexture("textures/chaintarget.png");
+-	tLim = driver->getTexture("textures/lim.png");
+-	tOT = driver->getTexture("textures/ot.png");
+-	tHand[0] = driver->getTexture("textures/f1.jpg");
+-	tHand[1] = driver->getTexture("textures/f2.jpg");
+-	tHand[2] = driver->getTexture("textures/f3.jpg");
++	tAct = driver->getTexture(DATA("textures/act.png"));
++	tAttack = driver->getTexture(DATA("textures/attack.png"));
++	tChain = driver->getTexture(DATA("textures/chain.png"));
++	tNegated = driver->getTexture(DATA("textures/negated.png"));
++	tNumber = driver->getTexture(DATA("textures/number.png"));
++	tLPBar = driver->getTexture(DATA("textures/lp.png"));
++	tLPFrame = driver->getTexture(DATA("textures/lpf.png"));
++	tMask = driver->getTexture(DATA("textures/mask.png"));
++	tEquip = driver->getTexture(DATA("textures/equip.png"));
++	tTarget = driver->getTexture(DATA("textures/target.png"));
++	tChainTarget = driver->getTexture(DATA("textures/chaintarget.png"));
++	tLim = driver->getTexture(DATA("textures/lim.png"));
++	tOT = driver->getTexture(DATA("textures/ot.png"));
++	tHand[0] = driver->getTexture(DATA("textures/f1.jpg"));
++	tHand[1] = driver->getTexture(DATA("textures/f2.jpg"));
++	tHand[2] = driver->getTexture(DATA("textures/f3.jpg"));
+ 	tBackGround = NULL;
+ 	tBackGround_menu = NULL;
+ 	tBackGround_deck = NULL;
+-	tField[0] = driver->getTexture("textures/field2.png");
+-	tFieldTransparent[0] = driver->getTexture("textures/field-transparent2.png");
+-	tField[1] = driver->getTexture("textures/field3.png");
+-	tFieldTransparent[1] = driver->getTexture("textures/field-transparent3.png");
++	tField[0] = driver->getTexture(DATA("textures/field2.png"));
++	tFieldTransparent[0] = driver->getTexture(DATA("textures/field-transparent2.png"));
++	tField[1] = driver->getTexture(DATA("textures/field3.png"));
++	tFieldTransparent[1] = driver->getTexture(DATA("textures/field-transparent3.png"));
+ 	ResizeTexture();
+ 	return true;
+ }
+@@ -93,24 +99,24 @@ void ImageManager::ResizeTexture() {
+ 	irr::s32 bgHeight = 640 * mainGame->yScale;
+ 	driver->removeTexture(tCover[0]);
+ 	driver->removeTexture(tCover[1]);
+-	tCover[0] = GetTextureFromFile("textures/cover.jpg", imgWidth, imgHeight);
+-	tCover[1] = GetTextureFromFile("textures/cover2.jpg", imgWidth, imgHeight);
++	tCover[0] = GetTextureFromFile(DATA("textures/cover.jpg"), imgWidth, imgHeight);
++	tCover[1] = GetTextureFromFile(DATA("textures/cover2.jpg"), imgWidth, imgHeight);
+ 	if(!tCover[1])
+ 		tCover[1] = tCover[0];
+ 	driver->removeTexture(tUnknown);
+ 	driver->removeTexture(tUnknownFit);
+ 	driver->removeTexture(tUnknownThumb);
+-	tUnknown = GetTextureFromFile("textures/unknown.jpg", CARD_IMG_WIDTH, CARD_IMG_HEIGHT);
+-	tUnknownFit = GetTextureFromFile("textures/unknown.jpg", imgWidthFit, imgHeightFit);
+-	tUnknownThumb = GetTextureFromFile("textures/unknown.jpg", imgWidthThumb, imgHeightThumb);
++	tUnknown = GetTextureFromFile(DATA("textures/unknown.jpg"), CARD_IMG_WIDTH, CARD_IMG_HEIGHT);
++	tUnknownFit = GetTextureFromFile(DATA("textures/unknown.jpg"), imgWidthFit, imgHeightFit);
++	tUnknownThumb = GetTextureFromFile(DATA("textures/unknown.jpg"), imgWidthThumb, imgHeightThumb);
+ 	driver->removeTexture(tBackGround);
+-	tBackGround = GetTextureFromFile("textures/bg.jpg", bgWidth, bgHeight);
++	tBackGround = GetTextureFromFile(DATA("textures/bg.jpg"), bgWidth, bgHeight);
+ 	driver->removeTexture(tBackGround_menu);
+-	tBackGround_menu = GetTextureFromFile("textures/bg_menu.jpg", bgWidth, bgHeight);
++	tBackGround_menu = GetTextureFromFile(DATA("textures/bg_menu.jpg"), bgWidth, bgHeight);
+ 	if(!tBackGround_menu)
+ 		tBackGround_menu = tBackGround;
+ 	driver->removeTexture(tBackGround_deck);
+-	tBackGround_deck = GetTextureFromFile("textures/bg_deck.jpg", bgWidth, bgHeight);
++	tBackGround_deck = GetTextureFromFile(DATA("textures/bg_deck.jpg"), bgWidth, bgHeight);
+ 	if(!tBackGround_deck)
+ 		tBackGround_deck = tBackGround;
+ }
+@@ -341,3 +347,5 @@ irr::video::ITexture* ImageManager::GetTextureField(int code) {
+ 		return NULL;
+ }
+ }
++
++#undef DATA
+diff --git a/gframe/replay.cpp b/gframe/replay.cpp
+index 4536485c..a3cb70e7 100644
+--- a/gframe/replay.cpp
++++ b/gframe/replay.cpp
+@@ -1,4 +1,5 @@
+ #include "replay.h"
++#include "game.h"
+ #include "../ocgcore/ocgapi.h"
+ #include "../ocgcore/common.h"
+ #include "lzma/LzmaLib.h"
+@@ -16,8 +17,18 @@ Replay::~Replay() {
+ 	delete[] comp_data;
+ }
+ void Replay::BeginRecord() {
++#ifdef XDG_ENVIRONMENT
++	std::string replay_path = mainGame->DATA_HOME + "/replay";
++	if(!FileSystem::IsDirExists(mainGame->DATA_HOME.c_str()) &&
++	   !FileSystem::MakeDir(mainGame->DATA_HOME.c_str()))
++		return;
++	if(!FileSystem::IsDirExists(replay_path.c_str()) &&
++	   !FileSystem::MakeDir(replay_path.c_str()))
++		return;
++#else
+ 	if(!FileSystem::IsDirExists(L"./replay") && !FileSystem::MakeDir(L"./replay"))
+ 		return;
++#endif
+ #ifdef _WIN32
+ 	if(is_recording)
+ 		CloseHandle(recording_fp);
+@@ -27,7 +38,11 @@ void Replay::BeginRecord() {
+ #else
+ 	if(is_recording)
+ 		fclose(fp);
++#ifdef XDG_ENVIRONMENT
++	{ std::string new_replay = mainGame->FindDataFile("replay/_LastReplay.yrp", false); fp = fopen(new_replay.c_str(), "wb"); }
++#else
+ 	fp = fopen("./replay/_LastReplay.yrp", "wb");
++#endif
+ 	if(!fp)
+ 		return;
+ #endif
+@@ -124,8 +139,18 @@ void Replay::EndRecord() {
+ 	is_recording = false;
+ }
+ void Replay::SaveReplay(const wchar_t* name) {
++#ifdef XDG_ENVIRONMENT
++	std::string replay_path = mainGame->DATA_HOME + "/replay";
++	if(!FileSystem::IsDirExists(mainGame->DATA_HOME.c_str()) &&
++	   !FileSystem::MakeDir(mainGame->DATA_HOME.c_str()))
++		return;
++	if(!FileSystem::IsDirExists(replay_path.c_str()) &&
++	   !FileSystem::MakeDir(replay_path.c_str()))
++		return;
++#else
+ 	if(!FileSystem::IsDirExists(L"./replay") && !FileSystem::MakeDir(L"./replay"))
+ 		return;
++#endif
+ 	wchar_t fname[256];
+ 	myswprintf(fname, L"./replay/%ls.yrp", name);
+ #ifdef WIN32
+@@ -133,7 +158,11 @@ void Replay::SaveReplay(const wchar_t* name) {
+ #else
+ 	char fname2[256];
+ 	BufferIO::EncodeUTF8(fname, fname2);
++#ifdef XDG_ENVIRONMENT
++	{ std::string rp = mainGame->FindDataFile(fname2, false); fp = fopen(rp.c_str(), "wb"); }
++#else
+ 	fp = fopen(fname2, "wb");
++#endif
+ #endif
+ 	if(!fp)
+ 		return;
+@@ -147,7 +176,11 @@ bool Replay::OpenReplay(const wchar_t* name) {
+ #else
+ 	char name2[256];
+ 	BufferIO::EncodeUTF8(name, name2);
++#ifdef XDG_ENVIRONMENT
++	{ std::string rp = mainGame->FindDataFile(name2); fp = fopen(rp.c_str(), "rb"); }
++#else
+ 	fp = fopen(name2, "rb");
++#endif
+ #endif
+ 	if(!fp) {
+ 		wchar_t fname[256];
+@@ -157,7 +190,11 @@ bool Replay::OpenReplay(const wchar_t* name) {
+ #else
+ 		char fname2[256];
+ 		BufferIO::EncodeUTF8(fname, fname2);
++#ifdef XDG_ENVIRONMENT
++		{ std::string rp = mainGame->FindDataFile(fname2); fp = fopen(rp.c_str(), "rb"); }
++#else
+ 		fp = fopen(fname2, "rb");
++#endif
+ #endif
+ 	}
+ 	if(!fp)
+@@ -189,7 +226,12 @@ bool Replay::CheckReplay(const wchar_t* name) {
+ #else
+ 	char fname2[256];
+ 	BufferIO::EncodeUTF8(fname, fname2);
++#ifdef XDG_ENVIRONMENT
++	FILE* rfp;
++	{ std::string rp = mainGame->FindDataFile(fname2); rfp = fopen(rp.c_str(), "rb"); }
++#else
+ 	FILE* rfp = fopen(fname2, "rb");
++#endif
+ #endif
+ 	if(!rfp)
+ 		return false;
+@@ -207,7 +249,12 @@ bool Replay::DeleteReplay(const wchar_t* name) {
+ #else
+ 	char filefn[256];
+ 	BufferIO::EncodeUTF8(fname, filefn);
++#ifdef XDG_ENVIRONMENT
++	std::string real_file = mainGame->FindDataFile(filefn);
++	int result = unlink(real_file.c_str());
++#else
+ 	int result = unlink(filefn);
++#endif
+ 	return result == 0;
+ #endif
+ }
+@@ -224,7 +271,13 @@ bool Replay::RenameReplay(const wchar_t* oldname, const wchar_t* newname) {
+ 	char newfilefn[256];
+ 	BufferIO::EncodeUTF8(oldfname, oldfilefn);
+ 	BufferIO::EncodeUTF8(newfname, newfilefn);
++#ifdef XDG_ENVIRONMENT
++	std::string old_path = mainGame->FindDataFile(oldfilefn);
++	std::string new_path = mainGame->FindDataFile(newfilefn, false);
++	int result = rename(old_path.c_str(), new_path.c_str());
++#else
+ 	int result = rename(oldfilefn, newfilefn);
++#endif
+ 	return result == 0;
+ #endif
+ }
+diff --git a/gframe/single_mode.cpp b/gframe/single_mode.cpp
+index 5913edec..6ac38ebc 100644
+--- a/gframe/single_mode.cpp
++++ b/gframe/single_mode.cpp
+@@ -4,6 +4,12 @@
+ #include "../ocgcore/common.h"
+ #include "../ocgcore/mtrandom.h"
+ 
++#ifdef XDG_ENVIRONMENT
++#define DATA(x) mainGame->FindDataFile(x).c_str()
++#else
++#define DATA(x) x
++#endif
++
+ namespace ygo {
+ 
+ long SingleMode::pduel = 0;
+@@ -59,7 +65,7 @@ int SingleMode::SinglePlayThread() {
+ 			wchar_t fname[256];
+ 			myswprintf(fname, L"./single/%ls", open_file_name);
+ 			slen = BufferIO::EncodeUTF8(fname, filename);
+-			if(!preload_script(pduel, filename, 0))
++			if(!preload_script(pduel, DATA(filename), 0))
+ 				slen = 0;
+ 		}
+ 	} else {
+@@ -67,7 +73,7 @@ int SingleMode::SinglePlayThread() {
+ 		wchar_t fname[256];
+ 		myswprintf(fname, L"./single/%ls", name);
+ 		slen = BufferIO::EncodeUTF8(fname, filename);
+-		if(!preload_script(pduel, filename, 0))
++		if(!preload_script(pduel, DATA(filename), 0))
+ 			slen = 0;
+ 	}
+ 	if(slen == 0) {
+diff --git a/gframe/sound_manager.cpp b/gframe/sound_manager.cpp
+index f3170e81..3f882fbd 100644
+--- a/gframe/sound_manager.cpp
++++ b/gframe/sound_manager.cpp
+@@ -3,6 +3,12 @@
+ #include "../ikpmp3/ikpMP3.h"
+ #endif
+ 
++#ifdef XDG_ENVIRONMENT
++#define DATA(x) mainGame->FindDataFile(x).c_str()
++#else
++#define DATA(x) "./" x
++#endif
++
+ namespace ygo {
+ 
+ SoundManager soundManager;
+@@ -24,6 +30,15 @@ bool SoundManager::Init() {
+ 	return false;
+ }
+ void SoundManager::RefreshBGMList() {
++#ifdef XDG_ENVIRONMENT
++	RefreshBGMDir("duel", BGM_DUEL);
++	RefreshBGMDir("menu", BGM_MENU);
++	RefreshBGMDir("deck", BGM_DECK);
++	RefreshBGMDir("advantage", BGM_ADVANTAGE);
++	RefreshBGMDir("disadvantage", BGM_DISADVANTAGE);
++	RefreshBGMDir("win", BGM_WIN);
++	RefreshBGMDir("lose", BGM_LOSE);
++#else
+ 	RefershBGMDir(L"", BGM_DUEL);
+ 	RefershBGMDir(L"duel", BGM_DUEL);
+ 	RefershBGMDir(L"menu", BGM_MENU);
+@@ -32,7 +47,29 @@ void SoundManager::RefreshBGMList() {
+ 	RefershBGMDir(L"disadvantage", BGM_DISADVANTAGE);
+ 	RefershBGMDir(L"win", BGM_WIN);
+ 	RefershBGMDir(L"lose", BGM_LOSE);
++#endif
++}
++#ifdef XDG_ENVIRONMENT
++void SoundManager::RefreshBGMDir1(std::string path, int scene) {
++	FileSystem::TraversalDir(path.c_str(), [this, &path, scene](const char* name, bool isdir)
++	{
++		if (isdir || !strchr(name, '.'))
++			return;
++		const char* suffix = strchr(name, '.');
++		if (!strncmp(suffix, ".mp3", 4) || !strncmp(suffix, ".ogg", 4)) {
++			std::string full_path = path + "/" + name;
++			BGMList[BGM_ALL].push_back(full_path);
++			BGMList[scene].push_back(full_path);
++		}
++
++	});
++}
++
++void SoundManager::RefreshBGMDir(std::string path, int scene) {
++	RefreshBGMDir1(mainGame->DATA_HOME + "/bgm/" + path, scene);
++	RefreshBGMDir1(std::string(mainGame->sysdatadir) + "/bgm/" + path, scene);
+ }
++#else
+ void SoundManager::RefershBGMDir(std::wstring path, int scene) {
+ 	std::wstring search = L"./sound/BGM/" + path;
+ 	FileSystem::TraversalDir(search.c_str(), [this, &path, scene](const wchar_t* name, bool isdir) {
+@@ -43,6 +80,7 @@ void SoundManager::RefershBGMDir(std::wstring path, int scene) {
+ 		}
+ 	});
+ }
++#endif
+ void SoundManager::PlaySoundEffect(int sound) {
+ #ifdef YGOPRO_USE_IRRKLANG
+ 	if(!mainGame->chkEnableSound->isChecked())
+@@ -50,123 +88,123 @@ void SoundManager::PlaySoundEffect(int sound) {
+ 	engineSound->setSoundVolume(mainGame->gameConf.sound_volume);
+ 	switch(sound) {
+ 	case SOUND_SUMMON: {
+-		engineSound->play2D("./sound/summon.wav");
++		engineSound->play2D(DATA("sound/summon.wav"));
+ 		break;
+ 	}
+ 	case SOUND_SPECIAL_SUMMON: {
+-		engineSound->play2D("./sound/specialsummon.wav");
++		engineSound->play2D(DATA("sound/specialsummon.wav"));
+ 		break;
+ 	}
+ 	case SOUND_ACTIVATE: {
+-		engineSound->play2D("./sound/activate.wav");
++		engineSound->play2D(DATA("sound/activate.wav"));
+ 		break;
+ 	}
+ 	case SOUND_SET: {
+-		engineSound->play2D("./sound/set.wav");
++		engineSound->play2D(DATA("sound/set.wav"));
+ 		break;
+ 	}
+ 	case SOUND_FILP: {
+-		engineSound->play2D("./sound/flip.wav");
++		engineSound->play2D(DATA("sound/flip.wav"));
+ 		break;
+ 	}
+ 	case SOUND_REVEAL: {
+-		engineSound->play2D("./sound/reveal.wav");
++		engineSound->play2D(DATA("sound/reveal.wav"));
+ 		break;
+ 	}
+ 	case SOUND_EQUIP: {
+-		engineSound->play2D("./sound/equip.wav");
++		engineSound->play2D(DATA("sound/equip.wav"));
+ 		break;
+ 	}
+ 	case SOUND_DESTROYED: {
+-		engineSound->play2D("./sound/destroyed.wav");
++		engineSound->play2D(DATA("sound/destroyed.wav"));
+ 		break;
+ 	}
+ 	case SOUND_BANISHED: {
+-		engineSound->play2D("./sound/banished.wav");
++		engineSound->play2D(DATA("sound/banished.wav"));
+ 		break;
+ 	}
+ 	case SOUND_TOKEN: {
+-		engineSound->play2D("./sound/token.wav");
++		engineSound->play2D(DATA("sound/token.wav"));
+ 		break;
+ 	}
+ 	case SOUND_ATTACK: {
+-		engineSound->play2D("./sound/attack.wav");
++		engineSound->play2D(DATA("sound/attack.wav"));
+ 		break;
+ 	}
+ 	case SOUND_DIRECT_ATTACK: {
+-		engineSound->play2D("./sound/directattack.wav");
++		engineSound->play2D(DATA("sound/directattack.wav"));
+ 		break;
+ 	}
+ 	case SOUND_DRAW: {
+-		engineSound->play2D("./sound/draw.wav");
++		engineSound->play2D(DATA("sound/draw.wav"));
+ 		break;
+ 	}
+ 	case SOUND_SHUFFLE: {
+-		engineSound->play2D("./sound/shuffle.wav");
++		engineSound->play2D(DATA("sound/shuffle.wav"));
+ 		break;
+ 	}
+ 	case SOUND_DAMAGE: {
+-		engineSound->play2D("./sound/damage.wav");
++		engineSound->play2D(DATA("sound/damage.wav"));
+ 		break;
+ 	}
+ 	case SOUND_RECOVER: {
+-		engineSound->play2D("./sound/gainlp.wav");
++		engineSound->play2D(DATA("sound/gainlp.wav"));
+ 		break;
+ 	}
+ 	case SOUND_COUNTER_ADD: {
+-		engineSound->play2D("./sound/addcounter.wav");
++		engineSound->play2D(DATA("sound/addcounter.wav"));
+ 		break;
+ 	}
+ 	case SOUND_COUNTER_REMOVE: {
+-		engineSound->play2D("./sound/removecounter.wav");
++		engineSound->play2D(DATA("sound/removecounter.wav"));
+ 		break;
+ 	}
+ 	case SOUND_COIN: {
+-		engineSound->play2D("./sound/coinflip.wav");
++		engineSound->play2D(DATA("sound/coinflip.wav"));
+ 		break;
+ 	}
+ 	case SOUND_DICE: {
+-		engineSound->play2D("./sound/diceroll.wav");
++		engineSound->play2D(DATA("sound/diceroll.wav"));
+ 		break;
+ 	}
+ 	case SOUND_NEXT_TURN: {
+-		engineSound->play2D("./sound/nextturn.wav");
++		engineSound->play2D(DATA("sound/nextturn.wav"));
+ 		break;
+ 	}
+ 	case SOUND_PHASE: {
+-		engineSound->play2D("./sound/phase.wav");
++		engineSound->play2D(DATA("sound/phase.wav"));
+ 		break;
+ 	}
+ 	case SOUND_MENU: {
+-		engineSound->play2D("./sound/menu.wav");
++		engineSound->play2D(DATA("sound/menu.wav"));
+ 		break;
+ 	}
+ 	case SOUND_BUTTON: {
+-		engineSound->play2D("./sound/button.wav");
++		engineSound->play2D(DATA("sound/button.wav"));
+ 		break;
+ 	}
+ 	case SOUND_INFO: {
+-		engineSound->play2D("./sound/info.wav");
++		engineSound->play2D(DATA("sound/info.wav"));
+ 		break;
+ 	}
+ 	case SOUND_QUESTION: {
+-		engineSound->play2D("./sound/question.wav");
++		engineSound->play2D(DATA("sound/question.wav"));
+ 		break;
+ 	}
+ 	case SOUND_CARD_PICK: {
+-		engineSound->play2D("./sound/cardpick.wav");
++		engineSound->play2D(DATA("sound/cardpick.wav"));
+ 		break;
+ 	}
+ 	case SOUND_CARD_DROP: {
+-		engineSound->play2D("./sound/carddrop.wav");
++		engineSound->play2D(DATA("sound/carddrop.wav"));
+ 		break;
+ 	}
+ 	case SOUND_PLAYER_ENTER: {
+-		engineSound->play2D("./sound/playerenter.wav");
++		engineSound->play2D(DATA("sound/playerenter.wav"));
+ 		break;
+ 	}
+ 	case SOUND_CHAT: {
+-		engineSound->play2D("./sound/chatmessage.wav");
++		engineSound->play2D(DATA("sound/chatmessage.wav"));
+ 		break;
+ 	}
+ 	default:
+@@ -222,10 +260,14 @@ void SoundManager::PlayBGM(int scene) {
+ 		bgm_scene = scene;
+ 		int bgm = rand() % count;
+ 		auto name = BGMList[scene][bgm].c_str();
++#ifdef XDG_ENVIRONMENT
++		PlayMusic(name.c_str(), false);
++#else
+ 		wchar_t fname[1024];
+ 		myswprintf(fname, L"./sound/BGM/%ls", name);
+ 		BufferIO::EncodeUTF8(fname, BGMName);
+ 		PlayMusic(BGMName, false);
++#endif
+ 	}
+ #endif
+ }
+diff --git a/gframe/sound_manager.h b/gframe/sound_manager.h
+index 5fe2b3ca..97afb7e5 100644
+--- a/gframe/sound_manager.h
++++ b/gframe/sound_manager.h
+@@ -10,14 +10,23 @@ namespace ygo {
+ 
+ class SoundManager {
+ private:
++#ifdef XDG_ENVIRONMENT
++	std::vector<std::string> BGMList[8];
++#else
+ 	std::vector<std::wstring> BGMList[8];
++#endif
+ 	int bgm_scene;
+ #ifdef YGOPRO_USE_IRRKLANG
+ 	irrklang::ISoundEngine* engineSound;
+ 	irrklang::ISoundEngine* engineMusic;
+ 	irrklang::ISound* soundBGM;
+ #endif
++#ifdef XDG_ENVIRONMENT
++	void RefreshBGMDir(std::string path, int scene);
++	void RefreshBGMDir1(std::string path, int scene);
++#else
+ 	void RefershBGMDir(std::wstring path, int scene);
++#endif
+ 
+ public:
+ 	bool Init();
+diff --git a/premake4.lua b/premake4.lua
+index 82a1656c..e3540305 100644
+--- a/premake4.lua
++++ b/premake4.lua
+@@ -30,6 +30,14 @@ solution "ygo"
+         if _OPTIONS["environment-paths"] then
+             defines { "YGOPRO_ENVIRONMENT_PATHS" }
+         end
++        newoption
++        {
++            trigger = "xdg-environment",
++            description = "Read config and data from XDG directories"
++        }
++        if _OPTIONS["xdg-environment"] then
++            defines { "XDG_ENVIRONMENT" }
++        end
+ 
+     configuration "vs*"
+         flags "EnableSSE2"
+diff --git a/premake5.lua b/premake5.lua
+index fbccede1..ce83eb0c 100644
+--- a/premake5.lua
++++ b/premake5.lua
+@@ -39,6 +39,14 @@ solution "ygo"
+         if _OPTIONS["environment-paths"] then
+             defines { "YGOPRO_ENVIRONMENT_PATHS" }
+         end
++        newoption
++        {
++            trigger = "xdg-environment",
++            description = "Read config and data from XDG directories"
++        }
++        if _OPTIONS["xdg-environment"] then
++            defines { "XDG_ENVIRONMENT" }
++        end
+ 
+     configuration "Release"
+         optimize "Speed"
+-- 
+2.26.0
+
