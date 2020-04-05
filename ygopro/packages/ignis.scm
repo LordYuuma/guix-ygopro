@@ -208,3 +208,132 @@ on its own fork of the ygopro-core, it is incompatible with other clients not
 built on top of that.")
     (home-page "https://github.com/ProjectIgnis/ygopro")
     (license license:agpl3+)))
+
+(define-public ignis-database
+  (let ((commit "ca705d8c4b071ae4621cdb12c382eecb7bfd24aa")
+        (revision "0"))
+    (package
+      (name "ignis-database")
+      (version (git-version (package-version edopro) revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/ProjectIgnis/BabelCDB.git")
+               (commit commit)))
+         (file-name (git-file-name "ignis-database" version))
+         (sha256
+          (base32
+           "0afa4wdwmyjpnb8yx9cabivb0r1jd5p8m7jdwi1vj8g034hkq9lp"))))
+      (build-system copy-build-system)
+      (outputs '("out" "pre-release" "rush" "skills" "unofficial"))
+      (arguments
+       `(#:phases
+         (modify-phases %standard-phases
+           (replace 'install
+             (lambda* (#:key outputs #:allow-other-keys)
+               (define (install-with-output output install-plan)
+                 ((assoc-ref %standard-phases 'install)
+                  #:outputs `(("out" . ,(assoc-ref outputs output)))
+                  #:install-plan install-plan))
+
+               (install-with-output
+                "out" `(("cards.cdb" "share/ygopro/data/")))
+               (install-with-output
+                "rush" `(("cards-rush.cdb" "share/ygopro/data/")))
+               (install-with-output
+                "skills" `(("cards-skills.cdb" "share/ygopro/data/")))
+               (install-with-output
+                "unofficial" `(("cards-unofficial.cdb" "share/ygopro/data/")))
+               (install-with-output
+                "pre-release" `(("." "share/ygopro/data/"
+                                 #:include ("cards-rush-prerelease.cdb"
+                                            "prerelease-cp20.cdb"
+                                            "prerelease-rotd.cdb"))))
+               #t))
+           (add-after 'install 'install-lflists
+             (lambda* (#:key inputs outputs #:allow-other-keys)
+               (with-directory-excursion (assoc-ref inputs "lflists")
+                 (call-with-output-file (string-append
+                                         (assoc-ref outputs "out")
+                                         "/share/ygopro/data/lflist.conf")
+                   (lambda (port)
+                     (for-each
+                      (lambda (f)
+                        (call-with-input-file (string-append f ".lflist.conf")
+                          (lambda (in)
+                            (dump-port in port)
+                            (close-port in))))
+                      '("OCG-Korea" "OCG" "TCG" "Traditional" "World"))
+                     (close-port port)))
+                 (copy-file "Rush.lflist.conf"
+                            (string-append (assoc-ref outputs "rush")
+                                           "/share/ygopro/data/lflist.conf"))
+                 (copy-file "Speed.lflist.conf"
+                            (string-append (assoc-ref outputs "skills")
+                                           "/share/ygopro/data/lflist.conf")))
+               #t)))))
+      (inputs
+       `(("lflists"
+          ,(origin
+             (method git-fetch)
+             (uri
+              (git-reference
+               (url "https://github.com/ProjectIgnis/LFLists")
+               (commit "714fdb3334f3a05758888b0f3604ac54d4b95ed3")))
+             (sha256
+              (base32
+               "06h8p5vjngim7f5k9wg8aff1w9sg3wfcafkx99693p387bq30ima"))))))
+      (synopsis "Card databases for EDOPro")
+      (description "Provides various card databases for EDOPro.")
+      (home-page "https://github.com/ProjectIgnis/BabelCDB")
+      (license #f))))
+
+(define-public ignis-scripts
+  (let ((commit "7b5620106c99b617152c630cf6bf53bfd61bf8b9")
+        (revision "0"))
+    (package
+      (name "ignis-scripts")
+      (version (git-version (package-version edopro) revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/ProjectIgnis/CardScripts.git")
+               (commit commit)))
+         (file-name (git-file-name "ignis-scripts" version))
+         (sha256
+          (base32
+           "1fg6rnnyplk0a6f4xlk5971i54b3v4w612k6w1v0zjsdrpl3r8a3"))))
+      (build-system copy-build-system)
+      (outputs '("out" "pre-release" "rush" "skill" "unofficial"))
+      (arguments
+       `(#:phases
+         (modify-phases %standard-phases
+           (replace 'install
+             (lambda* (#:key outputs #:allow-other-keys)
+               (define (install-with-output output install-plan)
+                 ((assoc-ref %standard-phases 'install)
+                  #:outputs `(("out" . ,(assoc-ref outputs output)))
+                  #:install-plan install-plan))
+
+               (install-with-output
+                "out" `(("official" "share/ygopro/data")
+                        ("." "share/ygopro/data"
+                         #:exclude
+                         ("official" "pre-errata" "pre-release"
+                          "rush" "skill" "unofficial"))))
+               (install-with-output
+                "rush" `(("rush" "share/ygopro/data")))
+               (install-with-output
+                "skill" `(("skill" "share/ygopro/data")))
+               (install-with-output
+                "unofficial" `(("unofficial" "share/ygopro/data")))
+               (install-with-output
+                "pre-release" `(("pre-errata" "share/ygopro/data")
+                                ("pre-release" "share/ygopro/data")))
+               #t)))))
+      (synopsis "Card scripts for EDOPro")
+      (description "Provides card scripts for EDOPro.")
+      (home-page "https://github.com/ProjectIgnis/CardScripts")
+      (license license:agpl3))))
