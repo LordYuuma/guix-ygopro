@@ -95,6 +95,23 @@ trivial integration and 100% testing.")
     (home-page "https://github.com/nlohmann/json")
     (license license:expat)))
 
+(define irrlicht-for-edopro
+  (let ((commit "e6d4e1e7b1904bb42b2fbb2aefa9a6bb04864565")
+        (revision "1"))
+   (package
+    (inherit irrlicht)
+    (name "irrlicht-for-edopro")
+    (version (git-version "1.8.4" revision commit))
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/edo9300/irrlicht1-8-4.git")
+             (commit commit)))
+       (sha256
+        (base32
+         "0h3jbs029z2hjhgybnfr0fzfcsjggrvi4a9g73psyy3yxxpb7c12")))))))
+
 (define-public edopro
   (package
     (name "edopro")
@@ -173,7 +190,7 @@ trivial integration and 100% testing.")
        ("freetype" ,freetype)
        ("fmt" ,fmt)
        ("glu" ,glu)
-       ("irrlicht" ,irrlicht)
+       ("irrlicht" ,irrlicht-for-edopro)
        ("libevent" ,libevent)
        ("libgit2" ,libgit2)
        ("lua" ,lua)
