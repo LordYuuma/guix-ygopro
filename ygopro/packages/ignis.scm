@@ -1,4 +1,4 @@
-(define-module (ygopro packages edopro)
+(define-module (ygopro packages ignis)
   #:use-module (guix packages)
   #:use-module (guix download)
   #:use-module (guix git-download)
@@ -28,7 +28,7 @@
     (origin
      (method git-fetch)
      (uri (git-reference
-           (url "https://github.com/edo9300/ygopro-core.git")
+           (url "https://github.com/ProjectIgnis/EDOPro-Core.git")
            (commit (string-append "v" version))))
      (file-name (git-file-name "edopro-core" version))
      (sha256
@@ -65,7 +65,7 @@
      `(("premake5" ,premake5)))
     (synopsis "Bleeding-edge fork of ygopro-core")
     (description
-     "edopro-core is a bleeding-edge fork of ygopro-core with updates to
+     "EDOPro-Core is a bleeding-edge fork of ygopro-core with updates to
 accommodate for new cards and features.  It is incompatible with forks not
 derived from itself.")
     (home-page "https://github.com/edo9300/ygopro")
@@ -120,7 +120,7 @@ trivial integration and 100% testing.")
      (origin
        (method git-fetch)
        (uri (git-reference
-             (url "https://github.com/edo9300/ygopro.git")
+             (url "https://github.com/ProjectIgnis/EDOPro.git")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
@@ -203,50 +203,8 @@ trivial integration and 100% testing.")
      (package-native-search-paths ygopro))
     (synopsis "Bleeding-edge fork of ygopro")
     (description
-     "Edopro is a bleeding edge fork of the ygopro client.  Because it relies
+     "EDOPro is a bleeding edge fork of the ygopro client.  Because it relies
 on its own fork of the ygopro-core, it is incompatible with other clients not
 built on top of that.")
-    (home-page "https://github.com/mycard/ygopro")
+    (home-page "https://github.com/ProjectIgnis/ygopro")
     (license license:agpl3+)))
-
-(define-public edopro-database
-  (let ((commit "00175928c9669b1bef640fe56573f4d68b84928b")
-        (revision "0"))
-    (package
-      (name "edopro-database")
-      (version (git-version "0.2019.09.18" revision commit))
-      (source
-       (origin
-         (method git-fetch)
-         (uri (git-reference
-               (url "https://github.com/YgoproStaff/live2019.git")
-               (commit commit)))
-         (file-name (git-file-name "edopro-database" version))
-         (sha256
-          (base32
-           "0vkj63sjk6bcc1na7zns4sqiz2aharbs4ybzx4qpaclfd2133ga4"))))
-      (build-system copy-build-system)
-      (arguments
-       `(#:install-plan
-         `(("cards.cdb" "share/ygopro/data/")
-           ("script" "share/ygopro/script"
-            #:include-regexp (".*\\.lua"))
-           ("lflist.conf" "share/ygopro/data/"))
-         #:modules ((guix build copy-build-system)
-                    (guix build utils)
-                    (srfi srfi-26))
-         #:phases
-         (modify-phases %standard-phases
-          (add-before 'install 'build-lflist
-            (lambda _
-              (call-with-output-file "lflist.conf"
-                (lambda (port)
-                  (for-each
-                   (lambda (f)
-                     (call-with-input-file f
-                       (cute dump-port <> port)))
-                   (find-files "lflists")))))))))
-      (synopsis "Database and scripts for edopro")
-      (description "Database and scripts compatible with edopro.")
-      (home-page "https://github.com/YgoproStaff/live2019")
-      (license license:agpl3+))))
