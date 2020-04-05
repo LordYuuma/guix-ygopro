@@ -318,22 +318,22 @@ built on top of that.")
                   #:install-plan install-plan))
 
                (install-with-output
-                "out" `(("official" "share/ygopro/data")
-                        ("." "share/ygopro/data"
+                "out" `(("official" "share/ygopro/script")
+                        ("." "share/ygopro/script"
                          #:exclude
                          ("official" "pre-errata" "pre-release"
                           "rush" "skill" "unofficial"))))
                (install-with-output
-                "rush" `(("rush" "share/ygopro/data")))
+                "rush" `(("rush" "share/ygopro/script")))
                (install-with-output
-                "skill" `(("skill" "share/ygopro/data")))
+                "skill" `(("skill" "share/ygopro/script")))
                (install-with-output
-                "unofficial" `(("unofficial" "share/ygopro/data")))
+                "unofficial" `(("unofficial" "share/ygopro/script")))
                (install-with-output
-                "pre-release" `(("pre-errata" "share/ygopro/data")
-                                ("pre-release" "share/ygopro/data")))
+                "pre-release" `(("pre-errata" "share/ygopro/script")
+                                ("pre-release" "share/ygopro/script")))
                #t)))))
       (synopsis "Card scripts for EDOPro")
       (description "Provides card scripts for EDOPro.")
       (home-page "https://github.com/ProjectIgnis/CardScripts")
-      (license license:agpl3))))
+      (license license:agpl3+))))
