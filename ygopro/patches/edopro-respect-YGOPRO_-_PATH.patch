@@ -1,22 +1,69 @@
----
- gframe/data_handler.cpp | 20 +++++++++++++-----
- gframe/deck_manager.cpp |  3 ---
- gframe/game.cpp         | 45 ++++++++++++++++++++++++++---------------
- gframe/utils.cpp        | 10 +++++----
- 4 files changed, 50 insertions(+), 28 deletions(-)
+From cd3e19c32839155ea6e5fb52e3187d9367ed2a14 Mon Sep 17 00:00:00 2001
+From: LordYuuma <lordyuuma@gmail.com>
+Date: Wed, 25 Mar 2020 13:57:47 +0100
+Subject: [PATCH] edopro: Respect YGOPRO_*_PATH.
 
+* premake5.lua (environment-paths): New option.
+* gframe/Base64.h: Use UTF-8.
+* gframe/data_handler.cpp (LoadDatabases)[YGOPRO_ENVIRONMENT_PATHS]:
+Load databases and LFLists from YGOPRO_DATA_PATH.
+* gframe/deck_manager.cpp (LoadLFList)[YGOPRO_ENVIRONMENT_PATHS]:
+Don't load local LFLists -- use those loaded by the DataHandler instead.
+* gframe/game.cpp (PopulateResourcesDirectories)[YGOPRO_ENVIRONMENT_PATHS]:
+Load scripts from YGOPRO_SCRIPT_PATH.
+Load pics from YGOPRO_IMAGE_PATH.  Fall back to local downloader.
+* gframe/premake5.lua (ygopro-config)[environment-paths]:
+Define YGOPRO_ENVIRONMENT_PATHS.
+* gframe/text_types.h (operator/): Override for path_string.
+* gframe/utils.h (PathForeach): New function.
+* gframe/utils.cpp (NormalizePath): Allow absolute paths.
+(PathForeach): Implement it.
+---
+ gframe/Base64.h         |  6 +++---
+ gframe/data_handler.cpp | 15 +++++++++++++++
+ gframe/deck_manager.cpp |  2 ++
+ gframe/game.cpp         | 32 +++++++++++++++++++++++++++++---
+ gframe/premake5.lua     |  3 +++
+ gframe/text_types.h     | 16 +++++++++++++++-
+ gframe/utils.cpp        | 22 ++++++++++++++++++----
+ gframe/utils.h          |  1 +
+ premake5.lua            | 13 +++++++++----
+ 9 files changed, 95 insertions(+), 15 deletions(-)
+
+diff --git a/gframe/Base64.h b/gframe/Base64.h
+index b018a273..b36ab8a5 100644
+--- a/gframe/Base64.h
++++ b/gframe/Base64.h
+@@ -2,7 +2,7 @@
+    base64.cpp and base64.h
+    base64 encoding and decoding with C++.
+    Version: 1.01.00
+-   Copyright (C) 2004-2017 René Nyffenegger
++   Copyright (C) 2004-2017 RenÃ© Nyffenegger
+    This source code is provided 'as-is', without any express or implied
+    warranty. In no event will the author be held liable for any damages
+    arising from the use of this software.
+@@ -16,7 +16,7 @@
+    2. Altered source versions must be plainly marked as such, and must not be
+ 	  misrepresented as being the original source code.
+    3. This notice may not be removed or altered from any source distribution.
+-   René Nyffenegger rene.nyffenegger@adp-gmbh.ch
++   RenÃ© Nyffenegger rene.nyffenegger@adp-gmbh.ch
+ */
+ #ifndef BASE64_H
+ #define BASE64_H
+@@ -108,4 +108,4 @@ std::vector<uint8_t> base64_decode(const T* encoded_string, size_t in_len) {
+ 
+ 	return ret;
+ }
+-#endif //BASE64_H
+\ No newline at end of file
++#endif //BASE64_H
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
-index eb1650a4..9e1b73fa 100644
+index 3880f498..5db804e6 100644
 --- a/gframe/data_handler.cpp
 +++ b/gframe/data_handler.cpp
-@@ -1,4 +1,6 @@
- #include "data_handler.h"
-+#include <iostream>
-+#include <sstream>
- #include <fstream>
- #include <curl/curl.h>
- #include <irrlicht.h>
-@@ -10,15 +12,23 @@
+@@ -11,15 +11,30 @@
  #include "IrrlichtCommonIncludes1.9/CFileSystem.h"
  #include "Android/porting_android.h"
  #endif
@@ -25,54 +72,49 @@ index eb1650a4..9e1b73fa 100644
  namespace ygo {
  
  void DataHandler::LoadDatabases() {
--	if(std::ifstream("cards.cdb").good())
--		dataManager->LoadDB(EPRO_TEXT("cards.cdb"));
--	for(auto& file : Utils::FindFiles(EPRO_TEXT("./expansions/"), { EPRO_TEXT("cdb") }, 2))
--		dataManager->LoadDB(EPRO_TEXT("./expansions/") + file);
--	LoadArchivesDB();
++#ifdef YGOPRO_ENVIRONMENT_PATHS
 +	const char* data_path_env = getenv("YGOPRO_DATA_PATH");
 +	if(!data_path_env) return;
-+	path_string data_path_s = ygo::Utils::ToPathString(data_path_env);
-+	std::basic_stringstream<path_char> data_path(data_path_s);
-+	path_string prefix;
-+	while(std::getline(data_path, prefix, EPRO_TEXT(':'))) {
-+		prefix = ygo::Utils::NormalizePath(prefix);
-+		for (auto& file : Utils::FindFiles(prefix, { EPRO_TEXT("cdb") }))
-+			dataManager->LoadDB(prefix + file);
-+		deckManager.LoadLFListSingle(prefix + "lflist.conf");
-+		dataManager->LoadStrings(prefix + "strings.conf");
-+	}
++	path_string data_path_s = Utils::ToPathString(data_path_env);
++	ygo::Utils::PathForeach(
++		data_path_s,
++		[&](const path_string& prefix) {
++			for (auto& file : Utils::FindFiles(prefix, { EPRO_TEXT("cdb") }))
++				dataManager->LoadDB(prefix / file);
++			deckManager->LoadLFListSingle(prefix / EPRO_TEXT("lflist.conf"));
++			dataManager->LoadStrings(prefix / EPRO_TEXT("strings.conf"));
++		});
++#else
+ 	if(std::ifstream("cards.cdb").good())
+ 		dataManager->LoadDB(EPRO_TEXT("cards.cdb"));
+ 	for(auto& file : Utils::FindFiles(EPRO_TEXT("./expansions/"), { EPRO_TEXT("cdb") }, 2))
+ 		dataManager->LoadDB(EPRO_TEXT("./expansions/") + file);
+ 	LoadArchivesDB();
++#endif
  }
  void DataHandler::LoadArchivesDB() {
  	std::vector<char> buffer;
 diff --git a/gframe/deck_manager.cpp b/gframe/deck_manager.cpp
-index b46884be..f57f1ef3 100644
+index 5c64dc6d..d99c048f 100644
 --- a/gframe/deck_manager.cpp
 +++ b/gframe/deck_manager.cpp
-@@ -74,9 +74,6 @@ bool DeckManager::LoadLFListFolder(path_string path) {
+@@ -73,9 +73,11 @@ bool DeckManager::LoadLFListFolder(path_string path) {
  	return loaded;
  }
  void DeckManager::LoadLFList() {
--	LoadLFListSingle(EPRO_TEXT("./expansions/lflist.conf"));
--	LoadLFListSingle(EPRO_TEXT("./lflist.conf"));
--	LoadLFListFolder(EPRO_TEXT("./lflists/"));
++#ifndef YGOPRO_ENVIRONMENT_PATHS
+ 	LoadLFListSingle(EPRO_TEXT("./expansions/lflist.conf"));
+ 	LoadLFListSingle(EPRO_TEXT("./lflist.conf"));
+ 	LoadLFListFolder(EPRO_TEXT("./lflists/"));
++#endif
  	LFList nolimit;
- 	nolimit.listName = gDataManager->GetSysString(1442); // N/A
+ 	nolimit.listName = L"N/A"; // N/A
  	nolimit.hash = 0;
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index ce093f7a..70a614ed 100644
+index 39a3f57a..b8a27214 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
-@@ -43,6 +43,8 @@
- #include "logging.h"
- #include "utils_gui.h"
- #include "custom_skin_enum.h"
-+#include <iostream>
-+#include <sstream>
- 
- #ifdef __ANDROID__
- #include "CGUICustomComboBox/CGUICustomComboBox.h"
-@@ -1323,7 +1325,7 @@ bool Game::MainLoop() {
+@@ -1486,7 +1486,7 @@ bool Game::MainLoop() {
  	irr::core::matrix4 mProjection;
  	BuildProjectionMatrix(mProjection, CAMERA_LEFT, CAMERA_RIGHT, CAMERA_BOTTOM, CAMERA_TOP, 1.0f, 100.0f);
  	camera->setProjectionMatrix(mProjection);
@@ -81,7 +123,7 @@ index ce093f7a..70a614ed 100644
  	mProjection.buildCameraLookAtMatrixLH(vector3df(FIELD_X, FIELD_Y, FIELD_Z), vector3df(FIELD_X, 0, 0), vector3df(0, 0, 1));
  	camera->setViewMatrixAffector(mProjection);
  	smgr->setAmbientLight(irr::video::SColorf(1.0f, 1.0f, 1.0f));
-@@ -1492,7 +1494,7 @@ bool Game::MainLoop() {
+@@ -1664,7 +1664,7 @@ bool Game::MainLoop() {
  			driver->setMaterial(irr::video::IdentityMaterial);
  			driver->clearZBuffer();)
  		} else if(is_building) {
@@ -90,66 +132,125 @@ index ce093f7a..70a614ed 100644
  			if(is_siding)
  				discord.UpdatePresence(DiscordWrapper::DECK_SIDING);
  			else
-@@ -2530,7 +2532,7 @@ void Game::ReloadElementsStrings() {
- 	prev = cbFilterBanlist->getSelected();
- 	ReloadCBFilterBanlist();
- 	cbFilterBanlist->setSelected(prev);
+@@ -2748,7 +2748,7 @@ void Game::ReloadElementsStrings() {
+ 	prev = cbFilterRule->getSelected();
+ 	ReloadCBFilterRule();
+ 	cbFilterRule->setSelected(prev);
 -	
 +
  	prev = cbDuelRule->getSelected();
  	if (prev >= 5) {
  		UpdateDuelParam();
-@@ -2886,21 +2888,32 @@ void Game::MessageHandler(void* payload, const char* string, int type) {
+@@ -3112,6 +3112,31 @@ void Game::MessageHandler(void* payload, const char* string, int type) {
  	}
  }
  void Game::PopulateResourcesDirectories() {
--	script_dirs.push_back(EPRO_TEXT("./expansions/script/"));
--	auto expansions_subdirs = Utils::FindSubfolders(EPRO_TEXT("./expansions/script/"));
--	script_dirs.insert(script_dirs.end(), expansions_subdirs.begin(), expansions_subdirs.end());
--	script_dirs.push_back(EPRO_TEXT("archives"));
--	script_dirs.push_back(EPRO_TEXT("./script/"));
--	auto script_subdirs = Utils::FindSubfolders(EPRO_TEXT("./script/"));
--	script_dirs.insert(script_dirs.end(), script_subdirs.begin(), script_subdirs.end());
--	pic_dirs.push_back(EPRO_TEXT("./expansions/pics/"));
--	pic_dirs.push_back(EPRO_TEXT("archives"));
++#ifdef YGOPRO_ENVIRONMENT_PATHS
 +	const char* script_path_env = getenv("YGOPRO_SCRIPT_PATH");
-+	if(script_path_env) {
-+		path_string script_path_s = ygo::Utils::ToPathString(script_path_env);
-+		std::basic_stringstream<path_char> script_path(script_path_s);
-+		path_string script_dir;
-+		while(std::getline(script_path, script_dir, EPRO_TEXT(':'))) {
-+			script_dir = ygo::Utils::NormalizePath(script_dir);
-+			script_dirs.push_back(script_dir);
-+			auto script_subdirs = Utils::FindSubfolders(script_dir);
-+			script_dirs.insert(script_dirs.end(), script_subdirs.begin(), script_subdirs.end());
-+		}
-+	}
++	if (script_path_env)
++		Utils::PathForeach(
++			Utils::ToPathString(script_path_env),
++			[this](const path_string& prefix) {
++				path_string script_dir = Utils::NormalizePath(prefix);
++				script_dirs.push_back(script_dir);
++				auto script_subdirs = Utils::FindSubfolders(script_dir);
++				script_dirs.insert(script_dirs.end(), script_subdirs.begin(), script_subdirs.end());
++			});
 +	const char* image_path_env = getenv("YGOPRO_IMAGE_PATH");
-+	if(image_path_env) {
-+		path_string image_path_s(ygo::Utils::ToPathString(image_path_env));
-+		std::basic_stringstream<path_char> image_path(image_path_s);
-+		path_string image_dir;
-+		while(std::getline(image_path, image_dir, EPRO_TEXT(':'))) {
-+			image_dir = ygo::Utils::NormalizePath(image_dir);
-+			pic_dirs.push_back(image_dir);
-+			cover_dirs.push_back(image_dir + EPRO_TEXT("cover/"));
-+			field_dirs.push_back(image_dir + EPRO_TEXT("field/"));
-+		}
-+	}
- 	pic_dirs.push_back(EPRO_TEXT("./pics/"));
--	cover_dirs.push_back(EPRO_TEXT("./expansions/pics/cover/"));
--	cover_dirs.push_back(EPRO_TEXT("archives"));
- 	cover_dirs.push_back(EPRO_TEXT("./pics/cover/"));
--	field_dirs.push_back(EPRO_TEXT("./expansions/pics/field/"));
--	field_dirs.push_back(EPRO_TEXT("archives"));
++	if(image_path_env)
++		Utils::PathForeach(
++			Utils::ToPathString(image_path_env),
++			[this](const path_string& prefix) {
++				path_string image_dir = Utils::NormalizePath(prefix);
++				pic_dirs.push_back(image_dir);
++				cover_dirs.push_back(image_dir / EPRO_TEXT("cover/"));
++				field_dirs.push_back(image_dir / EPRO_TEXT("field/"));
++			});
++	pic_dirs.push_back(EPRO_TEXT("./pics/"));
++	cover_dirs.push_back(EPRO_TEXT("./pics/cover/"));
++	field_dirs.push_back(EPRO_TEXT("./pics/field/"));
++#else
+ 	script_dirs.push_back(EPRO_TEXT("./expansions/script/"));
+ 	auto expansions_subdirs = Utils::FindSubfolders(EPRO_TEXT("./expansions/script/"));
+ 	script_dirs.insert(script_dirs.end(), expansions_subdirs.begin(), expansions_subdirs.end());
+@@ -3128,6 +3153,7 @@ void Game::PopulateResourcesDirectories() {
+ 	field_dirs.push_back(EPRO_TEXT("./expansions/pics/field/"));
+ 	field_dirs.push_back(EPRO_TEXT("archives"));
  	field_dirs.push_back(EPRO_TEXT("./pics/field/"));
++#endif
  }
  
+ void Game::PopulateLocales() {
+diff --git a/gframe/premake5.lua b/gframe/premake5.lua
+index 10700aa0..cff532ec 100644
+--- a/gframe/premake5.lua
++++ b/gframe/premake5.lua
+@@ -18,6 +18,9 @@ local ygopro_config=function(static_core)
+ 	if _OPTIONS["discord"] then
+ 		defines { "DISCORD_APP_ID=" .. _OPTIONS["discord"] }
+ 	end
++	if _OPTIONS["environment-paths"] then
++		defines { "YGOPRO_ENVIRONMENT_PATHS" }
++	end
+ 
+ 	includedirs "../ocgcore"
+ 	links { "clzma", "freetype", "Irrlicht" }
+diff --git a/gframe/text_types.h b/gframe/text_types.h
+index 6d274a79..4574cabd 100644
+--- a/gframe/text_types.h
++++ b/gframe/text_types.h
+@@ -13,4 +13,18 @@ using path_char = wchar_t;
+ using path_char = char;
+ #endif // UNICODE
+ using path_string = std::basic_string<path_char>;
+-#endif /* TEXT_TYPES_H_ */
+\ No newline at end of file
++
++inline path_string operator/(const path_string& base, const path_string subdir) {
++	if (base.empty() || base == EPRO_TEXT(".")) {
++		path_string path(subdir);
++		return path;
++	}
++	else {
++		path_string path(base);
++		if (base.back() != EPRO_TEXT('/'))
++			path += EPRO_TEXT("/");
++		path += subdir;
++		return path;
++	}
++}
++#endif /* TEXT_TYPES_H_ */
 diff --git a/gframe/utils.cpp b/gframe/utils.cpp
-index 963125ce..cdbe6097 100644
+index 963125ce..ca7be468 100644
 --- a/gframe/utils.cpp
 +++ b/gframe/utils.cpp
-@@ -234,7 +234,10 @@ namespace ygo {
+@@ -1,6 +1,8 @@
+ #include "utils.h"
+ #include <IFileArchive.h>
+ #include <fstream>
++#include <iostream>
++#include <sstream>
+ #ifdef _WIN32
+ #define WIN32_LEAN_AND_MEAN
+ #include <Windows.h>
+@@ -150,6 +152,16 @@ namespace ygo {
+ 		return Utils::ToUpperNoAccents(a) < Utils::ToUpperNoAccents(b);
+ 	};
+ 
++	void Utils::PathForeach(const path_string& path, const std::function<void(path_string)>& cb)
++	{
++		// FIXME: should be ';' in WIN32 and WIN64.
++		static const path_char path_sep = EPRO_TEXT(':');
++		std::basic_istringstream<path_char> dirs(path);
++		path_string dir;
++		while (std::getline(dirs, dir, path_sep))
++			cb(dir);
++	}
++
+ 	std::vector<path_string> Utils::FindFiles(const path_string& path, std::vector<path_string> extensions, int subdirectorylayers) {
+ 		std::vector<path_string> res;
+ 		FindFiles(path, [&res, extensions, path, subdirectorylayers](path_string name, bool isdir, void* payload) {
+@@ -234,7 +246,10 @@ namespace ygo {
  		std::wstring normalpath;
  		if(paths.front() == L".") {
  			paths.erase(paths.begin());
@@ -161,7 +262,7 @@ index 963125ce..cdbe6097 100644
  		}
  		for(auto it = paths.begin(); it != paths.end();) {
  			if((*it).empty()) {
-@@ -252,8 +255,6 @@ namespace ygo {
+@@ -252,8 +267,6 @@ namespace ygo {
  			it++;
  		}
  		if(!paths.empty()) {
@@ -170,7 +271,7 @@ index 963125ce..cdbe6097 100644
  			for(auto it = paths.begin(); it != (paths.end() - 1); it++) {
  				normalpath += *it + L"/";
  			}
-@@ -299,6 +300,8 @@ namespace ygo {
+@@ -299,6 +312,8 @@ namespace ygo {
  		if(paths.empty())
  			return path;
  		std::string normalpath;
@@ -179,11 +280,67 @@ index 963125ce..cdbe6097 100644
  		for(auto it = paths.begin(); it != paths.end();) {
  			if((*it).empty()) {
  				it = paths.erase(it);
-@@ -411,4 +414,3 @@ namespace ygo {
+@@ -411,4 +426,3 @@ namespace ygo {
  		return (convertInputCasing ? ToUpperNoAccents(input) : input).find(convertTokenCasing ? ToUpperNoAccents(token) : token) != std::wstring::npos;
  	}
  }
 -
+diff --git a/gframe/utils.h b/gframe/utils.h
+index 1a3b8104..ff59b7a7 100644
+--- a/gframe/utils.h
++++ b/gframe/utils.h
+@@ -32,6 +32,7 @@ namespace ygo {
+ 		static bool ClearDirectory(const path_string& path);
+ 		static bool DeleteDirectory(const path_string& source);
+ 		static void CreateResourceFolders();
++		static void PathForeach(const path_string& path, const std::function<void(path_string)>& cb);
+ 		static void FindFiles(const path_string& path, const std::function<void(path_string, bool, void*)>& cb, void* payload = nullptr);
+ 		static std::vector<path_string> FindFiles(const path_string& path, std::vector<path_string> extensions, int subdirectorylayers = 0);
+ 		/** Returned subfolder names are prefixed by the provided path */
+diff --git a/premake5.lua b/premake5.lua
+index 4b499864..4309647c 100644
+--- a/premake5.lua
++++ b/premake5.lua
+@@ -41,6 +41,11 @@ newoption {
+ 	value = "app_id_token",
+ 	description = "Discord App ID for rich presence"
+ }
++newoption
++{
++	trigger = "environment-paths",
++	description = "Read databases, scripts and images from YGOPRO_*_PATH"
++}
+ workspace "ygo"
+ 	location "build"
+ 	language "C++"
+@@ -56,10 +61,10 @@ workspace "ygo"
+ 	if _OPTIONS["vcpkg-root"] then
+ 		filter "system:linux"
+ 			includedirs { _OPTIONS["vcpkg-root"] .. "/installed/x64-linux/include" }
+-	
++
+ 		filter { "system:linux", "configurations:Debug" }
+ 			libdirs { _OPTIONS["vcpkg-root"] .. "/installed/x64-linux/debug/lib" }
+-	
++
+ 		filter { "system:linux", "configurations:Release" }
+ 			libdirs { _OPTIONS["vcpkg-root"] .. "/installed/x64-linux/lib" }
+ 
+@@ -102,7 +107,7 @@ workspace "ygo"
+ 	filter "configurations:Release"
+ 		optimize "Size"
+ 		targetdir "bin/release"
+-	
++
+ 	subproject = true
+ 	if not _OPTIONS["prebuilt-core"] then
+ 		include "ocgcore"
+@@ -127,4 +132,4 @@ premake.override(premake.vstudio.vc2010.elements, "globals", function(base, prj)
+ 	local calls = base(prj)
+ 	table.insertafter(calls, premake.vstudio.vc2010.targetPlatformVersionGlobal, vcpkgStaticTriplet)
+ 	return calls
+-end) 
++end)
 -- 
-2.25.1
+2.26.0
 

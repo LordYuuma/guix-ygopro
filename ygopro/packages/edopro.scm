@@ -115,7 +115,7 @@ trivial integration and 100% testing.")
 (define-public edopro
   (package
     (name "edopro")
-    (version "37.1.0")
+    (version "38.0.0-rc3")
     (source
      (origin
        (method git-fetch)
@@ -124,7 +124,7 @@ trivial integration and 100% testing.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "16kgm2vp6d1h04rw3sjrlgfqvj3i77czrjvg70xrzsh6f8n7hkm6"))
+        (base32 "0amzjw6218pa5hqxbffk446a01rij359kvg3bbswmdqbx9fz2nsb"))
        (patches
         (search-patches
          "edopro-respect-YGOPRO_-_PATH.patch"))))
@@ -169,7 +169,7 @@ trivial integration and 100% testing.")
          (delete 'bootstrap)
          (replace 'configure
            (lambda* (#:key configure-flags inputs #:allow-other-keys)
-             (invoke "premake5" "gmake"
+             (invoke "premake5" "gmake" "--environment-paths"
                      (string-append "--prebuilt-core="
                                     (assoc-ref inputs "edopro-core")
                                     "/lib"))
