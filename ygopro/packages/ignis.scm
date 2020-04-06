@@ -115,7 +115,7 @@ trivial integration and 100% testing.")
 (define-public edopro
   (package
     (name "edopro")
-    (version "38.0.0-rc3")
+    (version "38.0.1")
     (source
      (origin
        (method git-fetch)
@@ -124,7 +124,7 @@ trivial integration and 100% testing.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0amzjw6218pa5hqxbffk446a01rij359kvg3bbswmdqbx9fz2nsb"))
+        (base32 "0z919wsq8459y1hqaxgc08bszbs70cr27w9pg06292dxmrjicrkp"))
        (patches
         (search-patches
          "edopro-respect-YGOPRO_-_PATH.patch"))))
