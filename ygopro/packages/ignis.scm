@@ -161,6 +161,8 @@ trivial integration and 100% testing.")
                (substitute* "gframe/game_config.cpp"
                  (("/etc/ygopro" all) (string-append out all))
                  (("/usr(/share/ygopro)" all rest) (string-append out rest)))
+               (substitute* "gframe/logging.cpp"
+                 (("error.log") "/dev/stderr"))
                (substitute* "config/system.conf"
                  (("textfont = .*$")
                   (string-append "textfont = " font " 12\n"))

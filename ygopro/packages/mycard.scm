@@ -146,6 +146,8 @@
                (substitute* (find-files "gframe/" ".*\\.(h|cpp)")
                  (("\"\\.\\./ocgcore/([a-z_]+\\.h)\"" all header)
                   (string-append "<ygopro-core/" header ">")))
+               (substitute* "gframe/game.cpp"
+                 (("error.log") "/dev/stderr"))
                (substitute* "gframe/game.h"
                  (("/etc/ygopro" all)
                   (string-append (assoc-ref outputs "out") all))
