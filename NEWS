@@ -1,6 +1,12 @@
 ;; -*- mode: scheme -*-
 (channel-news
  (version 0)
+ (entry (commit "04dcfbaf63dc34672a10ba817def1efbfce3f024")
+        (title (en "ygopro and edopro now log to stderr"))
+        (body (en "Use shell operators if you want to record log files.")))
+ (entry (commit "a604122f78c2470300c747e7e3268587fb0294ae")
+        (title (en "edopro has basic support for XDG_*_HOME"))
+        (body (en "Unlike ygopro, it still loads its own textures.")))
  (entry (commit "955506a40dac8f71bbee328ab65eab9b918beaac")
         (title (en "ygopro now respects XDG_*_HOME"))
         (body (en "ygopro now reads configuration from XDG_CONFIG_HOME and
