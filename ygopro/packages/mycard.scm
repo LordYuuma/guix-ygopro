@@ -324,10 +324,10 @@ Mycard's CI.")
     (license #f)))
 
 (define-public ygopro-images-en
-  (ygopro-images "en-US" "0fcfn9m5s74bj2mjmvfadgny6f36yyddzfyhkanbkv5ysnpl99cv"))
+  (ygopro-images "en-US" "0ihasiby54qsdpki1jzlqma5hjhbv7c4xywsqix4sghqzpxkcb65"))
 
 (define-public ygopro-images-ja
-  (ygopro-images "ja-JP" "15p2r1if3vy0wra9707d5y209xds2p4ccq8y39hpp7v9finr2cf1"))
+  (ygopro-images "ja-JP" "1b7xcdfspryi71hsxw11h98sq8yybazmqpszd943jjcv4flzg4rb"))
 
 (define-public ygopro-images-zh
-  (ygopro-images "zh-CN" "1s7x8z98sqxnfxsnp6bgpnzs9wz2k7fzyndp6yp4fja9bjnck7vz"))
+  (ygopro-images "zh-CN" "004v2i8xbilv8irk3wv7df663vpmcfnxh4627xl2a1m6ccz3arc8"))
