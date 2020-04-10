@@ -129,7 +129,13 @@ trivial integration and 100% testing.")
         (search-patches
          "edopro-respect-YGOPRO_-_PATH.patch"
          "edopro-respect-XDG-environment-variables.patch"
-         "edopro-fix-strings.patch"))))
+         "edopro-fix-strings.patch"))
+       (modules '((guix build utils)))
+       (snippet
+        '(begin
+           (substitute* "gframe/repo_manager.h"
+             (("LIBGIT2_VER_MINOR==99")
+              "LIBGIT2_VER_MAJOR>=1 || LIBGIT2_VER_MINOR>=99"))))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f ; no `check' target
