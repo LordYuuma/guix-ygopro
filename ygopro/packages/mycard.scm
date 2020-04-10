@@ -133,7 +133,7 @@
              (let* ((out (assoc-ref outputs "out"))
                     (font (string-append
                            (assoc-ref inputs "font-google-noto")
-                           "/share/fonts/truetype/NotoSans-Regular.ttf"))
+                           "/share/fonts/opentype/NotoSansCJKjp-Regular.otf"))
                     (sysconfdir (string-append out "/etc/ygopro"))
                     (datadir (string-append out "/share/ygopro")))
                (substitute* "gframe/premake4.lua"

@@ -141,7 +141,7 @@ trivial integration and 100% testing.")
              (let* ((out (assoc-ref outputs "out"))
                     (font (string-append
                            (assoc-ref inputs "font-google-noto")
-                           "/share/fonts/truetype/NotoSans-Regular.ttf"))
+                           "/share/fonts/opentype/NotoSansCJKjp-Regular.otf"))
                     (datadir (string-append out "/share/ygopro")))
                (rename-file "gframe/lzma/premake4.lua"
                             "gframe/lzma/premake5.lua")
