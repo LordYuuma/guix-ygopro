@@ -127,7 +127,9 @@ trivial integration and 100% testing.")
         (base32 "0z919wsq8459y1hqaxgc08bszbs70cr27w9pg06292dxmrjicrkp"))
        (patches
         (search-patches
-         "edopro-respect-YGOPRO_-_PATH.patch"))))
+         "edopro-respect-YGOPRO_-_PATH.patch"
+         "edopro-respect-XDG-environment-variables.patch"
+         "edopro-fix-strings.patch"))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f ; no `check' target
@@ -156,10 +158,9 @@ trivial integration and 100% testing.")
                (substitute* "gframe/drawing.cpp"
                  (("draw2DRectangleClip") "draw2DRectangle")
                  (("nullptr,clip") "clip"))
-               (substitute* "gframe/image_manager.cpp"
-                 (("./textures/") (string-append datadir "/textures/")))
-               (substitute* (find-files "gframe" ".*\\.cpp")
-                 (("./config") (string-append out "/etc/ygopro")))
+               (substitute* "gframe/game_config.cpp"
+                 (("/etc/ygopro" all) (string-append out all))
+                 (("/usr(/share/ygopro)" all rest) (string-append out rest)))
                (substitute* "config/system.conf"
                  (("textfont = .*$")
                   (string-append "textfont = " font " 12\n"))
@@ -169,10 +170,10 @@ trivial integration and 100% testing.")
          (delete 'bootstrap)
          (replace 'configure
            (lambda* (#:key configure-flags inputs #:allow-other-keys)
-             (invoke "premake5" "gmake" "--environment-paths"
-                     (string-append "--prebuilt-core="
-                                    (assoc-ref inputs "edopro-core")
-                                    "/lib"))
+             (invoke "premake5" "--environment-paths" "--xdg-environment"
+                     "gmake" (string-append "--prebuilt-core="
+                                            (assoc-ref inputs "edopro-core")
+                                            "/lib"))
              #t))
          (replace 'install
            (lambda* (#:key inputs outputs #:allow-other-keys)
