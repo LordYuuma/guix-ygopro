@@ -124,7 +124,7 @@ trivial integration and 100% testing.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0z919wsq8459y1hqaxgc08bszbs70cr27w9pg06292dxmrjicrkp"))
+        (base32 "1w54h19xpw2mnmbrzcr0w0wh7dxafgl0mn908l32gyvfzn5cnhkb"))
        (patches
         (search-patches
          "edopro-respect-YGOPRO_-_PATH.patch"
