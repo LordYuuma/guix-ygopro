@@ -229,8 +229,8 @@ built on top of that.")
     (license license:agpl3+)))
 
 (define-public ignis-database
-  (let ((commit "ca705d8c4b071ae4621cdb12c382eecb7bfd24aa")
-        (revision "0"))
+  (let ((commit "8dffa8780176d3d815521dc17284b674181718b9")
+        (revision "1"))
     (package
       (name "ignis-database")
       (version (git-version (package-version edopro) revision commit))
@@ -243,7 +243,7 @@ built on top of that.")
          (file-name (git-file-name "ignis-database" version))
          (sha256
           (base32
-           "0afa4wdwmyjpnb8yx9cabivb0r1jd5p8m7jdwi1vj8g034hkq9lp"))))
+           "0zpi4qpy30jpnpbj6vj2lvdvc04rpxlb4hzvv8c7a913fj7bf479"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "rush" "skills" "unofficial"))
       (arguments
@@ -267,8 +267,11 @@ built on top of that.")
                (install-with-output
                 "pre-release" `(("." "share/ygopro/data/"
                                  #:include ("cards-rush-prerelease.cdb"
+                                            "prerelease.cdb"
                                             "prerelease-cp20.cdb"
-                                            "prerelease-rotd.cdb"))))
+                                            "prerelease-dp24.cdb"
+                                            "prerelease-rotd.cdb"
+                                            "prerelease-sd39.cdb"))))
                #t))
            (add-after 'install 'install-lflists
              (lambda* (#:key inputs outputs #:allow-other-keys)
@@ -309,8 +312,8 @@ built on top of that.")
       (license #f))))
 
 (define-public ignis-scripts
-  (let ((commit "7b5620106c99b617152c630cf6bf53bfd61bf8b9")
-        (revision "0"))
+  (let ((commit "7e72937faf3950bf8b0b93f6cfaff0cc58d9c918")
+        (revision "1"))
     (package
       (name "ignis-scripts")
       (version (git-version (package-version edopro) revision commit))
@@ -323,7 +326,7 @@ built on top of that.")
          (file-name (git-file-name "ignis-scripts" version))
          (sha256
           (base32
-           "1fg6rnnyplk0a6f4xlk5971i54b3v4w612k6w1v0zjsdrpl3r8a3"))))
+           "0ayscg3bdari0rh95hmnafz5aw93b29v3shg136zp8id59hzy6v4"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "rush" "skill" "unofficial"))
       (arguments
