@@ -1,4 +1,4 @@
-From 4e43577e349f409dea92b29e6fa2f6616fbdd518 Mon Sep 17 00:00:00 2001
+From 421ed0c7c1a9a920edf46a56726cd94524085dc0 Mon Sep 17 00:00:00 2001
 From: LordYuuma <lordyuuma@gmail.com>
 Date: Thu, 9 Apr 2020 18:52:34 +0200
 Subject: [PATCH] edopro: respect XDG environment variables.
@@ -50,7 +50,7 @@ Create pics structure in cache_directory, create deck, puzzles, replay
 and screenshots folder in data_directory.
 * gframe/utils_gui.cpp (TakeScreenshot): Save in data_directory.
 ---
- gframe/data_handler.cpp     |  6 ++-
+ gframe/data_handler.cpp     |  8 ++--
  gframe/deck_manager.cpp     | 20 ++++-----
  gframe/game.cpp             | 81 ++++++++++++++++++++-----------------
  gframe/game_config.cpp      | 36 ++++++++++++++++-
@@ -65,10 +65,10 @@ and screenshots folder in data_directory.
  gframe/utils.cpp            | 23 ++++++-----
  gframe/utils_gui.cpp        |  6 ++-
  premake5.lua                |  5 +++
- 15 files changed, 193 insertions(+), 100 deletions(-)
+ 15 files changed, 194 insertions(+), 101 deletions(-)
 
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
-index 5db804e6..135db0ea 100644
+index 5db804e6..bae147f0 100644
 --- a/gframe/data_handler.cpp
 +++ b/gframe/data_handler.cpp
 @@ -98,6 +98,7 @@ void DataHandler::LoadZipArchives() {
@@ -79,7 +79,15 @@ index 5db804e6..135db0ea 100644
  	tmp_device = nullptr;
  #ifndef __ANDROID__
  	irr::SIrrlichtCreationParameters params = irr::SIrrlichtCreationParameters();
-@@ -129,8 +130,9 @@ DataHandler::DataHandler() {
+@@ -122,15 +123,16 @@ DataHandler::DataHandler() {
+ #ifdef __ANDROID__
+ 	configs->working_directory = porting::working_directory;
+ #endif
+-	sounds = std::unique_ptr<SoundManager>(new SoundManager(configs->soundVolume / 100.0, configs->musicVolume / 100.0, configs->enablesound, configs->enablemusic / 100.0, configs->working_directory));
++	sounds = std::unique_ptr<SoundManager>(new SoundManager(configs->soundVolume / 100.0, configs->musicVolume / 100.0, configs->enablesound, configs->enablemusic / 100.0, configs->data_directory));
+ 	gitManager->LoadRepositoriesFromJson(configs->configs);
+ 	dataManager = std::unique_ptr<DataManager>(new DataManager());
+ 	imageDownloader = std::unique_ptr<ImageDownloader>(new ImageDownloader());
  	LoadDatabases();
  	LoadPicUrls();
  	deckManager->LoadLFList();

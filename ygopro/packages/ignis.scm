@@ -15,9 +15,12 @@
   #:use-module (gnu packages gl)
   #:use-module (gnu packages libevent)
   #:use-module (gnu packages lua)
+  #:use-module (gnu packages mp3)
   #:use-module (gnu packages pretty-print)
+  #:use-module (gnu packages sdl)
   #:use-module (gnu packages sqlite)
   #:use-module (gnu packages version-control)
+  #:use-module (gnu packages xiph)
   #:use-module (ygopro packages mycard))
 
 (define-public edopro-core
@@ -160,7 +163,8 @@ trivial integration and 100% testing.")
                                  "/include/freetype2"))
                  (("/usr/include/irrlicht")
                   (string-append (assoc-ref inputs "irrlicht")
-                                 "/include/irrlicht")))
+                                 "/include/irrlicht"))
+                 (("SDL2d") "SDL2"))
                (substitute* "gframe/drawing.cpp"
                  (("draw2DRectangleClip") "draw2DRectangle")
                  (("nullptr,clip") "clip"))
@@ -178,10 +182,12 @@ trivial integration and 100% testing.")
          (delete 'bootstrap)
          (replace 'configure
            (lambda* (#:key configure-flags inputs #:allow-other-keys)
-             (invoke "premake5" "--environment-paths" "--xdg-environment"
-                     "gmake" (string-append "--prebuilt-core="
-                                            (assoc-ref inputs "edopro-core")
-                                            "/lib"))
+             (invoke "premake5" "gmake"
+                     "--environment-paths" "--xdg-environment"
+                     "--sound=sdl-mixer"
+                     (string-append "--prebuilt-core="
+                                    (assoc-ref inputs "edopro-core")
+                                    "/lib"))
              #t))
          (replace 'install
            (lambda* (#:key inputs outputs #:allow-other-keys)
@@ -195,19 +201,23 @@ trivial integration and 100% testing.")
                #t))))))
     (inputs
      `(("curl" ,curl)
+       ("edopro-core" ,edopro-core)
        ("font-google-noto" ,font-google-noto)
        ("freetype" ,freetype)
        ("fmt" ,fmt)
        ("glu" ,glu)
        ("irrlicht" ,irrlicht-for-edopro)
        ("libevent" ,libevent)
+       ("libflac" ,flac)
        ("libgit2" ,libgit2)
+       ("libvorbis" ,libvorbis)
        ("lua" ,lua)
        ("mesa" ,mesa)
+       ("mpg123" ,mpg123)
        ("nlohmann-json" ,nlohmann-json)
-       ("sqlite" ,sqlite)
        ("premake5" ,premake5)
-       ("edopro-core" ,edopro-core)))
+       ("sdl2-mixer" ,(sdl-union (list sdl2 sdl2-mixer)))
+       ("sqlite" ,sqlite)))
     (native-search-paths
      (package-native-search-paths ygopro))
     (synopsis "Bleeding-edge fork of ygopro")
