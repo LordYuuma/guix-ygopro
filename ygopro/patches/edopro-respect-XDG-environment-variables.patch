@@ -1,4 +1,4 @@
-From 421ed0c7c1a9a920edf46a56726cd94524085dc0 Mon Sep 17 00:00:00 2001
+From 07e8a52612eedda41c3690cc465a51e1f58dd3f3 Mon Sep 17 00:00:00 2001
 From: LordYuuma <lordyuuma@gmail.com>
 Date: Thu, 9 Apr 2020 18:52:34 +0200
 Subject: [PATCH] edopro: respect XDG environment variables.
@@ -44,6 +44,8 @@ InitTexture_, GetTextureSized_ and GetTexture_.
 textures_path2.
 * gframe/replay.cpp (BeginRecord,SaveReplay,OpenReplay): Load replays
 from data_directory.
+* gframe/sound_manager.cpp (RefreshBGMList,RefreshBGMDir): Properly expand
+working_directory.
 * gframe/utils.cpp (CreateResourceFolders): Create config_directory,
 data_directory and cache_directory.
 Create pics structure in cache_directory, create deck, puzzles, replay
@@ -62,10 +64,11 @@ and screenshots folder in data_directory.
  gframe/premake5.lua         |  3 ++
  gframe/replay.cpp           |  7 ++--
  gframe/single_mode.cpp      |  2 +-
+ gframe/sound_manager.cpp    | 18 ++++-----
  gframe/utils.cpp            | 23 ++++++-----
  gframe/utils_gui.cpp        |  6 ++-
  premake5.lua                |  5 +++
- 15 files changed, 194 insertions(+), 101 deletions(-)
+ 16 files changed, 203 insertions(+), 110 deletions(-)
 
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
 index 5db804e6..bae147f0 100644
@@ -666,6 +669,42 @@ index f4a25d4d..f0d7cc85 100644
  				if(!mainGame->LoadScript(pduel, script_name))
  					loaded = false;
  			}
+diff --git a/gframe/sound_manager.cpp b/gframe/sound_manager.cpp
+index 98119535..461bbf70 100644
+--- a/gframe/sound_manager.cpp
++++ b/gframe/sound_manager.cpp
+@@ -40,14 +40,14 @@ bool SoundManager::IsUsable() {
+ }
+ void SoundManager::RefreshBGMList() {
+ #ifdef BACKEND
+-	Utils::MakeDirectory(EPRO_TEXT("./sound/BGM/"));
+-	Utils::MakeDirectory(EPRO_TEXT("./sound/BGM/duel"));
+-	Utils::MakeDirectory(EPRO_TEXT("./sound/BGM/menu"));
+-	Utils::MakeDirectory(EPRO_TEXT("./sound/BGM/deck"));
+-	Utils::MakeDirectory(EPRO_TEXT("./sound/BGM/advantage"));
+-	Utils::MakeDirectory(EPRO_TEXT("./sound/BGM/disadvantage"));
+-	Utils::MakeDirectory(EPRO_TEXT("./sound/BGM/win"));
+-	Utils::MakeDirectory(EPRO_TEXT("./sound/BGM/lose"));
++	Utils::MakeDirectory(working_dir / EPRO_TEXT("sound/BGM/"));
++	Utils::MakeDirectory(working_dir / EPRO_TEXT("sound/BGM/duel"));
++	Utils::MakeDirectory(working_dir / EPRO_TEXT("sound/BGM/menu"));
++	Utils::MakeDirectory(working_dir / EPRO_TEXT("sound/BGM/deck"));
++	Utils::MakeDirectory(working_dir / EPRO_TEXT("sound/BGM/advantage"));
++	Utils::MakeDirectory(working_dir / EPRO_TEXT("sound/BGM/disadvantage"));
++	Utils::MakeDirectory(working_dir / EPRO_TEXT("sound/BGM/win"));
++	Utils::MakeDirectory(working_dir / EPRO_TEXT("sound/BGM/lose"));
+ 	for (auto list : BGMList) {
+ 		list.clear();
+ 	}
+@@ -63,7 +63,7 @@ void SoundManager::RefreshBGMList() {
+ }
+ void SoundManager::RefreshBGMDir(path_string path, BGM scene) {
+ #ifdef BACKEND
+-	for(auto& file : Utils::FindFiles(EPRO_TEXT("./sound/BGM/") + path, { EPRO_TEXT("mp3"), EPRO_TEXT("ogg"), EPRO_TEXT("wav"), EPRO_TEXT("flac") })) {
++	for(auto& file : Utils::FindFiles(working_dir / EPRO_TEXT("sound/BGM/") + path, { EPRO_TEXT("mp3"), EPRO_TEXT("ogg"), EPRO_TEXT("wav"), EPRO_TEXT("flac") })) {
+ 		auto conv = Utils::ToUTF8IfNeeded(path + EPRO_TEXT("/") + file);
+ 		BGMList[BGM::ALL].push_back(conv);
+ 		BGMList[scene].push_back(conv);
 diff --git a/gframe/utils.cpp b/gframe/utils.cpp
 index ca7be468..6585fdd1 100644
 --- a/gframe/utils.cpp
