@@ -132,7 +132,8 @@ trivial integration and 100% testing.")
         (search-patches
          "edopro-respect-YGOPRO_-_PATH.patch"
          "edopro-respect-XDG-environment-variables.patch"
-         "edopro-fix-strings.patch"))
+         "edopro-fix-strings.patch"
+         "edopro-fix-advantage.patch"))
        (modules '((guix build utils)))
        (snippet
         '(begin

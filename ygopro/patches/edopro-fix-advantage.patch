@@ -1,0 +1,28 @@
+From 1ce658a487b184fdbb5f4fa25c3fc5a50f22d1ac Mon Sep 17 00:00:00 2001
+From: edo9300 <edoardo762@gmail.com>
+Date: Wed, 8 Apr 2020 09:50:30 +0200
+Subject: [PATCH] Fix wrong adv/disadv music being played
+
+---
+ gframe/game.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/gframe/game.cpp b/gframe/game.cpp
+index b76fc270..a4d9a11d 100644
+--- a/gframe/game.cpp
++++ b/gframe/game.cpp
+@@ -1652,9 +1652,9 @@ bool Game::MainLoop() {
+ 				gSoundManager->PlayBGM(SoundManager::BGM::WIN);
+ 			else if (showcardcode == 2)
+ 				gSoundManager->PlayBGM(SoundManager::BGM::LOSE);
+-			else if (dInfo.lp[0] > 0 && dInfo.lp[LocalPlayer(0)] <= dInfo.lp[LocalPlayer(1)] / 2)
++			else if (dInfo.lp[0] > 0 && dInfo.lp[0] <= dInfo.lp[1] / 2)
+ 				gSoundManager->PlayBGM(SoundManager::BGM::DISADVANTAGE);
+-			else if (dInfo.lp[0] > 0 && dInfo.lp[LocalPlayer(0)] >= dInfo.lp[LocalPlayer(1)] * 2)
++			else if (dInfo.lp[0] > 0 && dInfo.lp[0] >= dInfo.lp[1] * 2)
+ 				gSoundManager->PlayBGM(SoundManager::BGM::ADVANTAGE);
+ 			else
+ 				gSoundManager->PlayBGM(SoundManager::BGM::DUEL);
+-- 
+2.26.0
+
