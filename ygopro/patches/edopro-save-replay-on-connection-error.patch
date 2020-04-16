@@ -1,0 +1,25 @@
+From 3d937f2e3c1020a525498ba8603ff1c1bf27e21f Mon Sep 17 00:00:00 2001
+From: edo9300 <edoardo762@gmail.com>
+Date: Thu, 16 Apr 2020 11:30:48 +0200
+Subject: [PATCH] edopro: save replay on connection error
+
+---
+ gframe/duelclient.cpp | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/gframe/duelclient.cpp b/gframe/duelclient.cpp
+index 3e35c4d4..bf5f628d 100644
+--- a/gframe/duelclient.cpp
++++ b/gframe/duelclient.cpp
+@@ -272,6 +272,9 @@ catch(...) { what = def; }
+ 					mainGame->gMutex.unlock();
+ 				} else {
+ 					gSoundManager->StopSounds();
++					if(mainGame->dInfo.isStarted) {
++						ReplayPrompt(true);
++					}
+ 					mainGame->gMutex.lock();
+ 					mainGame->PopupMessage(gDataManager->GetSysString(1502));
+ 					mainGame->btnCreateHost->setEnabled(mainGame->coreloaded);
+--
+2.26.0

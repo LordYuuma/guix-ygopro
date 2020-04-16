@@ -133,7 +133,9 @@ trivial integration and 100% testing.")
          "edopro-respect-YGOPRO_-_PATH.patch"
          "edopro-respect-XDG-environment-variables.patch"
          "edopro-fix-strings.patch"
-         "edopro-fix-advantage.patch"))
+         "edopro-fix-advantage.patch"
+         "edopro-hide-hands-and-loop-music.patch"
+         "edopro-save-replay-on-connection-error.patch"))
        (modules '((guix build utils)))
        (snippet
         '(begin
