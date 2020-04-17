@@ -323,11 +323,13 @@ Mycard's CI.")
     (home-page "https://github.com/mycard/ygopro")
     (license #f)))
 
+;; these hashes change all the time -- I'd recommend using ygopro-images
+;; directly if you're writing a manifest
 (define-public ygopro-images-en
-  (ygopro-images "en-US" "0ihasiby54qsdpki1jzlqma5hjhbv7c4xywsqix4sghqzpxkcb65"))
+  (ygopro-images "en-US" "1pn7nk15nlk62zbic1rw64bwza7qsyg6f69wy60f86vvn8r98hsc"))
 
 (define-public ygopro-images-ja
-  (ygopro-images "ja-JP" "1b7xcdfspryi71hsxw11h98sq8yybazmqpszd943jjcv4flzg4rb"))
+  (ygopro-images "ja-JP" "0ha518if5616cbnggcs4gxibrq03bnd3j4lj6qf58z0y1d6qks8s"))
 
 (define-public ygopro-images-zh
-  (ygopro-images "zh-CN" "004v2i8xbilv8irk3wv7df663vpmcfnxh4627xl2a1m6ccz3arc8"))
+  (ygopro-images "zh-CN" "0fakrcg11ri55k3qjl9wylf7lp8sk5qsx4rbkvvfbc1b524li904"))
