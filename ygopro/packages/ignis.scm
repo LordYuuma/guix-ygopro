@@ -232,8 +232,8 @@ built on top of that.")
     (license license:agpl3+)))
 
 (define-public ignis-database
-  (let ((commit "074798b6cf1e4f7bb2ca9f0d5d10452e26876f1b")
-        (revision "2"))
+  (let ((commit "0813c3ca74dd60afe12a19c94d9744d69911c55c")
+        (revision "3"))
     (package
       (name "ignis-database")
       (version (git-version (package-version edopro) revision commit))
@@ -246,7 +246,7 @@ built on top of that.")
          (file-name (git-file-name "ignis-database" version))
          (sha256
           (base32
-           "0yrbgpsy3fcrnx5bvf2cd8qmj1cm0y1c308l4al5n00c4b4alz2l"))))
+           "0jyam5yfabscr316w7l2kb901hmhfvdj8k0naim9rig53lbqs2za"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "rush" "skills" "unofficial"))
       (arguments
@@ -273,6 +273,7 @@ built on top of that.")
                                             "prerelease.cdb"
                                             "prerelease-cp20.cdb"
                                             "prerelease-dp24.cdb"
+                                            "prerelease-etco.cdb"
                                             "prerelease-rotd.cdb"
                                             "prerelease-sd39.cdb"))))
                #t))
@@ -305,18 +306,18 @@ built on top of that.")
              (uri
               (git-reference
                (url "https://github.com/ProjectIgnis/LFLists")
-               (commit "21cf2d547cee1576cafb8a7ab5077ab61b916b73")))
+               (commit "061b753bc87c032bef4feb2953f92e802628c6e8")))
              (sha256
               (base32
-               "1qqwlb0z8jhg0v7mg69x0jnkqf190mmialg33by4im4ncxg0rs9y"))))))
+               "0xm97lvr5cg4l8w2kv430dghyhhl0bk806niy5da7n4vsnz304as"))))))
       (synopsis "Card databases for EDOPro")
       (description "Provides various card databases for EDOPro.")
       (home-page "https://github.com/ProjectIgnis/BabelCDB")
       (license #f))))
 
 (define-public ignis-scripts
-  (let ((commit "a8881f4692a4d8b007c0f69a89c32776ed11fb16")
-        (revision "2"))
+  (let ((commit "4f8fab0daa40fa3a4405536b6d609c42b538b53b")
+        (revision "3"))
     (package
       (name "ignis-scripts")
       (version (git-version (package-version edopro) revision commit))
@@ -329,7 +330,7 @@ built on top of that.")
          (file-name (git-file-name "ignis-scripts" version))
          (sha256
           (base32
-           "08nnv8pqdg0l2qv30b9mkhn0d0z9sv2x6cyqyv54fbacpwpmjr4v"))))
+           "1yayx390lb5k21b0igdnzg6gkdn30jzmb5ak5sc307sws512ilq9"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "rush" "skill" "unofficial"))
       (arguments
