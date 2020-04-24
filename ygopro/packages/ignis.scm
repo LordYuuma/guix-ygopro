@@ -343,7 +343,7 @@ built on top of that.")
           (base32
            "14rp3d8814xdi8sm6kgi2kbk9h7bgnmz46md23rccws49n57f4k5"))))
       (build-system copy-build-system)
-      (outputs '("out" "pre-release" "rush" "skill" "unofficial"))
+      (outputs '("out" "pre-release" "pre-errata" "rush" "skill" "unofficial"))
       (arguments
        `(#:phases
          (modify-phases %standard-phases
@@ -367,8 +367,9 @@ built on top of that.")
                (install-with-output
                 "unofficial" `(("unofficial" "share/ygopro/script")))
                (install-with-output
-                "pre-release" `(("pre-errata" "share/ygopro/script")
-                                ("pre-release" "share/ygopro/script")))
+                "pre-release" `(("pre-release" "share/ygopro/script")))
+               (install-with-output
+                "pre-errata" `(("pre-errata" "share/ygopro/script")))
                #t)))))
       (synopsis "Card scripts for EDOPro")
       (description "Provides card scripts for EDOPro.")
