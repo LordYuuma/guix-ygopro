@@ -252,6 +252,15 @@ built on top of that.")
       (arguments
        `(#:phases
          (modify-phases %standard-phases
+           (add-before 'install 'fix-releases
+             (lambda* (#:key inputs #:allow-other-keys)
+               (rename-file "prerelease-rotd.cdb" "release-rotd.cdb")
+               (chmod "release-rotd.cdb" #o644)
+               (invoke (string-append (assoc-ref inputs "sqlite")
+                                      "/bin/sqlite3")
+                       "release-rotd.cdb"
+                       "UPDATE datas SET ot=ot&(~256);")
+               #t))
            (replace 'install
              (lambda* (#:key outputs #:allow-other-keys)
                (define (install-with-output output install-plan)
@@ -260,7 +269,9 @@ built on top of that.")
                   #:install-plan install-plan))
 
                (install-with-output
-                "out" `(("cards.cdb" "share/ygopro/data/")))
+                "out" `(("cards.cdb" "share/ygopro/data/")
+                        ("." "share/ygopro/data"
+                         #:include ("release-rotd.cdb"))))
                (install-with-output
                 "rush" `(("cards-rush.cdb" "share/ygopro/data/")))
                (install-with-output
@@ -274,7 +285,6 @@ built on top of that.")
                                             "prerelease-cp20.cdb"
                                             "prerelease-dp24.cdb"
                                             "prerelease-etco.cdb"
-                                            "prerelease-rotd.cdb"
                                             "prerelease-sd39.cdb"))))
                #t))
            (add-after 'install 'install-lflists
@@ -309,7 +319,8 @@ built on top of that.")
                (commit "061b753bc87c032bef4feb2953f92e802628c6e8")))
              (sha256
               (base32
-               "0xm97lvr5cg4l8w2kv430dghyhhl0bk806niy5da7n4vsnz304as"))))))
+               "0xm97lvr5cg4l8w2kv430dghyhhl0bk806niy5da7n4vsnz304as"))))
+         ("sqlite" ,sqlite)))
       (synopsis "Card databases for EDOPro")
       (description "Provides various card databases for EDOPro.")
       (home-page "https://github.com/ProjectIgnis/BabelCDB")
