@@ -252,7 +252,7 @@ built on top of that.")
       (arguments
        `(#:phases
          (modify-phases %standard-phases
-           (add-before 'install 'fix-releases
+           (add-after 'unpack 'fix-releases
              (lambda* (#:key inputs #:allow-other-keys)
                (rename-file "prerelease-rotd.cdb" "release-rotd.cdb")
                (chmod "release-rotd.cdb" #o644)
