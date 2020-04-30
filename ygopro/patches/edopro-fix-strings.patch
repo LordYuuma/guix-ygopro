@@ -1,5 +1,5 @@
 diff --git a/config/strings.conf b/config/strings.conf
-index c227a41a..4ce7f093 100644
+index c227a41a..5f4d92bc 100644
 --- a/config/strings.conf
 +++ b/config/strings.conf
 @@ -1,5 +1,9 @@
@@ -31,7 +31,7 @@ index c227a41a..4ce7f093 100644
 -!system 103 Opponent
 -!system 200 Do you wish to use from "%ls" "%ls"'s effect?
 +!system 102 Your 
-+!system 103 Your opponent's  
++!system 103 Your opponent's 
 +!system 200 Use the effect of "%ls" from [%ls]?
  !system 201 No effect can be activated at this moment
  !system 202 Do you want to check the field?
@@ -596,7 +596,15 @@ index c227a41a..4ce7f093 100644
  #Victory Reasons
  !victory 0x0 Surrendered
  !victory 0x1 LP reached 0
-@@ -780,7 +913,7 @@
+@@ -555,6 +688,7 @@
+ !victory 0x1e Victory by the effect of Flying Elephant
+ !victory 0x1f Victory by the effect of Exodia, Master of the Guard
+ !victory 0x20 Match Victory by the effect of 「%ls」
++!victory 0x21 Victory by the effect of True Exodia
+ !victory 0x30 Victory by the effect of Creator of Miracles
+ !victory 0x51 Victory by the effect of Evil 1
+ !victory 0x52 Victory by the effect of Number_Ci1000:_Numerronius_Numerronia
+@@ -780,7 +914,7 @@
  !setname 0x44 The Agent
  !setname 0x45 Archfiend
  !setname 0x1045 Red Dragon Archfiend
@@ -605,7 +613,29 @@ index c227a41a..4ce7f093 100644
  !setname 0x1046 Fusion Dragon
  !setname 0x47 Gem-
  !setname 0x1047 Gem-Knight
-@@ -835,7 +968,7 @@
+@@ -796,7 +930,7 @@
+ !setname 0x304e Evoltile
+ !setname 0x604e Evolsaur
+ !setname 0x504e Evolzar
+-!setname 0x4f N/A
++!setname 0x4f Dark Lucius
+ !setname 0x104f /Assault Mode
+ !setname 0x50 Venom
+ !setname 0x1050 Starving Venom
+@@ -812,9 +946,9 @@
+ !setname 0x5a Penguin
+ !setname 0x5b Inmato
+ !setname 0x5c Sphinx
+-!setname 0x5d N/A
+-!setname 0x5e N/A
+-!setname 0x5f N/A
++!setname 0x5d Ultimate Insect
++!setname 0x5e Dark Mimic
++!setname 0x5f Mystic Swordsman
+ !setname 0x60 Bamboo Sword
+ !setname 0x61 Ninjitsu Art
+ !setname 0x62 Toon
+@@ -835,7 +969,7 @@
  !setname 0x6e Prophecy
  !setname 0x106e Spellbook
  !setname 0x6f Heroic
@@ -614,7 +644,7 @@ index c227a41a..4ce7f093 100644
  !setname 0x206f Heroic Champion
  !setname 0x70 Chronomaly
  !setname 0x71 Madolche
-@@ -860,7 +993,7 @@
+@@ -860,7 +994,7 @@
  !setname 0x7d Hazy
  !setname 0x107d Hazy Flame
  !setname 0x7e ZW
@@ -623,7 +653,7 @@ index c227a41a..4ce7f093 100644
  !setname 0x107f Utopia
  !setname 0x207f Utopic Future
  !setname 0x80 Duston
-@@ -946,7 +1079,7 @@
+@@ -946,7 +1080,7 @@
  !setname 0xbd Gaia The Fierce Knight
  !setname 0xbe Monarch
  !setname 0xbf Charmer
@@ -632,7 +662,7 @@ index c227a41a..4ce7f093 100644
  !setname 0xc1 PSY-Frame
  !setname 0x10c1 PSY-Framegear
  !setname 0xc2 Power Tool
-@@ -1020,7 +1153,7 @@
+@@ -1020,7 +1154,7 @@
  !setname 0xf8 Supreme King
  !setname 0x10f8 Supreme King Gate
  !setname 0x20f8 Supreme King Dragon
@@ -641,7 +671,7 @@ index c227a41a..4ce7f093 100644
  !setname 0xfa Phantasm Spiral
  !setname 0xfc Gouki
  !setname 0xfb Trickstar
-@@ -1063,7 +1196,7 @@
+@@ -1063,7 +1197,7 @@
  !setname 0x120 Prank-Kids
  !setname 0x121 Mayakashi
  !setname 0x122 Valkyrie
@@ -650,7 +680,7 @@ index c227a41a..4ce7f093 100644
  !setname 0x1123 Rose Dragon
  !setname 0x124 Machine Angel
  !setname 0x125 Smile
-@@ -1085,10 +1218,24 @@
+@@ -1085,10 +1219,25 @@
  !setname 0x134 Generaider
  !setname 0x135 @Ignister
  !setname 0x136 A.I.
@@ -672,13 +702,14 @@ index c227a41a..4ce7f093 100644
 +!setname 0x143 Eldlixir
 +!setname 0x144 Golden Land
 +!setname 0x145 Phantasm
-+!setname 0x241 Roland
-+!setname 0x242 Merfae
-+!setname 0x243 Fossil
++!setname 0x146 Dragma
++!setname 0x147 Märfae
++!setname 0x148 Potan
++!setname 0x149 Roland
  #Anime Archetypes
  !setname 0x2033 Blackwing Tamer
  !setname 0x5034 Advanced Crystal Beast
-@@ -1187,7 +1334,6 @@
+@@ -1187,7 +1336,6 @@
  !setname 0x1541 Quiz Panel
  !setname 0x542 Raccoon
  !setname 0x543 Red
@@ -686,7 +717,7 @@ index c227a41a..4ce7f093 100644
  !setname 0x545 Seal
  !setname 0x546 Shaman
  !setname 0x547 Shark
-@@ -1231,7 +1377,7 @@
+@@ -1231,7 +1379,7 @@
  !setname 0x561 Yubel
  !setname 0x562 ∞
  !setname 0x563 Yomi
@@ -695,13 +726,14 @@ index c227a41a..4ce7f093 100644
  !setname 0x565 Hunder
  !setname 0x566 Heraldic
  !setname 0x567 Hell
-@@ -1257,9 +1403,7 @@
+@@ -1257,9 +1405,7 @@
  !setname 0x57b Topologina
  !setname 0x580 Stormrider
  !setname 0x581 Drone
 -!setname 0x582 @Ignister
- !setname 0x583 Codebreaker
+-!setname 0x583 Codebreaker
 -!setname 0x584 Ai
++!setname 0x583 Mask
  !setname 0x600 Dark Tuner
  !setname 0x601 Dark Synchro
  !setname 0x316 Darkness
