@@ -223,8 +223,8 @@ built on top of that.")
     (license license:agpl3+)))
 
 (define-public ignis-database
-  (let ((commit "3e1787b344989cd49011425527f8f719b562d663")
-        (revision "0"))
+  (let ((commit "7420ee0f03e37e4c2679e54e921b0222be2e44c6")
+        (revision "1"))
     (package
       (name "ignis-database")
       (version (git-version (package-version edopro) revision commit))
@@ -237,21 +237,12 @@ built on top of that.")
          (file-name (git-file-name "ignis-database" version))
          (sha256
           (base32
-           "1cj92v36gyci7k3xx82jpap2yz9gccczl7fi76ggjq4fjs7d5msw"))))
+           "0gmy2cz0n7mfvqmcsnl7ndn4i7h35kici85kx92145d8abyyg91a"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "rush" "skills" "unofficial"))
       (arguments
        `(#:phases
          (modify-phases %standard-phases
-           (add-after 'unpack 'fix-releases
-             (lambda* (#:key inputs #:allow-other-keys)
-               (rename-file "prerelease-rotd.cdb" "release-rotd.cdb")
-               (chmod "release-rotd.cdb" #o644)
-               (invoke (string-append (assoc-ref inputs "sqlite")
-                                      "/bin/sqlite3")
-                       "release-rotd.cdb"
-                       "UPDATE datas SET ot=ot&(~256);")
-               #t))
            (replace 'install
              (lambda* (#:key outputs #:allow-other-keys)
                (define (install-with-output output install-plan)
@@ -260,9 +251,8 @@ built on top of that.")
                   #:install-plan install-plan))
 
                (install-with-output
-                "out" `(("cards.cdb" "share/ygopro/data/")
-                        ("." "share/ygopro/data"
-                         #:include ("release-rotd.cdb"))))
+                "out" `(("." "share/ygopro/data/"
+                         #:include ("cards.cdb" "release.cdb"))))
                (install-with-output
                 "rush" `(("cards-rush.cdb" "share/ygopro/data/")))
                (install-with-output
@@ -318,8 +308,8 @@ built on top of that.")
       (license #f))))
 
 (define-public ignis-scripts
-  (let ((commit "addd2fbc7ae38a7744b948f54ac73d7537b8e769")
-        (revision "0"))
+  (let ((commit "7c803259ca1a3f3f61aac295932aa111cd9f9cfc")
+        (revision "1"))
     (package
       (name "ignis-scripts")
       (version (git-version (package-version edopro) revision commit))
@@ -332,35 +322,12 @@ built on top of that.")
          (file-name (git-file-name "ignis-scripts" version))
          (sha256
           (base32
-           "14rp3d8814xdi8sm6kgi2kbk9h7bgnmz46md23rccws49n57f4k5"))))
+           "0mrr8a1cdfa3nykkkayhakasz5m7zaf5bj7brbhvxk9csqcck10w"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "pre-errata" "rush" "skill" "unofficial"))
       (arguments
        `(#:phases
          (modify-phases %standard-phases
-           (add-after 'unpack 'fix-locations
-             (lambda _
-               (for-each
-                (lambda (card)
-                  (let ((full-card (string-append "c" (number->string card)
-                                                  ".lua")))
-                    (rename-file (string-append "pre-release/" full-card)
-                                 (string-append "official/" full-card))))
-                (cdr
-                 '(%
-                   15989522 16001119 16223761 17946349 18138630 18168997 1984618
-                   20003027 20899496 21011044 2106266 21351206 22073844 24299458
-                   25311006 26534688 29280589 29354228 29477860 3040496 30439101
-                   33296432 33318980 34130561 37256135 37478723 3828844 38590361
-                   39317553 40251688 41373230 4167084 42596828 43218406 44440058
-                   51684157 51706604 54527349 54563536 55289183 55749927 56294501
-                   56401775 56461575 57416183 57523313 58346901 60303688 61525276
-                   62528292 63644830 64867422 65589010 65711558 68468459 69680031
-                   76833149 77656797 78778375 78990927 7913375 80839052 81951640
-                   82134632 82773292 82896870 82956214 84404797 89617515 90861137
-                   93018428 93078761 94730900 95679145 95953557 96891787 98804359
-                   99049589 99927991)))
-               #t))
            (replace 'install
              (lambda* (#:key outputs #:allow-other-keys)
                (define (install-with-output output install-plan)
