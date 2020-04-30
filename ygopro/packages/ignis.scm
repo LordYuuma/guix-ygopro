@@ -99,8 +99,8 @@ trivial integration and 100% testing.")
     (license license:expat)))
 
 (define irrlicht-for-edopro
-  (let ((commit "e6d4e1e7b1904bb42b2fbb2aefa9a6bb04864565")
-        (revision "1"))
+  (let ((commit "914cbb35142f8e8bd1659d177bbe552e14fe78f1")
+        (revision "2"))
    (package
     (inherit irrlicht)
     (name "irrlicht-for-edopro")
@@ -113,12 +113,12 @@ trivial integration and 100% testing.")
              (commit commit)))
        (sha256
         (base32
-         "0h3jbs029z2hjhgybnfr0fzfcsjggrvi4a9g73psyy3yxxpb7c12")))))))
+         "0fv2v29ainsif3ansc0q8448pbi3bq974k95byx9rph7r8szww9i")))))))
 
 (define-public edopro
   (package
     (name "edopro")
-    (version "38.0.1")
+    (version "38.0.2")
     (source
      (origin
        (method git-fetch)
@@ -127,21 +127,12 @@ trivial integration and 100% testing.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1w54h19xpw2mnmbrzcr0w0wh7dxafgl0mn908l32gyvfzn5cnhkb"))
+        (base32 "069bxf6g9b3qyz4jy3kbjjw7xy2g2wsxfnmvc7pvfax50lgfcfin"))
        (patches
         (search-patches
          "edopro-respect-YGOPRO_-_PATH.patch"
          "edopro-respect-XDG-environment-variables.patch"
-         "edopro-fix-strings.patch"
-         "edopro-fix-advantage.patch"
-         "edopro-hide-hands-and-loop-music.patch"
-         "edopro-save-replay-on-connection-error.patch"))
-       (modules '((guix build utils)))
-       (snippet
-        '(begin
-           (substitute* "gframe/repo_manager.h"
-             (("LIBGIT2_VER_MINOR==99")
-              "LIBGIT2_VER_MAJOR>=1 || LIBGIT2_VER_MINOR>=99"))))))
+         "edopro-fix-strings.patch"))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f ; no `check' target
@@ -233,7 +224,7 @@ built on top of that.")
 
 (define-public ignis-database
   (let ((commit "3e1787b344989cd49011425527f8f719b562d663")
-        (revision "4"))
+        (revision "0"))
     (package
       (name "ignis-database")
       (version (git-version (package-version edopro) revision commit))
@@ -328,7 +319,7 @@ built on top of that.")
 
 (define-public ignis-scripts
   (let ((commit "addd2fbc7ae38a7744b948f54ac73d7537b8e769")
-        (revision "4"))
+        (revision "0"))
     (package
       (name "ignis-scripts")
       (version (git-version (package-version edopro) revision commit))

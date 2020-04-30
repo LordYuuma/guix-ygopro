@@ -1,6 +1,6 @@
-From cd3e19c32839155ea6e5fb52e3187d9367ed2a14 Mon Sep 17 00:00:00 2001
+From 2f49ef634d8e4281b9f45413b3a6ef7f977e4110 Mon Sep 17 00:00:00 2001
 From: LordYuuma <lordyuuma@gmail.com>
-Date: Wed, 25 Mar 2020 13:57:47 +0100
+Date: Sun, 5 Apr 2020 14:32:35 +0200
 Subject: [PATCH] edopro: Respect YGOPRO_*_PATH.
 
 * premake5.lua (environment-paths): New option.
@@ -22,13 +22,13 @@ Define YGOPRO_ENVIRONMENT_PATHS.
  gframe/Base64.h         |  6 +++---
  gframe/data_handler.cpp | 15 +++++++++++++++
  gframe/deck_manager.cpp |  2 ++
- gframe/game.cpp         | 32 +++++++++++++++++++++++++++++---
+ gframe/game.cpp         | 26 ++++++++++++++++++++++++++
  gframe/premake5.lua     |  3 +++
  gframe/text_types.h     | 16 +++++++++++++++-
  gframe/utils.cpp        | 22 ++++++++++++++++++----
  gframe/utils.h          |  1 +
- premake5.lua            | 13 +++++++++----
- 9 files changed, 95 insertions(+), 15 deletions(-)
+ premake5.lua            |  5 +++++
+ 9 files changed, 88 insertions(+), 8 deletions(-)
 
 diff --git a/gframe/Base64.h b/gframe/Base64.h
 index b018a273..b36ab8a5 100644
@@ -60,7 +60,7 @@ index b018a273..b36ab8a5 100644
 \ No newline at end of file
 +#endif //BASE64_H
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
-index 3880f498..5db804e6 100644
+index 2bc5705d..0f593739 100644
 --- a/gframe/data_handler.cpp
 +++ b/gframe/data_handler.cpp
 @@ -11,15 +11,30 @@
@@ -95,7 +95,7 @@ index 3880f498..5db804e6 100644
  void DataHandler::LoadArchivesDB() {
  	std::vector<char> buffer;
 diff --git a/gframe/deck_manager.cpp b/gframe/deck_manager.cpp
-index 5c64dc6d..d99c048f 100644
+index 383edbe8..797f2d2b 100644
 --- a/gframe/deck_manager.cpp
 +++ b/gframe/deck_manager.cpp
 @@ -73,9 +73,11 @@ bool DeckManager::LoadLFListFolder(path_string path) {
@@ -111,37 +111,10 @@ index 5c64dc6d..d99c048f 100644
  	nolimit.listName = L"N/A"; // N/A
  	nolimit.hash = 0;
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index 39a3f57a..b8a27214 100644
+index aabfaeae..7da1004d 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
-@@ -1486,7 +1486,7 @@ bool Game::MainLoop() {
- 	irr::core::matrix4 mProjection;
- 	BuildProjectionMatrix(mProjection, CAMERA_LEFT, CAMERA_RIGHT, CAMERA_BOTTOM, CAMERA_TOP, 1.0f, 100.0f);
- 	camera->setProjectionMatrix(mProjection);
--	
-+
- 	mProjection.buildCameraLookAtMatrixLH(vector3df(FIELD_X, FIELD_Y, FIELD_Z), vector3df(FIELD_X, 0, 0), vector3df(0, 0, 1));
- 	camera->setViewMatrixAffector(mProjection);
- 	smgr->setAmbientLight(irr::video::SColorf(1.0f, 1.0f, 1.0f));
-@@ -1664,7 +1664,7 @@ bool Game::MainLoop() {
- 			driver->setMaterial(irr::video::IdentityMaterial);
- 			driver->clearZBuffer();)
- 		} else if(is_building) {
--			
-+
- 			if(is_siding)
- 				discord.UpdatePresence(DiscordWrapper::DECK_SIDING);
- 			else
-@@ -2748,7 +2748,7 @@ void Game::ReloadElementsStrings() {
- 	prev = cbFilterRule->getSelected();
- 	ReloadCBFilterRule();
- 	cbFilterRule->setSelected(prev);
--	
-+
- 	prev = cbDuelRule->getSelected();
- 	if (prev >= 5) {
- 		UpdateDuelParam();
-@@ -3112,6 +3112,31 @@ void Game::MessageHandler(void* payload, const char* string, int type) {
+@@ -3137,6 +3137,31 @@ void Game::MessageHandler(void* payload, const char* string, int type) {
  	}
  }
  void Game::PopulateResourcesDirectories() {
@@ -173,7 +146,7 @@ index 39a3f57a..b8a27214 100644
  	script_dirs.push_back(EPRO_TEXT("./expansions/script/"));
  	auto expansions_subdirs = Utils::FindSubfolders(EPRO_TEXT("./expansions/script/"));
  	script_dirs.insert(script_dirs.end(), expansions_subdirs.begin(), expansions_subdirs.end());
-@@ -3128,6 +3153,7 @@ void Game::PopulateResourcesDirectories() {
+@@ -3153,6 +3178,7 @@ void Game::PopulateResourcesDirectories() {
  	field_dirs.push_back(EPRO_TEXT("./expansions/pics/field/"));
  	field_dirs.push_back(EPRO_TEXT("archives"));
  	field_dirs.push_back(EPRO_TEXT("./pics/field/"));
@@ -182,7 +155,7 @@ index 39a3f57a..b8a27214 100644
  
  void Game::PopulateLocales() {
 diff --git a/gframe/premake5.lua b/gframe/premake5.lua
-index 10700aa0..cff532ec 100644
+index ec708704..f88c9b4f 100644
 --- a/gframe/premake5.lua
 +++ b/gframe/premake5.lua
 @@ -18,6 +18,9 @@ local ygopro_config=function(static_core)
@@ -286,7 +259,7 @@ index 963125ce..ca7be468 100644
  }
 -
 diff --git a/gframe/utils.h b/gframe/utils.h
-index 1a3b8104..ff59b7a7 100644
+index 0bf4bf31..e464a35a 100644
 --- a/gframe/utils.h
 +++ b/gframe/utils.h
 @@ -32,6 +32,7 @@ namespace ygo {
@@ -298,7 +271,7 @@ index 1a3b8104..ff59b7a7 100644
  		static std::vector<path_string> FindFiles(const path_string& path, std::vector<path_string> extensions, int subdirectorylayers = 0);
  		/** Returned subfolder names are prefixed by the provided path */
 diff --git a/premake5.lua b/premake5.lua
-index 4b499864..4309647c 100644
+index 157f5521..4309647c 100644
 --- a/premake5.lua
 +++ b/premake5.lua
 @@ -41,6 +41,11 @@ newoption {
@@ -313,34 +286,6 @@ index 4b499864..4309647c 100644
  workspace "ygo"
  	location "build"
  	language "C++"
-@@ -56,10 +61,10 @@ workspace "ygo"
- 	if _OPTIONS["vcpkg-root"] then
- 		filter "system:linux"
- 			includedirs { _OPTIONS["vcpkg-root"] .. "/installed/x64-linux/include" }
--	
-+
- 		filter { "system:linux", "configurations:Debug" }
- 			libdirs { _OPTIONS["vcpkg-root"] .. "/installed/x64-linux/debug/lib" }
--	
-+
- 		filter { "system:linux", "configurations:Release" }
- 			libdirs { _OPTIONS["vcpkg-root"] .. "/installed/x64-linux/lib" }
- 
-@@ -102,7 +107,7 @@ workspace "ygo"
- 	filter "configurations:Release"
- 		optimize "Size"
- 		targetdir "bin/release"
--	
-+
- 	subproject = true
- 	if not _OPTIONS["prebuilt-core"] then
- 		include "ocgcore"
-@@ -127,4 +132,4 @@ premake.override(premake.vstudio.vc2010.elements, "globals", function(base, prj)
- 	local calls = base(prj)
- 	table.insertafter(calls, premake.vstudio.vc2010.targetPlatformVersionGlobal, vcpkgStaticTriplet)
- 	return calls
--end) 
-+end)
 -- 
-2.26.0
+2.26.2
 
