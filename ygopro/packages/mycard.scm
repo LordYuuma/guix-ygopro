@@ -15,7 +15,7 @@
   #:use-module (gnu packages lua)
   #:use-module (gnu packages sqlite))
 
-(define %ygopro-version "1.035.0-5")
+(define %ygopro-version "1.035.1-2")
 
 (define-public ygopro-core
   (package
@@ -26,11 +26,11 @@
        (method git-fetch)
        (uri (git-reference
              (url "https://github.com/mycard/ygopro-core.git")
-             (commit "caa7d62afc1052d441b647a1f1d187a38777bbfa")))
+             (commit "80f1ced5a185d25d6a421f71a28caacc04e564f2")))
        (file-name (git-file-name "ygopro-core" %ygopro-version))
        (sha256
         (base32
-         "15ydvlh2h6ha3xw21pl36gcn770zkh9v9yp2h1wg0m42h5jrxdq1"))
+         "0022svl6lgz2jfxqlg2ap5kw57b0ppwcxlx0qlbbd39l9kbxpjki"))
        (modules '((guix build utils)
                   (ice-9 textual-ports)))
        (snippet
@@ -103,7 +103,7 @@
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "17qx87rqz3kqzcsw6j51fd0r9ls4iai9x4zbj04vhqwzkdg5akhz"))
+        (base32 "0y9f965258187ag809d40w1bxm42zkk8jslsvbda8p3b8kfkibch"))
        (modules '((guix build utils)))
        (patches
         (search-patches
@@ -111,8 +111,6 @@
          "ygopro-respect-XDG-environment-variables.patch"))
        (snippet
         '(begin
-           ;; Drop bundled lua
-           (delete-file-recursively "lua")
            ;; fix premake4.lua
            (substitute* "premake4.lua"
              ((", \"LinkTimeOptimization\"")
@@ -142,7 +140,8 @@
                                  "/include/freetype2"))
                  (("/usr/include/irrlicht")
                   (string-append (assoc-ref inputs "irrlicht")
-                                 "/include/irrlicht")))
+                                 "/include/irrlicht"))
+                 (("lua5.3-c\\+\\+") "lua"))
                (substitute* (find-files "gframe/" ".*\\.(h|cpp)")
                  (("\"\\.\\./ocgcore/([a-z_]+\\.h)\"" all header)
                   (string-append "<ygopro-core/" header ">")))
@@ -204,8 +203,8 @@
     (license license:gpl2)))
 
 (define-public ygopro-scripts
-  (let ((commit "9f445929001b004212b2d90171192c994b3ec852")
-        (revision "1"))
+  (let ((commit "216c4754fb203fe2f598fee02ace05e54f7cea55")
+        (revision "0"))
     (package
       (name "ygopro-scripts")
       (version (git-version %ygopro-version revision commit))
@@ -218,7 +217,7 @@
          (file-name (git-file-name "ygopro-scripts" version))
          (sha256
           (base32
-           "0b4480hxprkqhjqf9rxlppl1sqj07hg6w52n3xridhzg0f54h1mg"))))
+           "004xfh3h6j0wkd8cq0ksjlbgir6v17517f61yrzqf60wqy06xb5j"))))
       (build-system copy-build-system)
       (arguments
        `(#:install-plan
@@ -230,8 +229,8 @@
       (license license:gpl2))))
 
 (define-public ygopro-database-en
-  (let ((commit "ace7f955f17fd6a396bd3be55c10a5cb4c3153fe")
-        (revision "1"))
+  (let ((commit "7f39a78b4800d9b1b85f26006b98cfe199fa6dc0")
+        (revision "0"))
     (package
       (name "ygopro-database-en")
       (version (git-version %ygopro-version revision commit))
@@ -244,7 +243,7 @@
          (file-name (git-file-name "ygopro-database" version))
          (sha256
           (base32
-           "0cw3mjlc0f8py2rhwdn6r1pppj5p9l440jmag3biyhbpbiqw0sai"))))
+           "189ialri2xk72g87yrni5nz555g698z4filq5yahz25lf5nzwr51"))))
       (build-system copy-build-system)
       (arguments
        `(#:install-plan
