@@ -21,7 +21,6 @@ scripts, databases, images, and of course the games themselves ;)
 - ~ygopro-scripts~
 - ~ignis-scripts~
 ** Images
-- ~ygopro-images-field~
 - ~ygopro-images-en~
 - ~ygopro-images-ja~
 - ~ygopro-images-zh~
@@ -32,8 +31,17 @@ build and run "as expected".
 The cores and the Lua library are unbundled from the main sources, with the
 latter being pulled separately from Guix upstream.
 ** Additional PATH variables
-The games read the following paths
+The games read the following paths:
 - ~YGOPRO_IMAGE_PATH~ :: Path in which images are to be found.
 - ~YGOPRO_SCRIPT_PATH~ :: Path in which scripts are to be found.
 - ~YGOPRO_DATA_PATH~ :: Path in which databases, strings and
      Forbidden/Limited lists are to be found.
+
+The games also read their configuration from ~$XDG_CONFIG_HOME/ygopro~ and their data from ~$XDG_DATA_HOME/ygopro~ instead of the working directory as they would normally.
+
+* Compatibility
+By design ~edopro~ is largely incompatible to ~ygopro~, but we use the same config and data directories for both.  This allows configuration and data to be shared (to some extent), but can also cause some issues (e.g. settings set by ~edopro~ being removed by ~ygopro~).
+
+If you are worried about your configurations, you can either use backups or temporarily set ~HOME~ (or just ~XDG_CONFIG_HOME~) to some other value, e.g. ~/homeless-shelter~.
+
+Some data, such as decks and textures, can be shared without problems.  Others, like puzzles and replays, may work in one, but not the other.
