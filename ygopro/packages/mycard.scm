@@ -276,32 +276,6 @@ and other localization data needed by YGOPro.")))
     (description "ygopro-database-en provides a chinese card database
 and other localization data needed by YGOPro.")))
 
-(define-public ygopro-images-field
-  (let ((commit "8f042ddf7d9e214061a033f9602671d6806ff516")
-        (revision "0"))
-    (package
-      (name "ygopro-images-field")
-      (version (git-version %ygopro-version revision commit))
-      (source
-       (origin
-         (method git-fetch)
-         (uri (git-reference
-               (url "https://github.com/mycard/ygopro-images-field.git")
-               (commit commit)))
-         (file-name (git-file-name "ygopro-images-field" version))
-         (sha256
-          (base32
-           "15hpa8v13r5cva0dcvgm7l369zig9avvryq898aq67igwi516rg9"))))
-      (build-system copy-build-system)
-      (arguments
-       `(#:install-plan
-         `(("field" "share/ygopro/pics/"))))
-      (synopsis "Field images for YGOPro")
-      (description "ygopro-images-field provides large card images for
-YGOPro, which are displayed across the board when a field spell is in play.")
-      (home-page "https://github.com/mycard/ygopro")
-      (license #f))))
-
 (define-public (ygopro-images locale hash)
   (package
     (name (string-append "ygopro-images-" (string-take locale 2)))
