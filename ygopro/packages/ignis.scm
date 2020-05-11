@@ -252,22 +252,23 @@ built on top of that.")
                   #:install-plan install-plan))
 
                (install-with-output
-                "out" `(("." "share/ygopro/data/"
-                         #:include ("cards.cdb" "release.cdb"))))
+                "out"
+                `(("." "share/ygopro/data/"
+                   #:include ("cards.cdb" "release.cdb")
+                   #:include-regexp ("fix(Misc|OT|Setcode|String)\\.cdb"))))
                (install-with-output
                 "rush" `(("cards-rush.cdb" "share/ygopro/data/")))
                (install-with-output
                 "skills" `(("cards-skills.cdb" "share/ygopro/data/")))
                (install-with-output
-                "unofficial" `(("cards-unofficial.cdb" "share/ygopro/data/")))
+                "unofficial" `(("." "share/ygopro/data/"
+                                #:include ("cards-unofficial.cdb"
+                                           "cards-unofficial-new.cdb")
+                                #:include-regexp (".*-unofficial\\.cdb"))))
                (install-with-output
                 "pre-release" `(("." "share/ygopro/data/"
-                                 #:include ("cards-rush-prerelease.cdb"
-                                            "prerelease.cdb"
-                                            "prerelease-cp20.cdb"
-                                            "prerelease-dp24.cdb"
-                                            "prerelease-etco.cdb"
-                                            "prerelease-sd39.cdb"))))
+                                 #:include ("cards-rush-prerelease.cdb")
+                                 #:include-regexp ("prerelease-.*\\.cdb"))))
                #t))
            (add-after 'install 'install-lflists
              (lambda* (#:key inputs outputs #:allow-other-keys)
