@@ -224,8 +224,8 @@ built on top of that.")
     (license license:agpl3+)))
 
 (define-public ignis-database
-  (let ((commit "3570f288f0875127f58ca7099f3cef81a3b3c4ee")
-        (revision "2"))
+  (let ((commit "6b25a4d6eae9b3010bb60b0d8a70001015f52a0e")
+        (revision "3"))
     (package
       (name "ignis-database")
       (version (git-version (package-version edopro) revision commit))
@@ -238,7 +238,7 @@ built on top of that.")
          (file-name (git-file-name "ignis-database" version))
          (sha256
           (base32
-           "1q11rk0kybvnvh01dln7hai2wv458xnw7c60dm8z0dswxclkzh1h"))))
+           "0wsh3fn9nmr61yihsc82gm1jybclgn7dhnyckq0yzr3pgbrc7gzv"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "rush" "skills" "unofficial"))
       (arguments
@@ -310,8 +310,8 @@ built on top of that.")
       (license #f))))
 
 (define-public ignis-scripts
-  (let ((commit "c154fb9b9819cd52332714e9ce97a4250d306df6")
-        (revision "2"))
+  (let ((commit "9dad17ae34169a637c0a3db068f863df3bd45f13")
+        (revision "3"))
     (package
       (name "ignis-scripts")
       (version (git-version (package-version edopro) revision commit))
@@ -324,7 +324,7 @@ built on top of that.")
          (file-name (git-file-name "ignis-scripts" version))
          (sha256
           (base32
-           "01519v3a9zynw5q50rp8g4y9g4gv52cp4g4y6rjs4gksnwh07640"))))
+           "0l9igcj74pkvwswyhqw7mbph3psw2dhybvajvlj3ip4zpvfrnbbm"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "pre-errata" "rush" "skill" "unofficial"))
       (arguments
