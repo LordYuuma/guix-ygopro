@@ -299,10 +299,10 @@ built on top of that.")
              (uri
               (git-reference
                (url "https://github.com/ProjectIgnis/LFLists")
-               (commit "061b753bc87c032bef4feb2953f92e802628c6e8")))
+               (commit "d3369edc7366eb71e1eac16c6bc2206f4fe265cf")))
              (sha256
               (base32
-               "0xm97lvr5cg4l8w2kv430dghyhhl0bk806niy5da7n4vsnz304as"))))
+               "0a6na4hrsy6bc13jr92nh632zcw0z9k4f3n200s405yr52wrwby5"))))
          ("sqlite" ,sqlite)))
       (synopsis "Card databases for EDOPro")
       (description "Provides various card databases for EDOPro.")
