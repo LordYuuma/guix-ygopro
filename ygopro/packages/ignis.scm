@@ -309,8 +309,8 @@ built on top of that.")
       (license #f))))
 
 (define-public ignis-scripts
-  (let ((commit "9dad17ae34169a637c0a3db068f863df3bd45f13")
-        (revision "0"))
+  (let ((commit "65514bbd0ebeedad6b9599492c776c953b60831a")
+        (revision "1"))
     (package
       (name "ignis-scripts")
       (version (git-version (package-version edopro) revision commit))
@@ -323,7 +323,7 @@ built on top of that.")
          (file-name (git-file-name "ignis-scripts" version))
          (sha256
           (base32
-           "0l9igcj74pkvwswyhqw7mbph3psw2dhybvajvlj3ip4zpvfrnbbm"))))
+           "18yn51jpqzm4lb6zwl246bpzn8a2r9bfgy7c8cyw0j4nxqxm9v6a"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "pre-errata" "rush" "skill" "unofficial"))
       (arguments
