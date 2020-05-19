@@ -15,6 +15,7 @@
   #:use-module (gnu packages gl)
   #:use-module (gnu packages libevent)
   #:use-module (gnu packages lua)
+  #:use-module (gnu packages mono)
   #:use-module (gnu packages mp3)
   #:use-module (gnu packages pretty-print)
   #:use-module (gnu packages sdl)
@@ -357,3 +358,81 @@ built on top of that.")
       (description "Provides card scripts for EDOPro.")
       (home-page "https://github.com/ProjectIgnis/CardScripts")
       (license license:agpl3+))))
+
+(define-public windbot-ignite
+  (package
+    (name "windbot-ignite")
+    (version "20200518")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/ProjectIgnis/windbot.git")
+             (commit version)))
+       (sha256
+        (base32
+         "0xfa26sm3adkqj4x59ilp88d4igcqymcirxwrdj8s6i6nhzkgfac"))))
+    (build-system gnu-build-system)
+    (arguments
+     `(#:tests? #f
+       #:phases
+       (modify-phases %standard-phases
+         (delete 'bootstrap)
+         (delete 'configure)
+         (add-after 'unpack 'patch-sources
+           (lambda* (#:key outputs #:allow-other-keys)
+             (let* ((out (assoc-ref outputs "out"))
+                    (bin (string-append out "/bin"))
+                    (lib (string-append out "/lib"))
+                    (share (string-append out "/share/windbot")))
+               (substitute* (find-files "." ".*\\.cs")
+                 ;; remap folders
+                 (("\"(Dialogs|Decks)/\"" all folder)
+                  (format #f "\"~a/~a/\"" share
+                          (string-downcase folder)))
+                 ;; Don't load extra executors
+                 (("Directory.GetFiles\\(\"Executors\", .*\\);")
+                  "{};"))
+               #t)))
+         (replace 'build
+           (lambda _
+             (invoke "xbuild" "WindBot.csproj")
+             #t))
+         (replace 'install
+           (lambda* (#:key inputs outputs #:allow-other-keys)
+             (let* ((out (assoc-ref outputs "out"))
+                    (sqlite (string-append (assoc-ref inputs "sqlite") "/lib"))
+
+                    (bin (string-append out "/bin"))
+                    (lib (string-append out "/lib"))
+                    (share (string-append out "/share/windbot")))
+               (with-directory-excursion "bin/Debug"
+                 (copy-recursively "Decks" (string-append share "/decks"))
+                 (copy-recursively "Dialogs" (string-append share "/dialogs"))
+                 (install-file "bots.json" share)
+                 (map (lambda (f) (install-file f lib))
+                      (find-files "." ".*\\.(exe|dll)$")))
+               (mkdir-p bin)
+               (let ((windbot-wrapper (string-append bin "/windbot")))
+                 (call-with-output-file windbot-wrapper
+                   (lambda (port)
+                     (format port "#!~a~%~a ~a/WindBot.exe DbPath=~a \"$@\""
+                             (which "bash")
+                             (which "mono")
+                             lib
+                             (string-append
+                              (assoc-ref inputs "ignis-database")
+                              "/share/ygopro/data/cards.cdb"))))
+                 (chmod windbot-wrapper #o755)
+                 (wrap-program windbot-wrapper
+                   `("LD_LIBRARY_PATH" prefix (,sqlite))))
+               #t))))))
+    (inputs
+     `(("sqlite" ,sqlite)
+       ("ignis-database" ,ignis-database)))
+    (native-inputs
+     `(("mono" ,mono)))
+    (synopsis "EDOPro-compatible bot")
+    (description "EDOPro-compatible bot")
+    (home-page "https://github.com/ProjectIgnis/windbot")
+    (license license:agpl3+)))
