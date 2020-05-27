@@ -1,4 +1,4 @@
-From 5b4a327ab4466aecd3081ff0c6d05a786b24e20e Mon Sep 17 00:00:00 2001
+From 0f9f4027bcc34a6b39040517124fc2ae654f11d8 Mon Sep 17 00:00:00 2001
 From: LordYuuma <lordyuuma@gmail.com>
 Date: Thu, 19 Mar 2020 19:10:25 +0100
 Subject: [PATCH] ygopro: Respect XDG environment variables.
@@ -53,14 +53,14 @@ $XDG_DATA_HOME/ygopro/replay.
  gframe/deck_manager.cpp  |  34 ++++++++++++
  gframe/game.cpp          | 110 +++++++++++++++++++++++++++++++++++++++
  gframe/game.h            |  11 +++-
- gframe/image_manager.cpp |  68 +++++++++++++-----------
+ gframe/image_manager.cpp |  72 +++++++++++++------------
  gframe/replay.cpp        |  53 +++++++++++++++++++
  gframe/single_mode.cpp   |  10 +++-
  gframe/sound_manager.cpp | 102 +++++++++++++++++++++++++-----------
  gframe/sound_manager.h   |   9 ++++
  premake4.lua             |   8 +++
  premake5.lua             |   8 +++
- 11 files changed, 352 insertions(+), 63 deletions(-)
+ 11 files changed, 353 insertions(+), 66 deletions(-)
 
 diff --git a/gframe/data_manager.cpp b/gframe/data_manager.cpp
 index 985c072b..61c7a530 100644
@@ -142,13 +142,13 @@ index a5a01f42..4d712bc6 100644
  #endif
  }
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index cc5f9cd5..8258722f 100644
+index 3350db9d..d25a82d6 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
 @@ -16,8 +16,62 @@ namespace ygo {
- 
+
  Game* mainGame;
- 
+
 +#ifdef XDG_ENVIRONMENT
 +std::string Game::FindConfigFile(const std::string& file, bool existing) {
 +	{
@@ -208,7 +208,7 @@ index cc5f9cd5..8258722f 100644
  	LoadConfig();
  	irr::SIrrlichtCreationParameters params = irr::SIrrlichtCreationParameters();
  	params.AntiAlias = gameConf.antialias;
-@@ -1021,6 +1075,18 @@ void Game::LoadExpansions() {
+@@ -1026,6 +1080,18 @@ void Game::LoadExpansions() {
  #endif // USE_ENVIRONMENT_PATHS
  void Game::RefreshDeck(irr::gui::IGUIComboBox* cbDeck) {
  	cbDeck->clear();
@@ -227,7 +227,7 @@ index cc5f9cd5..8258722f 100644
  	FileSystem::TraversalDir(L"./deck", [cbDeck](const wchar_t* name, bool isdir) {
  		if(!isdir && wcsrchr(name, '.') && !mywcsncasecmp(wcsrchr(name, '.'), L".ydk", 4)) {
  			size_t len = wcslen(name);
-@@ -1030,6 +1096,7 @@ void Game::RefreshDeck(irr::gui::IGUIComboBox* cbDeck) {
+@@ -1035,6 +1101,7 @@ void Game::RefreshDeck(irr::gui::IGUIComboBox* cbDeck) {
  			cbDeck->addItem(deckname);
  		}
  	});
@@ -235,7 +235,7 @@ index cc5f9cd5..8258722f 100644
  	for(size_t i = 0; i < cbDeck->getItemCount(); ++i) {
  		if(!wcscmp(cbDeck->getItem(i), gameConf.lastdeck)) {
  			cbDeck->setSelected(i);
-@@ -1039,24 +1106,54 @@ void Game::RefreshDeck(irr::gui::IGUIComboBox* cbDeck) {
+@@ -1044,24 +1111,54 @@ void Game::RefreshDeck(irr::gui::IGUIComboBox* cbDeck) {
  }
  void Game::RefreshReplay() {
  	lstReplayList->clear();
@@ -290,7 +290,7 @@ index cc5f9cd5..8258722f 100644
  	char linebuf[256];
  	char strbuf[256];
  	if(fp) {
-@@ -1096,7 +1193,12 @@ void Game::RefreshBot() {
+@@ -1101,7 +1198,12 @@ void Game::RefreshBot() {
  		SetStaticText(stBotInfo, 200, guiFont, dataManager.GetSysString(1385));
  }
  void Game::LoadConfig() {
@@ -303,7 +303,7 @@ index cc5f9cd5..8258722f 100644
  	if(!fp)
  		return;
  	char linebuf[256];
-@@ -1259,7 +1361,15 @@ void Game::LoadConfig() {
+@@ -1267,7 +1369,15 @@ void Game::LoadConfig() {
  	fclose(fp);
  }
  void Game::SaveConfig() {
@@ -320,21 +320,21 @@ index cc5f9cd5..8258722f 100644
  	char linebuf[256];
  	fprintf(fp, "use_d3d = %d\n", gameConf.use_d3d ? 1 : 0);
 diff --git a/gframe/game.h b/gframe/game.h
-index fb910b52..8d245e93 100644
+index 6d8bc036..71cb9960 100644
 --- a/gframe/game.h
 +++ b/gframe/game.h
-@@ -107,7 +107,6 @@ struct FadingUnit {
+@@ -108,7 +108,6 @@ struct FadingUnit {
  };
- 
+
  class Game {
 -
  public:
  	bool Initialize();
  	void MainLoop();
-@@ -181,6 +180,16 @@ public:
+@@ -190,6 +189,16 @@ public:
  	void FlashWindow();
  	void SetCursor(ECURSOR_ICON icon);
- 
+
 +#ifdef XDG_ENVIRONMENT
 +	std::string FindConfigFile(const std::string& file, bool existing = true);
 +	std::string FindDataFile(const std::string& file, bool existing = true);
@@ -349,13 +349,13 @@ index fb910b52..8d245e93 100644
  	Signal frameSignal;
  	Signal actionSignal;
 diff --git a/gframe/image_manager.cpp b/gframe/image_manager.cpp
-index fa576951..a3bf8f53 100644
+index 4ec470dd..11b9c9ea 100644
 --- a/gframe/image_manager.cpp
 +++ b/gframe/image_manager.cpp
 @@ -1,6 +1,12 @@
  #include "image_manager.h"
  #include "game.h"
- 
+
 +#ifdef XDG_ENVIRONMENT
 +#define DATA(x) mainGame->FindDataFile(x).c_str()
 +#else
@@ -363,9 +363,9 @@ index fa576951..a3bf8f53 100644
 +#endif
 +
  namespace ygo {
- 
+
  ImageManager imageManager;
-@@ -12,36 +18,36 @@ bool ImageManager::Initial() {
+@@ -12,8 +18,8 @@ bool ImageManager::Initial() {
  #endif
  	tCover[0] = NULL;
  	tCover[1] = NULL;
@@ -376,8 +376,10 @@ index fa576951..a3bf8f53 100644
  	if(!tCover[3])
  		tCover[3] = tCover[2];
  	tUnknown = NULL;
- 	tUnknownFit = NULL;
+@@ -21,29 +27,29 @@ bool ImageManager::Initial() {
  	tUnknownThumb = NULL;
+ 	tLoading = NULL;
+ 	tThumbLoadingThreadRunning = false;
 -	tAct = driver->getTexture("textures/act.png");
 -	tAttack = driver->getTexture("textures/attack.png");
 -	tChain = driver->getTexture("textures/chain.png");
@@ -424,7 +426,7 @@ index fa576951..a3bf8f53 100644
  	ResizeTexture();
  	return true;
  }
-@@ -93,24 +99,24 @@ void ImageManager::ResizeTexture() {
+@@ -101,26 +107,24 @@ void ImageManager::ResizeTexture() {
  	irr::s32 bgHeight = 640 * mainGame->yScale;
  	driver->removeTexture(tCover[0]);
  	driver->removeTexture(tCover[1]);
@@ -437,9 +439,11 @@ index fa576951..a3bf8f53 100644
  	driver->removeTexture(tUnknown);
  	driver->removeTexture(tUnknownFit);
  	driver->removeTexture(tUnknownThumb);
+-	driver->removeTexture(tLoading);
 -	tUnknown = GetTextureFromFile("textures/unknown.jpg", CARD_IMG_WIDTH, CARD_IMG_HEIGHT);
 -	tUnknownFit = GetTextureFromFile("textures/unknown.jpg", imgWidthFit, imgHeightFit);
 -	tUnknownThumb = GetTextureFromFile("textures/unknown.jpg", imgWidthThumb, imgHeightThumb);
+-	tLoading = GetTextureFromFile("textures/cover.jpg", imgWidthThumb, imgHeightThumb);
 +	tUnknown = GetTextureFromFile(DATA("textures/unknown.jpg"), CARD_IMG_WIDTH, CARD_IMG_HEIGHT);
 +	tUnknownFit = GetTextureFromFile(DATA("textures/unknown.jpg"), imgWidthFit, imgHeightFit);
 +	tUnknownThumb = GetTextureFromFile(DATA("textures/unknown.jpg"), imgWidthThumb, imgHeightThumb);
@@ -457,7 +461,16 @@ index fa576951..a3bf8f53 100644
  	if(!tBackGround_deck)
  		tBackGround_deck = tBackGround;
  }
-@@ -341,3 +347,5 @@ irr::video::ITexture* ImageManager::GetTextureField(int code) {
+@@ -294,7 +298,7 @@ int ImageManager::LoadThumbThread() {
+ #else
+ 		char file[256];
+ 		sprintf(file, "expansions/pics/thumbnail/%d.jpg", code);
+-		irr::video::IImage* img = imageManager.driver->createImageFromFile(file);
++		img = imageManager.driver->createImageFromFile(file);
+ 		if(img == NULL) {
+ 			sprintf(file, "pics/thumbnail/%d.jpg", code);
+ 			img = imageManager.driver->createImageFromFile(file);
+@@ -422,3 +426,5 @@ irr::video::ITexture* ImageManager::GetTextureField(int code) {
  		return NULL;
  }
  }
@@ -606,7 +619,7 @@ index 5913edec..6ac38ebc 100644
 @@ -4,6 +4,12 @@
  #include "../ocgcore/common.h"
  #include "../ocgcore/mtrandom.h"
- 
+
 +#ifdef XDG_ENVIRONMENT
 +#define DATA(x) mainGame->FindDataFile(x).c_str()
 +#else
@@ -614,7 +627,7 @@ index 5913edec..6ac38ebc 100644
 +#endif
 +
  namespace ygo {
- 
+
  long SingleMode::pduel = 0;
 @@ -59,7 +65,7 @@ int SingleMode::SinglePlayThread() {
  			wchar_t fname[256];
@@ -641,7 +654,7 @@ index f3170e81..3f882fbd 100644
 @@ -3,6 +3,12 @@
  #include "../ikpmp3/ikpMP3.h"
  #endif
- 
+
 +#ifdef XDG_ENVIRONMENT
 +#define DATA(x) mainGame->FindDataFile(x).c_str()
 +#else
@@ -649,7 +662,7 @@ index f3170e81..3f882fbd 100644
 +#endif
 +
  namespace ygo {
- 
+
  SoundManager soundManager;
 @@ -24,6 +30,15 @@ bool SoundManager::Init() {
  	return false;
@@ -879,7 +892,7 @@ index 5fe2b3ca..97afb7e5 100644
 --- a/gframe/sound_manager.h
 +++ b/gframe/sound_manager.h
 @@ -10,14 +10,23 @@ namespace ygo {
- 
+
  class SoundManager {
  private:
 +#ifdef XDG_ENVIRONMENT
@@ -899,11 +912,11 @@ index 5fe2b3ca..97afb7e5 100644
 +#else
  	void RefershBGMDir(std::wstring path, int scene);
 +#endif
- 
+
  public:
  	bool Init();
 diff --git a/premake4.lua b/premake4.lua
-index 82a1656c..e3540305 100644
+index c4b76393..a6e256fa 100644
 --- a/premake4.lua
 +++ b/premake4.lua
 @@ -30,6 +30,14 @@ solution "ygo"
@@ -918,14 +931,14 @@ index 82a1656c..e3540305 100644
 +        if _OPTIONS["xdg-environment"] then
 +            defines { "XDG_ENVIRONMENT" }
 +        end
- 
+
      configuration "vs*"
          flags "EnableSSE2"
 diff --git a/premake5.lua b/premake5.lua
-index fbccede1..ce83eb0c 100644
+index 69af09a2..68b0d691 100644
 --- a/premake5.lua
 +++ b/premake5.lua
-@@ -39,6 +39,14 @@ solution "ygo"
+@@ -48,6 +48,14 @@ solution "ygo"
          if _OPTIONS["environment-paths"] then
              defines { "YGOPRO_ENVIRONMENT_PATHS" }
          end
@@ -937,9 +950,8 @@ index fbccede1..ce83eb0c 100644
 +        if _OPTIONS["xdg-environment"] then
 +            defines { "XDG_ENVIRONMENT" }
 +        end
- 
+
      configuration "Release"
          optimize "Speed"
--- 
-2.26.0
-
+--
+2.26.2

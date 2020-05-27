@@ -1,4 +1,4 @@
-From 155b3333560628fac8df4f7ba5a1872d49606f66 Mon Sep 17 00:00:00 2001
+From 8781ee8998c732e32ee68cff4d75e9697ee6e39d Mon Sep 17 00:00:00 2001
 From: LordYuuma <lordyuuma@gmail.com>
 Date: Tue, 17 Mar 2020 11:08:18 +0100
 Subject: [PATCH] ygopro: Respect YGOPRO_*_PATH.
@@ -20,24 +20,32 @@ Load N/A LFList after data dirs.
 Do not load LFLists from working directory.
 * gframe/image_manager.h [YGOPRO_ENVIRONMENT_PATHS]:
 (image_path): New private member variable.
+(GetImageFromImagePath): New method.
 (GetTextureFromImagePath): New method.
 * gframe/image_manager.cpp:
 [YGOPRO_ENVIRONMENT_PATHS](Initial): Setup image_path.
+(GetImageFromImagePath): Implement.
 (GetTextureFromImagePath): Implement.
-(GetTexture, GetTextureField, GetTextureThumb): Reorganize and implement
-with support for YGOPRO_ENVIRONMENT_PATHS.
+(GetTexture, GetTextureField): Reorganize and implement with support
+for YGOPRO_ENVIRONMENT_PATHS.
+(LoadThumbThread): Implement in terms of GetImageFromImagePath.
+
+data_manager: Support YGOPRO_SCRIPT_PATH.
+
+* gframe/data_manager.cpp [YGOPRO_ENVIRONMENT_PATHS](ScriptReaderEx):
+Read scripts from YGOPRO_SCRIPT_PATH.
 ---
- gframe/config.h          | 12 +++++++-
- gframe/data_manager.cpp  | 29 ++++++++++++++++++
+ gframe/config.h          | 12 ++++++-
+ gframe/data_manager.cpp  | 29 ++++++++++++++++
  gframe/data_manager.h    |  3 ++
  gframe/deck_manager.cpp  |  2 ++
- gframe/game.cpp          | 49 ++++++++++++++++++++++++++++++
+ gframe/game.cpp          | 49 +++++++++++++++++++++++++++
  gframe/game.h            |  4 +++
- gframe/image_manager.cpp | 64 ++++++++++++++++++++++++++++++++--------
- gframe/image_manager.h   |  7 +++++
+ gframe/image_manager.cpp | 73 +++++++++++++++++++++++++++++++++-------
+ gframe/image_manager.h   |  8 +++++
  premake4.lua             |  8 +++++
- premake5.lua             | 10 ++++++-
- 10 files changed, 173 insertions(+), 15 deletions(-)
+ premake5.lua             | 10 +++++-
+ 10 files changed, 184 insertions(+), 14 deletions(-)
 
 diff --git a/gframe/config.h b/gframe/config.h
 index 2d3f47a1..f516220d 100644
@@ -69,7 +77,7 @@ index 2d3f47a1..f516220d 100644
  #include "mysignal.h"
  #include "../ocgcore/ocgapi.h"
  #include "../ocgcore/common.h"
- 
+
 +template<typename CharT>
 +inline void path_foreach(const std::basic_string<CharT>& path, CharT pathSep,
 +						 const std::function<void(const std::basic_string<CharT>&)>& cb) {
@@ -89,7 +97,7 @@ index 7d5951eb..985c072b 100644
 @@ -10,6 +10,17 @@ byte DataManager::scriptBuffer[0x20000];
  IFileSystem* DataManager::FileSystem;
  DataManager dataManager;
- 
+
 +bool DataManager::LoadDB(const char* file) {
 +#ifdef _WIN32
 +	char wfile[256];
@@ -149,7 +157,7 @@ index 00b611d2..fb1fe214 100644
 +++ b/gframe/data_manager.h
 @@ -10,8 +10,11 @@
  namespace ygo {
- 
+
  class DataManager {
 +private:
 +	bool LoadDB(const char* file, IReadFile* reader);
@@ -175,7 +183,7 @@ index a91fd72d..a5a01f42 100644
  	nolimit.listName = L"N/A";
  	nolimit.hash = 0;
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index 1f7d2e77..cc5f9cd5 100644
+index 54417a2e..3350db9d 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
 @@ -49,7 +49,9 @@ bool Game::Initialize() {
@@ -207,7 +215,7 @@ index 1f7d2e77..cc5f9cd5 100644
  	env = device->getGUIEnvironment();
  	numFont = irr::gui::CGUITTFont::createTTFont(env, gameConf.numfont, 16);
  	adFont = irr::gui::CGUITTFont::createTTFont(env, gameConf.numfont, 12);
-@@ -928,6 +935,47 @@ void Game::SetStaticText(irr::gui::IGUIStaticText* pControl, u32 cWidth, irr::gu
+@@ -933,6 +940,47 @@ void Game::SetStaticText(irr::gui::IGUIStaticText* pControl, u32 cWidth, irr::gu
  	dataManager.strBuffer[pbuffer] = 0;
  	pControl->setText(dataManager.strBuffer);
  }
@@ -255,7 +263,7 @@ index 1f7d2e77..cc5f9cd5 100644
  void Game::LoadExpansions() {
  	FileSystem::TraversalDir(L"./expansions", [](const wchar_t* name, bool isdir) {
  		if(!isdir && wcsrchr(name, '.') && !mywcsncasecmp(wcsrchr(name, '.'), L".cdb", 4)) {
-@@ -970,6 +1018,7 @@ void Game::LoadExpansions() {
+@@ -975,6 +1023,7 @@ void Game::LoadExpansions() {
  		}
  	}
  }
@@ -264,10 +272,10 @@ index 1f7d2e77..cc5f9cd5 100644
  	cbDeck->clear();
  	FileSystem::TraversalDir(L"./deck", [cbDeck](const wchar_t* name, bool isdir) {
 diff --git a/gframe/game.h b/gframe/game.h
-index f865a4b0..fb910b52 100644
+index 3e32f034..6d8bc036 100644
 --- a/gframe/game.h
 +++ b/gframe/game.h
-@@ -114,7 +114,11 @@ public:
+@@ -115,7 +115,11 @@ public:
  	void BuildProjectionMatrix(irr::core::matrix4& mProjection, f32 left, f32 right, f32 bottom, f32 top, f32 znear, f32 zfar);
  	void InitStaticText(irr::gui::IGUIStaticText* pControl, u32 cWidth, u32 cHeight, irr::gui::CGUITTFont* font, const wchar_t* text);
  	void SetStaticText(irr::gui::IGUIStaticText* pControl, u32 cWidth, irr::gui::CGUITTFont* font, const wchar_t* text, u32 pos = 0);
@@ -280,12 +288,12 @@ index f865a4b0..fb910b52 100644
  	void RefreshReplay();
  	void RefreshSingleplay();
 diff --git a/gframe/image_manager.cpp b/gframe/image_manager.cpp
-index 5c9fc0e9..ed94b81f 100644
+index 4eba4757..4ec470dd 100644
 --- a/gframe/image_manager.cpp
 +++ b/gframe/image_manager.cpp
 @@ -6,6 +6,10 @@ namespace ygo {
  ImageManager imageManager;
- 
+
  bool ImageManager::Initial() {
 +#ifdef YGOPRO_ENVIRONMENT_PATHS
 +	const char *_image_path = getenv("YGOPRO_IMAGE_PATH");
@@ -294,11 +302,22 @@ index 5c9fc0e9..ed94b81f 100644
  	tCover[0] = NULL;
  	tCover[1] = NULL;
  	tCover[2] = GetTextureFromFile("textures/cover.jpg", CARD_IMG_WIDTH, CARD_IMG_HEIGHT);
-@@ -183,6 +187,18 @@ void imageScaleNNAA(irr::video::IImage *src, irr::video::IImage *dest) {
+@@ -193,6 +197,29 @@ void imageScaleNNAA(irr::video::IImage *src, irr::video::IImage *dest) {
  			dest->setPixel(dx, dy, pxl);
  		}
  }
 +#ifdef YGOPRO_ENVIRONMENT_PATHS
++irr::video::IImage* ImageManager::GetImageFromImagePath(const char* file) {
++	irr::video::IImage* img = NULL;
++	path_foreach<char>(image_path, ':',
++					   [&](const std::string& prefix) {
++						   std::string full_path = prefix + "/" + file;
++						   if(!img && FileSystem::IsFileExists(full_path.c_str()))
++                                                     img = driver->createImageFromFile(full_path.c_str());
++					   });
++	return img;
++}
++
 +irr::video::ITexture* ImageManager::GetTextureFromImagePath(const char* file, s32 width, s32 height) {
 +	irr::video::ITexture* img = NULL;
 +	path_foreach<char>(image_path, ':',
@@ -313,7 +332,7 @@ index 5c9fc0e9..ed94b81f 100644
  irr::video::ITexture* ImageManager::GetTextureFromFile(const char* file, s32 width, s32 height) {
  	if(mainGame->gameConf.use_image_scale) {
  		irr::video::ITexture* texture;
-@@ -217,13 +233,20 @@ irr::video::ITexture* ImageManager::GetTexture(int code, bool fit) {
+@@ -227,13 +254,20 @@ irr::video::ITexture* ImageManager::GetTexture(int code, bool fit) {
  	}
  	auto tit = tMap[fit ? 1 : 0].find(code);
  	if(tit == tMap[fit ? 1 : 0].end()) {
@@ -335,41 +354,40 @@ index 5c9fc0e9..ed94b81f 100644
  		if(img == NULL && !mainGame->gameConf.use_image_scale) {
  			tMap[fit ? 1 : 0][code] = NULL;
  			return GetTextureThumb(code);
-@@ -243,20 +266,32 @@ irr::video::ITexture* ImageManager::GetTextureThumb(int code) {
- 	int width = CARD_THUMB_WIDTH * mainGame->xScale;
- 	int height = CARD_THUMB_HEIGHT * mainGame->yScale;
- 	if(tit == tThumb.end()) {
-+		irr::video::ITexture* img;
+@@ -252,6 +286,12 @@ int ImageManager::LoadThumbThread() {
+ 		int code = imageManager.tThumbLoadingCodes.front();
+ 		imageManager.tThumbLoadingCodes.pop();
+ 		imageManager.tThumbLoadingMutex.unlock();
++		irr::video::IImage* img;
 +#ifdef YGOPRO_ENVIRONMENT_PATHS
 +		char file[64];
 +		sprintf(file, "thumbnail/%d.jpg", code);
-+		img = GetTextureFromImagePath(file, width, height);
++		img = imageManager.GetImageFromImagePath(file);
 +#else
  		char file[256];
  		sprintf(file, "expansions/pics/thumbnail/%d.jpg", code);
--		irr::video::ITexture* img = GetTextureFromFile(file, width, height);
-+		img = GetTextureFromFile(file, width, height);
- 		if(img == NULL) {
+ 		irr::video::IImage* img = imageManager.driver->createImageFromFile(file);
+@@ -259,13 +299,19 @@ int ImageManager::LoadThumbThread() {
  			sprintf(file, "pics/thumbnail/%d.jpg", code);
- 			img = GetTextureFromFile(file, width, height);
+ 			img = imageManager.driver->createImageFromFile(file);
  		}
 +#endif
  		if(img == NULL && mainGame->gameConf.use_image_scale) {
 +#ifdef YGOPRO_ENVIRONMENT_PATHS
 +			sprintf(file, "%d.jpg", code);
-+			img = GetTextureFromImagePath(file, width, height);
++			img = imageManager.GetImageFromImagePath(file);
 +#else
  			sprintf(file, "expansions/pics/%d.jpg", code);
- 			img = GetTextureFromFile(file, width, height);
- 			if(img == NULL) {
- 				sprintf(file, "pics/%d.jpg", code);
- 				img = GetTextureFromFile(file, width, height);
- 			}
+ 			img = imageManager.driver->createImageFromFile(file);
+ 		}
+ 		if(img == NULL && mainGame->gameConf.use_image_scale) {
+ 			sprintf(file, "pics/%d.jpg", code);
+ 			img = imageManager.driver->createImageFromFile(file);
 +#endif
  		}
- 		tThumb[code] = img;
- 		return (img == NULL) ? tUnknownThumb : img;
-@@ -271,9 +306,19 @@ irr::video::ITexture* ImageManager::GetTextureField(int code) {
+ 		if(img != NULL) {
+ 			int width = CARD_THUMB_WIDTH * mainGame->xScale;
+@@ -341,9 +387,19 @@ irr::video::ITexture* ImageManager::GetTextureField(int code) {
  		return NULL;
  	auto tit = tFields.find(code);
  	if(tit == tFields.end()) {
@@ -390,7 +408,7 @@ index 5c9fc0e9..ed94b81f 100644
  		if(img == NULL) {
  			sprintf(file, "expansions/pics/field/%d.jpg", code);
  			img = GetTextureFromFile(file, 512 * mainGame->xScale, 512 * mainGame->yScale);
-@@ -285,17 +330,10 @@ irr::video::ITexture* ImageManager::GetTextureField(int code) {
+@@ -355,17 +411,10 @@ irr::video::ITexture* ImageManager::GetTextureField(int code) {
  		if(img == NULL) {
  			sprintf(file, "pics/field/%d.jpg", code);
  			img = GetTextureFromFile(file, 512 * mainGame->xScale, 512 * mainGame->yScale);
@@ -412,12 +430,12 @@ index 5c9fc0e9..ed94b81f 100644
  	if(tit->second)
  		return tit->second;
 diff --git a/gframe/image_manager.h b/gframe/image_manager.h
-index 971e2412..799cda18 100644
+index 442ae581..b5bc8d32 100644
 --- a/gframe/image_manager.h
 +++ b/gframe/image_manager.h
-@@ -8,6 +8,10 @@
+@@ -9,6 +9,10 @@
  namespace ygo {
- 
+
  class ImageManager {
 +#ifdef YGOPRO_ENVIRONMENT_PATHS
 +private:
@@ -426,22 +444,23 @@ index 971e2412..799cda18 100644
  public:
  	bool Initial();
  	void SetDevice(irr::IrrlichtDevice* dev);
-@@ -15,6 +19,9 @@ public:
+@@ -16,6 +20,10 @@ public:
  	void RemoveTexture(int code);
  	void ResizeTexture();
  	irr::video::ITexture* GetTextureFromFile(const char* file, s32 width, s32 height);
 +#ifdef YGOPRO_ENVIRONMENT_PATHS
++	irr::video::IImage* GetImageFromImagePath(const char* file);
 +	irr::video::ITexture* GetTextureFromImagePath(const char* file, s32 width, s32 height);
 +#endif
  	irr::video::ITexture* GetTexture(int code, bool fit = false);
  	irr::video::ITexture* GetTextureThumb(int code);
  	irr::video::ITexture* GetTextureField(int code);
 diff --git a/premake4.lua b/premake4.lua
-index 4763c736..82a1656c 100644
+index 43180e0c..c4b76393 100644
 --- a/premake4.lua
 +++ b/premake4.lua
 @@ -22,6 +22,14 @@ solution "ygo"
- 
+
      configuration "linux"
          defines { "LUA_USE_LINUX" }
 +        newoption
@@ -452,15 +471,15 @@ index 4763c736..82a1656c 100644
 +        if _OPTIONS["environment-paths"] then
 +            defines { "YGOPRO_ENVIRONMENT_PATHS" }
 +        end
- 
+
      configuration "vs*"
          flags "EnableSSE2"
 diff --git a/premake5.lua b/premake5.lua
-index 8e1d5659..fbccede1 100644
+index cffac1d6..69af09a2 100644
 --- a/premake5.lua
 +++ b/premake5.lua
-@@ -31,6 +31,14 @@ solution "ygo"
- 
+@@ -40,7 +40,15 @@ solution "ygo"
+
      configuration "linux"
          defines { "LUA_USE_LINUX" }
 +        newoption
@@ -471,18 +490,9 @@ index 8e1d5659..fbccede1 100644
 +        if _OPTIONS["environment-paths"] then
 +            defines { "YGOPRO_ENVIRONMENT_PATHS" }
 +        end
- 
+
      configuration "Release"
          optimize "Speed"
-@@ -57,7 +65,7 @@ solution "ygo"
-     configuration "vs*"
-         vectorextensions "SSE2"
-         defines { "_CRT_SECURE_NO_WARNINGS" }
--    
-+
-     configuration "not vs*"
-         buildoptions { "-fno-strict-aliasing", "-Wno-multichar" }
- 
--- 
-2.26.0
 
+--
+2.26.2
