@@ -296,8 +296,9 @@ Mycard's CI.")
     (home-page "https://github.com/mycard/ygopro")
     (license #f)))
 
-;; these hashes change all the time -- I'd recommend using ygopro-images
-;; directly if you're writing a manifest
+;; these hashes change all the time, and also the download links can break too
+;; I'd recommend using ygopro-images directly if you're writing a manifest
+;; or finding alternative sources
 (define-public ygopro-images-en
   (ygopro-images "en-US" "1pn7nk15nlk62zbic1rw64bwza7qsyg6f69wy60f86vvn8r98hsc"))
 
