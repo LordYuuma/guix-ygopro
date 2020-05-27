@@ -360,18 +360,21 @@ built on top of that.")
       (license license:agpl3+))))
 
 (define-public windbot-ignite
-  (package
+  (let ((version "20200524")
+        (revision "1")
+        (commit "bcbdf5c8107b4dc2e4e0583877a431723df1a3a2"))
+   (package
     (name "windbot-ignite")
-    (version "20200518")
+    (version (git-version version revision commit))
     (source
      (origin
        (method git-fetch)
        (uri (git-reference
              (url "https://github.com/ProjectIgnis/windbot.git")
-             (commit version)))
+             (commit commit)))
        (sha256
         (base32
-         "0xfa26sm3adkqj4x59ilp88d4igcqymcirxwrdj8s6i6nhzkgfac"))))
+         "1gdqvgs3rp8h6v7fihzlvzi29wvy5cwhp4j7w042g0mcd0j8wrml"))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f
@@ -435,4 +438,4 @@ built on top of that.")
     (synopsis "EDOPro-compatible bot")
     (description "EDOPro-compatible bot")
     (home-page "https://github.com/ProjectIgnis/windbot")
-    (license license:agpl3+)))
+    (license license:agpl3+))))
