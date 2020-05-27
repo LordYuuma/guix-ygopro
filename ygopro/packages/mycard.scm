@@ -203,8 +203,8 @@
     (license license:gpl2)))
 
 (define-public ygopro-scripts
-  (let ((commit "216c4754fb203fe2f598fee02ace05e54f7cea55")
-        (revision "0"))
+  (let ((commit "f0a30e61e84259d3b7704a3f3e4560a47a1a5cd8")
+        (revision "1"))
     (package
       (name "ygopro-scripts")
       (version (git-version %ygopro-version revision commit))
@@ -217,7 +217,7 @@
          (file-name (git-file-name "ygopro-scripts" version))
          (sha256
           (base32
-           "004xfh3h6j0wkd8cq0ksjlbgir6v17517f61yrzqf60wqy06xb5j"))))
+           "1vnz2zw4j8fra45y8gn01lmvmms7y07fjw81csjwg1710gfw5pba"))))
       (build-system copy-build-system)
       (arguments
        `(#:install-plan
@@ -229,8 +229,8 @@
       (license license:gpl2))))
 
 (define-public ygopro-database-en
-  (let ((commit "7f39a78b4800d9b1b85f26006b98cfe199fa6dc0")
-        (revision "0"))
+  (let ((commit "0e13f008dbc2cf62b78fa0e6fb782380016480c3")
+        (revision "1"))
     (package
       (name "ygopro-database-en")
       (version (git-version %ygopro-version revision commit))
@@ -243,7 +243,7 @@
          (file-name (git-file-name "ygopro-database" version))
          (sha256
           (base32
-           "189ialri2xk72g87yrni5nz555g698z4filq5yahz25lf5nzwr51"))))
+           "1q30aqfjyh6m17pa71kmn455sv93kw43bg0pkcrr3pjq66qwnhm6"))))
       (build-system copy-build-system)
       (arguments
        `(#:install-plan
