@@ -224,8 +224,8 @@ built on top of that.")
     (license license:agpl3+)))
 
 (define-public ignis-database
-  (let ((commit "be62d613e57a7f8e1920352fdc7caf72ade2edf4")
-        (revision "2"))
+  (let ((commit "f58faeb2dcea8af8e7788f2a80d35fe920f4a443")
+        (revision "3"))
     (package
       (name "ignis-database")
       (version (git-version (package-version edopro) revision commit))
@@ -238,7 +238,7 @@ built on top of that.")
          (file-name (git-file-name "ignis-database" version))
          (sha256
           (base32
-           "17p6j4pakyvkd7cisrx434j8q4q2s7abr5l68wkz004cwjnv4bcq"))))
+           "0k0kl1s64hyhkgrd3c747w6q8y1sinwkjrabqfjm45j1sfd0ra6n"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "rush" "skills" "unofficial"))
       (arguments
@@ -299,10 +299,10 @@ built on top of that.")
              (uri
               (git-reference
                (url "https://github.com/ProjectIgnis/LFLists")
-               (commit "d3369edc7366eb71e1eac16c6bc2206f4fe265cf")))
+               (commit "3af85a747cf5c7aaaf490350255d9203310e5d63")))
              (sha256
               (base32
-               "0a6na4hrsy6bc13jr92nh632zcw0z9k4f3n200s405yr52wrwby5"))))
+               "1j8gd3w8lg2d31lcbgjxgmpjr5hp9hw594vbgis6ai81rji2i5hh"))))
          ("sqlite" ,sqlite)))
       (synopsis "Card databases for EDOPro")
       (description "Provides various card databases for EDOPro.")
@@ -310,8 +310,8 @@ built on top of that.")
       (license #f))))
 
 (define-public ignis-scripts
-  (let ((commit "7e0244bd8e7e170b140351477c4b2d6142f0a342")
-        (revision "2"))
+  (let ((commit "def809b5389d395927e46eb50c49d77af019dadb")
+        (revision "3"))
     (package
       (name "ignis-scripts")
       (version (git-version (package-version edopro) revision commit))
@@ -324,7 +324,7 @@ built on top of that.")
          (file-name (git-file-name "ignis-scripts" version))
          (sha256
           (base32
-           "0aar5mmq7a6k7pqillnfpbw87y188s193gb6f4f96abr7la25giv"))))
+           "0iv2v8rzgi38gnzvqhbyx4hnjn1mdrdm5rcyg7z00z5m3ma1c8z0"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "pre-errata" "rush" "skill" "unofficial"))
       (arguments
