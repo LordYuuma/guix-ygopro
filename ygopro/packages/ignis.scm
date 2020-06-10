@@ -26,19 +26,19 @@
 
 (define-public edopro-core
   (package
-   (name "edopro-core")
-   (version "8.0")
-   (source
-    (origin
-     (method git-fetch)
-     (uri (git-reference
-           (url "https://github.com/ProjectIgnis/EDOPro-Core.git")
-           (commit (string-append "v" version))))
-     (file-name (git-file-name "edopro-core" version))
-     (sha256
-      (base32
-       "04pjbjy1rms2m8ici9r0zls3y5plh6bc0ffk92dmbvgx4mwadz2y"))))
-   (build-system gnu-build-system)
+    (name "edopro-core")
+    (version "8.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/ProjectIgnis/EDOPro-Core.git")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name "edopro-core" version))
+       (sha256
+        (base32
+         "04pjbjy1rms2m8ici9r0zls3y5plh6bc0ffk92dmbvgx4mwadz2y"))))
+    (build-system gnu-build-system)
     (arguments
      `(#:tests? #f ; no `check' target
        #:make-flags `("CC=gcc" "--directory=build")
@@ -102,19 +102,19 @@ trivial integration and 100% testing.")
 (define irrlicht-for-edopro
   (let ((commit "914cbb35142f8e8bd1659d177bbe552e14fe78f1")
         (revision "2"))
-   (package
-    (inherit irrlicht)
-    (name "irrlicht-for-edopro")
-    (version (git-version "1.8.4" revision commit))
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/edo9300/irrlicht1-8-4.git")
-             (commit commit)))
-       (sha256
-        (base32
-         "0fv2v29ainsif3ansc0q8448pbi3bq974k95byx9rph7r8szww9i")))))))
+    (package
+      (inherit irrlicht)
+      (name "irrlicht-for-edopro")
+      (version (git-version "1.8.4" revision commit))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/edo9300/irrlicht1-8-4.git")
+               (commit commit)))
+         (sha256
+          (base32
+           "0fv2v29ainsif3ansc0q8448pbi3bq974k95byx9rph7r8szww9i")))))))
 
 (define-public edopro
   (package
