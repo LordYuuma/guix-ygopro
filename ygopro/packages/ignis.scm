@@ -119,7 +119,7 @@ trivial integration and 100% testing.")
 (define-public edopro
   (package
     (name "edopro")
-    (version "38.1.1")
+    (version "38.1.2")
     (source
      (origin
        (method git-fetch)
@@ -128,7 +128,7 @@ trivial integration and 100% testing.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "05b64bfml5wlc2869gwr7g12pkdq03miqnbpb73g9s9cxb016bnb"))
+        (base32 "0j0smmd3zpkw0shmq516p3b7hd23lpgbq7pm8gl9rqlqjgmidq4r"))
        (patches
         (search-patches
          "edopro-respect-YGOPRO_-_PATH.patch"
@@ -225,7 +225,7 @@ built on top of that.")
 
 (define-public ignis-database
   (let ((commit "6e1c13a21ade4cd9ac6897d6993b911ffdd38325")
-        (revision "5"))
+        (revision "0"))
     (package
       (name "ignis-database")
       (version (git-version (package-version edopro) revision commit))
@@ -311,7 +311,7 @@ built on top of that.")
 
 (define-public ignis-scripts
   (let ((commit "7dfa599775bae25ffe8983a33958039e9bcaba04")
-        (revision "5"))
+        (revision "0"))
     (package
       (name "ignis-scripts")
       (version (git-version (package-version edopro) revision commit))

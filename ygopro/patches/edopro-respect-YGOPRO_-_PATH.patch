@@ -1,4 +1,4 @@
-From e7c8515154d6dbd5d42a54e9f466af44ba4b0e08 Mon Sep 17 00:00:00 2001
+From e5145d4f81b2c382dcd605d32a91eb89837ba85b Mon Sep 17 00:00:00 2001
 From: LordYuuma <lordyuuma@gmail.com>
 Date: Sun, 5 Apr 2020 14:32:35 +0200
 Subject: [PATCH] edopro: Respect YGOPRO_*_PATH.
@@ -53,24 +53,24 @@ index b018a273..b36ab8a5 100644
  #ifndef BASE64_H
  #define BASE64_H
 @@ -108,4 +108,4 @@ std::vector<uint8_t> base64_decode(const T* encoded_string, size_t in_len) {
- 
+
  	return ret;
  }
 -#endif //BASE64_H
 \ No newline at end of file
 +#endif //BASE64_H
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
-index 8f6251a4..3d3b7a0f 100644
+index 08496f82..f29101e1 100644
 --- a/gframe/data_handler.cpp
 +++ b/gframe/data_handler.cpp
-@@ -11,15 +11,30 @@
+@@ -12,15 +12,30 @@
  #include "IrrlichtCommonIncludes1.9/CFileSystem.h"
  #include "Android/porting_android.h"
  #endif
 +#include "deck_manager.h"
- 
+
  namespace ygo {
- 
+
  void DataHandler::LoadDatabases() {
 +#ifdef YGOPRO_ENVIRONMENT_PATHS
 +	const char* data_path_env = getenv("YGOPRO_DATA_PATH");
@@ -111,10 +111,10 @@ index 383edbe8..797f2d2b 100644
  	nolimit.listName = L"N/A"; // N/A
  	nolimit.hash = 0;
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index 1118e398..d92a0155 100644
+index f27d501e..3607ad6a 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
-@@ -3273,6 +3273,31 @@ void Game::UpdateUnzipBar(unzip_payload* payload) {
+@@ -3185,6 +3185,31 @@ void Game::UpdateUnzipBar(unzip_payload* payload) {
  	game->updateProgressBottom->setProgress(payload->percentage);
  }
  void Game::PopulateResourcesDirectories() {
@@ -146,16 +146,16 @@ index 1118e398..d92a0155 100644
  	script_dirs.push_back(EPRO_TEXT("./expansions/script/"));
  	auto expansions_subdirs = Utils::FindSubfolders(EPRO_TEXT("./expansions/script/"));
  	script_dirs.insert(script_dirs.end(), expansions_subdirs.begin(), expansions_subdirs.end());
-@@ -3289,6 +3314,7 @@ void Game::PopulateResourcesDirectories() {
+@@ -3201,6 +3226,7 @@ void Game::PopulateResourcesDirectories() {
  	field_dirs.push_back(EPRO_TEXT("./expansions/pics/field/"));
  	field_dirs.push_back(EPRO_TEXT("archives"));
  	field_dirs.push_back(EPRO_TEXT("./pics/field/"));
 +#endif
  }
- 
+
  void Game::PopulateLocales() {
 diff --git a/gframe/premake5.lua b/gframe/premake5.lua
-index 97598419..cbdb8c85 100644
+index a2581ea5..757c0cff 100644
 --- a/gframe/premake5.lua
 +++ b/gframe/premake5.lua
 @@ -21,6 +21,10 @@ local ygopro_config=function(static_core)
@@ -195,7 +195,7 @@ index 6d274a79..4574cabd 100644
 +}
 +#endif /* TEXT_TYPES_H_ */
 diff --git a/gframe/utils.cpp b/gframe/utils.cpp
-index dba868e5..ee146ca3 100644
+index 8a26a56f..226ddee6 100644
 --- a/gframe/utils.cpp
 +++ b/gframe/utils.cpp
 @@ -1,6 +1,7 @@
@@ -206,10 +206,10 @@ index dba868e5..ee146ca3 100644
  #ifdef _WIN32
  #define WIN32_LEAN_AND_MEAN
  #include <Windows.h>
-@@ -142,6 +143,16 @@ namespace ygo {
+@@ -143,6 +144,16 @@ namespace ygo {
  #endif
  	}
- 
+
 +	void Utils::PathForeach(const path_string& path, const std::function<void(path_string)>& cb)
 +	{
 +		// FIXME: should be ';' in WIN32 and WIN64.
@@ -223,16 +223,16 @@ index dba868e5..ee146ca3 100644
  	std::vector<path_string> Utils::FindFiles(const path_string& path, std::vector<path_string> extensions, int subdirectorylayers) {
  		std::vector<path_string> res;
  		FindFiles(path, [&res, extensions, path, subdirectorylayers](path_string name, bool isdir, void* payload) {
-@@ -403,4 +414,3 @@ namespace ygo {
- 		return true;
+@@ -433,4 +444,3 @@ namespace ygo {
+ #endif
  	}
  }
 -
 diff --git a/gframe/utils.h b/gframe/utils.h
-index c89cb672..a1966a52 100644
+index c8a14ee8..75b96a20 100644
 --- a/gframe/utils.h
 +++ b/gframe/utils.h
-@@ -45,6 +45,7 @@ namespace ygo {
+@@ -74,6 +74,7 @@ namespace ygo {
  		static bool ClearDirectory(const path_string& path);
  		static bool DeleteDirectory(const path_string& source);
  		static void CreateResourceFolders();
@@ -240,7 +240,7 @@ index c89cb672..a1966a52 100644
  		static void FindFiles(const path_string& path, const std::function<void(path_string, bool, void*)>& cb, void* payload = nullptr);
  		static std::vector<path_string> FindFiles(const path_string& path, std::vector<path_string> extensions, int subdirectorylayers = 0);
  		/** Returned subfolder names are prefixed by the provided path */
-@@ -113,6 +114,8 @@ T Utils::NormalizePath(T path, bool trailing_slash) {
+@@ -144,6 +145,8 @@ T Utils::NormalizePath(T path, bool trailing_slash) {
  		}
  		it++;
  	}
@@ -264,6 +264,5 @@ index d52d9299..b1e784c0 100644
  workspace "ygo"
  	location "build"
  	language "C++"
--- 
+--
 2.26.2
-

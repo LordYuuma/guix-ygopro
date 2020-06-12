@@ -1,5 +1,5 @@
 diff --git a/config/strings.conf b/config/strings.conf
-index c227a41a..5f4d92bc 100644
+index c227a41a..3a334f15 100644
 --- a/config/strings.conf
 +++ b/config/strings.conf
 @@ -1,5 +1,9 @@
@@ -115,7 +115,13 @@ index c227a41a..5f4d92bc 100644
  !system 531 Select monsters for Tribute Summon
  !system 532 Select a monster to detach Xyz Material
  !system 533 Select a card to use as Link Material
-@@ -140,18 +144,18 @@
+@@ -135,23 +139,24 @@
+ !system 572 Select a card to place a counter
+ !system 573 Add the card to the hand
+ !system 574 Send the card to the GY
++!system 575 Select the card(s) to negate the effects
+ !system 1000 Deck
+ !system 1001 Hand
  !system 1002 Monster Zone
  !system 1003 Spell/Trap Zone
  !system 1004 Graveyard
@@ -142,7 +148,7 @@ index c227a41a..5f4d92bc 100644
  !system 1020 Warrior
  !system 1021 Spellcaster
  !system 1022 Fairy
-@@ -204,55 +208,58 @@
+@@ -204,55 +209,58 @@
  !system 1074 Pendulum
  !system 1075 Special Summon
  !system 1076 Link
@@ -242,7 +248,7 @@ index c227a41a..5f4d92bc 100644
  #Actions
  !system 1150 Activate
  !system 1151 Normal Summon
-@@ -274,11 +281,13 @@
+@@ -274,11 +282,13 @@
  !system 1173 Xyz Summon
  !system 1174 Link Summon
  #Menu strings
@@ -260,7 +266,7 @@ index c227a41a..5f4d92bc 100644
  !system 1210 Exit
  !system 1211 OK
  !system 1212 Cancel
-@@ -298,8 +307,8 @@
+@@ -298,8 +308,8 @@
  !system 1226 Forbidden List:
  !system 1227 Duel Mode:
  !system 1228 Additional Options
@@ -271,7 +277,7 @@ index c227a41a..5f4d92bc 100644
  !system 1231 Starting LP:
  !system 1232 Starting Hand:
  !system 1233 Cards per Draw:
-@@ -316,14 +325,18 @@
+@@ -316,14 +326,18 @@
  !system 1250 Host
  !system 1251 →Duel
  !system 1252 →Spectate
@@ -292,7 +298,7 @@ index c227a41a..5f4d92bc 100644
  !system 1265 Anime/Manga
  !system 1266 Illegal
  !system 1267 Video Game
-@@ -332,16 +345,16 @@
+@@ -332,16 +346,16 @@
  !system 1271 Log
  !system 1272 Clear Log
  !system 1273 Settings
@@ -315,7 +321,7 @@ index c227a41a..5f4d92bc 100644
  !system 1291 Mute spectators
  !system 1292 Ignore Chain
  !system 1293 Always Chain
-@@ -349,16 +362,17 @@
+@@ -349,16 +363,17 @@
  !system 1295 Cancel
  !system 1296 Finish
  !system 1297 Test Hand
@@ -335,7 +341,7 @@ index c227a41a..5f4d92bc 100644
  !system 1310 (All)
  !system 1311 Category:
  !system 1312 Monster
-@@ -383,7 +397,7 @@
+@@ -383,7 +398,7 @@
  !system 1332 Side:
  !system 1333 Results:
  !system 1334 Side decking completed
@@ -344,7 +350,7 @@ index c227a41a..5f4d92bc 100644
  !system 1336 Scale:
  !system 1337 Delete This Deck?
  !system 1338 Deck Deleted
-@@ -402,8 +416,8 @@
+@@ -402,8 +417,8 @@
  !system 1351 Surrender
  !system 1352 Main message:
  !system 1353 Start at turn:
@@ -355,7 +361,7 @@ index c227a41a..5f4d92bc 100644
  !system 1356 Old Replay Mode
  !system 1357 Load Puzzle
  !system 1358 Export Decks
-@@ -415,15 +429,17 @@
+@@ -415,15 +430,17 @@
  !system 1364 Failed to rename deck
  !system 1365 Failed to rename! Maybe there is a replay with same name?
  !system 1366 Restart
@@ -374,7 +380,7 @@ index c227a41a..5f4d92bc 100644
  !system 1400 Unable to connect to the host.
  !system 1401 Connection has been lost.
  !system 1402 An error occurred during the transmission.
-@@ -445,16 +461,36 @@
+@@ -445,16 +462,36 @@
  !system 1418 The size of your Extra Deck should be not more than %d. At the moment its size is %d.
  !system 1419 The size of your Side Deck should be not more than %d. At the moment its size is %d.
  !system 1420 There are Extra Deck-only cards in your Main Deck.
@@ -415,7 +421,7 @@ index c227a41a..5f4d92bc 100644
  !system 1600 Activate a card
  !system 1601 Set a card
  !system 1602 Card control is changed
-@@ -465,49 +501,90 @@
+@@ -465,49 +502,90 @@
  !system 1607 "%ls" Flip Summon...
  !system 1608 Flip Summon success
  !system 1609 "%ls" is activated
@@ -519,7 +525,7 @@ index c227a41a..5f4d92bc 100644
  !system 2021 Filter:
  !system 2024 Notes:
  !system 2030 Players:
-@@ -515,11 +592,13 @@
+@@ -515,11 +593,13 @@
  !system 2032 No rooms
  !system 2033 There are no rooms currently open on the server. Click on 'Host' to create a new room or try another server.
  !system 2037 Failed to open url
@@ -535,7 +541,7 @@ index c227a41a..5f4d92bc 100644
  !system 2046 Enable music
  !system 2047 Enable sound effects
  !system 2048 Music
-@@ -532,6 +611,60 @@
+@@ -532,6 +612,63 @@
  !system 2055 AI Level: {}
  !system 2056 Anti-meta AI
  !system 2057 Master Rule supported: {}
@@ -575,6 +581,9 @@ index c227a41a..5f4d92bc 100644
 +!system 2112 Emma
 +!system 2113 Andrew
 +!system 2114 David
++!system 2115 Bakura
++!system 2116 Marik
++!system 2117 Equip
 +#Puzzle Creator strings
 +!system 2200 Add a card?
 +!system 2201 Place in a Monster Zone
@@ -596,7 +605,7 @@ index c227a41a..5f4d92bc 100644
  #Victory Reasons
  !victory 0x0 Surrendered
  !victory 0x1 LP reached 0
-@@ -555,6 +688,7 @@
+@@ -555,6 +692,7 @@
  !victory 0x1e Victory by the effect of Flying Elephant
  !victory 0x1f Victory by the effect of Exodia, Master of the Guard
  !victory 0x20 Match Victory by the effect of 「%ls」
@@ -604,7 +613,24 @@ index c227a41a..5f4d92bc 100644
  !victory 0x30 Victory by the effect of Creator of Miracles
  !victory 0x51 Victory by the effect of Evil 1
  !victory 0x52 Victory by the effect of Number_Ci1000:_Numerronius_Numerronia
-@@ -780,7 +914,7 @@
+@@ -627,7 +765,7 @@
+ !counter 0x43 Defect Counter
+ !counter 0x44 Counter(Beltlink Wall Dragon)
+ !counter 0x1045 Scale Counter
+-!counter 0x46 Counter(Gouki Deathmatch)
++!counter 0x46 Counter(Gouki Cage Match)
+ !counter 0x47 Counter(Limit Code)
+ !counter 0x48 Counter(Link Turret)
+ !counter 0x1049 Patrol Counter
+@@ -644,6 +782,7 @@
+ !counter 0x14f Counter (World Legacy's Continuation)
+ !counter 0x200 Counter (Pendulum of Souls)
+ !counter 0x201 Fire Fist Counter
++!counter 0x202 Phantasm Counter
+ #Anime Counters
+ !counter 0x55 Hammer Counter
+ !counter 0x90 Maiden Counter
+@@ -780,7 +919,7 @@
  !setname 0x44 The Agent
  !setname 0x45 Archfiend
  !setname 0x1045 Red Dragon Archfiend
@@ -613,7 +639,7 @@ index c227a41a..5f4d92bc 100644
  !setname 0x1046 Fusion Dragon
  !setname 0x47 Gem-
  !setname 0x1047 Gem-Knight
-@@ -796,7 +930,7 @@
+@@ -796,7 +935,7 @@
  !setname 0x304e Evoltile
  !setname 0x604e Evolsaur
  !setname 0x504e Evolzar
@@ -622,7 +648,7 @@ index c227a41a..5f4d92bc 100644
  !setname 0x104f /Assault Mode
  !setname 0x50 Venom
  !setname 0x1050 Starving Venom
-@@ -812,9 +946,9 @@
+@@ -812,9 +951,9 @@
  !setname 0x5a Penguin
  !setname 0x5b Inmato
  !setname 0x5c Sphinx
@@ -635,7 +661,7 @@ index c227a41a..5f4d92bc 100644
  !setname 0x60 Bamboo Sword
  !setname 0x61 Ninjitsu Art
  !setname 0x62 Toon
-@@ -835,7 +969,7 @@
+@@ -835,7 +974,7 @@
  !setname 0x6e Prophecy
  !setname 0x106e Spellbook
  !setname 0x6f Heroic
@@ -644,7 +670,7 @@ index c227a41a..5f4d92bc 100644
  !setname 0x206f Heroic Champion
  !setname 0x70 Chronomaly
  !setname 0x71 Madolche
-@@ -860,7 +994,7 @@
+@@ -860,7 +999,7 @@
  !setname 0x7d Hazy
  !setname 0x107d Hazy Flame
  !setname 0x7e ZW
@@ -653,16 +679,17 @@ index c227a41a..5f4d92bc 100644
  !setname 0x107f Utopia
  !setname 0x207f Utopic Future
  !setname 0x80 Duston
-@@ -946,7 +1080,7 @@
+@@ -946,7 +1085,8 @@
  !setname 0xbd Gaia The Fierce Knight
  !setname 0xbe Monarch
  !setname 0xbf Charmer
 -!setname 0xc0 Familiar-Possessed 
-+!setname 0xc0 Familiar-Possessed
++!setname 0xc0 Possessed
++!setname 0x10c0 Possessed
  !setname 0xc1 PSY-Frame
  !setname 0x10c1 PSY-Framegear
  !setname 0xc2 Power Tool
-@@ -1020,7 +1154,7 @@
+@@ -1020,7 +1160,7 @@
  !setname 0xf8 Supreme King
  !setname 0x10f8 Supreme King Gate
  !setname 0x20f8 Supreme King Dragon
@@ -671,7 +698,7 @@ index c227a41a..5f4d92bc 100644
  !setname 0xfa Phantasm Spiral
  !setname 0xfc Gouki
  !setname 0xfb Trickstar
-@@ -1063,7 +1197,7 @@
+@@ -1063,7 +1203,7 @@
  !setname 0x120 Prank-Kids
  !setname 0x121 Mayakashi
  !setname 0x122 Valkyrie
@@ -680,7 +707,7 @@ index c227a41a..5f4d92bc 100644
  !setname 0x1123 Rose Dragon
  !setname 0x124 Machine Angel
  !setname 0x125 Smile
-@@ -1085,10 +1219,25 @@
+@@ -1085,10 +1225,28 @@
  !setname 0x134 Generaider
  !setname 0x135 @Ignister
  !setname 0x136 A.I.
@@ -706,10 +733,30 @@ index c227a41a..5f4d92bc 100644
 +!setname 0x147 Märfae
 +!setname 0x148 Potan
 +!setname 0x149 Roland
++!setname 0x244 Appliancer
++!setname 0x246 Numeron
++!setname 0x247 Souten
  #Anime Archetypes
  !setname 0x2033 Blackwing Tamer
  !setname 0x5034 Advanced Crystal Beast
-@@ -1187,7 +1336,6 @@
+@@ -1106,6 +1264,7 @@
+ !setname 0x507 Attack
+ !setname 0x508 Baby
+ !setname 0x509 Barian
++!setname 0x1246 Numeron
+ !setname 0x1509 Barian's
+ !setname 0x2509 Battleguard
+ !setname 0x50b Beastborg
+@@ -1138,7 +1297,7 @@
+ !setname 0x51e Forbidden Beast
+ !setname 0x51f Forest
+ !setname 0x520 Fortune Fairy
+-!setname 0x521 Fossil
++!setname 0x521 Gaia the Dragon Champion
+ !setname 0x1521 Fossil Knight
+ !setname 0x2521 Cenozoic
+ !setname 0x3521 Cenozoic Fossil Knight
+@@ -1187,7 +1346,6 @@
  !setname 0x1541 Quiz Panel
  !setname 0x542 Raccoon
  !setname 0x543 Red
@@ -717,7 +764,25 @@ index c227a41a..5f4d92bc 100644
  !setname 0x545 Seal
  !setname 0x546 Shaman
  !setname 0x547 Shark
-@@ -1231,7 +1379,7 @@
+@@ -1205,7 +1363,7 @@
+ !setname 0x54d Spice
+ !setname 0x154d Spell Spice
+ !setname 0x54e Spirit
+-!setname 0x154e Spirit Crystal
++!setname 0x154e Spirit Gem
+ !setname 0x54f Starship
+ !setname 0x550 Statue
+ !setname 0x1550 Pendulumstatue
+@@ -1222,7 +1380,7 @@
+ !setname 0x55c Vigilante
+ !setname 0x55d White
+ !setname 0x155d White Knight
+-!setname 0x55f Wicked Rune
++!setname 0x55f Sinister Doctrine
+ !setname 0x560 Wisel
+ !setname 0x1560 Wisel Attack
+ !setname 0x2560 Wisel Guard
+@@ -1231,7 +1389,7 @@
  !setname 0x561 Yubel
  !setname 0x562 ∞
  !setname 0x563 Yomi
@@ -726,7 +791,16 @@ index c227a41a..5f4d92bc 100644
  !setname 0x565 Hunder
  !setname 0x566 Heraldic
  !setname 0x567 Hell
-@@ -1257,9 +1405,7 @@
+@@ -1246,7 +1404,7 @@
+ !setname 0x570 Tentacluster
+ !setname 0x571 Monarch (monster)
+ !setname 0x572 Mirror Imagine
+-!setname 0x573 Hellix
++!setname 0x573 Helixx
+ !setname 0x574 Sunavalon
+ !setname 0x575 Sunvine
+ !setname 0x576 Starving Venemy
+@@ -1257,9 +1415,7 @@
  !setname 0x57b Topologina
  !setname 0x580 Stormrider
  !setname 0x581 Drone
