@@ -162,9 +162,6 @@ trivial integration and 100% testing.")
                   (string-append (assoc-ref inputs "irrlicht")
                                  "/include/irrlicht"))
                  (("SDL2d") "SDL2"))
-               (substitute* "gframe/drawing.cpp"
-                 (("draw2DRectangleClip") "draw2DRectangle")
-                 (("nullptr,clip") "clip"))
                (substitute* "gframe/game_config.cpp"
                  (("/etc/ygopro" all) (string-append out all))
                  (("/usr(/share/ygopro)" all rest) (string-append out rest)))
