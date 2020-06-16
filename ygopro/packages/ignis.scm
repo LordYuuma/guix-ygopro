@@ -285,7 +285,8 @@ built on top of that.")
                           (lambda (in)
                             (dump-port in port)
                             (close-port in))))
-                      '("OCG-Korea" "OCG" "TCG" "TCG.new" "Traditional" "World"))
+                      '("OCG-Korea" "OCG" "OCG.new" "TCG" "TCG.new"
+                        "Traditional" "World"))
                      (close-port port)))
                  (copy-file "Rush.lflist.conf"
                             (string-append (assoc-ref outputs "rush")
