@@ -25,55 +25,57 @@
   #:use-module (ygopro packages mycard))
 
 (define-public edopro-core
-  (package
-    (name "edopro-core")
-    (version "8.0")
-    (source
-     (origin
+  (let ((revision "1")
+        (commit "69398817adfe66629cb142f4b1eaa34d016ec313"))
+    (package
+     (name "edopro-core")
+     (version (git-version "8.0" revision commit))
+     (source
+      (origin
        (method git-fetch)
        (uri (git-reference
              (url "https://github.com/ProjectIgnis/EDOPro-Core.git")
-             (commit (string-append "v" version))))
+             (commit commit)))
        (file-name (git-file-name "edopro-core" version))
        (sha256
         (base32
-         "04pjbjy1rms2m8ici9r0zls3y5plh6bc0ffk92dmbvgx4mwadz2y"))))
-    (build-system gnu-build-system)
-    (arguments
-     `(#:tests? #f ; no `check' target
-       #:make-flags `("CC=gcc" "--directory=build")
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'patch-sources
-           (lambda* (#:key inputs #:allow-other-keys)
-             (substitute* "interpreter.h"
-               (("#include <l([a-z]+).h>" all lua-cont)
-                (string-append "extern \"C\" {\n"
-                               "#include <l" lua-cont ".h>\n"
-                               "}")))
-             #t))
-         (delete 'bootstrap)
-         (replace 'configure (lambda _ (invoke "premake5" "gmake")))
-         (replace 'install
-           (lambda* (#:key outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out"))
-                    (lib (string-append out "/lib"))
-                    (inc (string-append out "/include/ygopro-core")))
-               (for-each (lambda (f) (install-file f inc))
-                         (find-files "." ".*\\.h"))
-               (install-file "bin/debug/libocgcore.so" lib)
-               #t))))))
-    (inputs
-     `(("lua" ,lua)))
-    (native-inputs
-     `(("premake5" ,premake5)))
-    (synopsis "Bleeding-edge fork of ygopro-core")
-    (description
-     "EDOPro-Core is a bleeding-edge fork of ygopro-core with updates to
+         "06a1wry6w6q44n9kf48b23jyxdp9zphiarw7lmv589mm9kqbkf8r"))))
+     (build-system gnu-build-system)
+     (arguments
+      `(#:tests? #f ; no `check' target
+        #:make-flags `("CC=gcc" "--directory=build")
+        #:phases
+        (modify-phases %standard-phases
+          (add-after 'unpack 'patch-sources
+            (lambda* (#:key inputs #:allow-other-keys)
+              (substitute* "interpreter.h"
+                (("#include <l([a-z]+).h>" all lua-cont)
+                 (string-append "extern \"C\" {\n"
+                                "#include <l" lua-cont ".h>\n"
+                                "}")))
+              #t))
+          (delete 'bootstrap)
+          (replace 'configure (lambda _ (invoke "premake5" "gmake")))
+          (replace 'install
+            (lambda* (#:key outputs #:allow-other-keys)
+              (let* ((out (assoc-ref outputs "out"))
+                     (lib (string-append out "/lib"))
+                     (inc (string-append out "/include/ygopro-core")))
+                (for-each (lambda (f) (install-file f inc))
+                          (find-files "." ".*\\.h"))
+                (install-file "bin/debug/libocgcore.so" lib)
+                #t))))))
+     (inputs
+      `(("lua" ,lua)))
+     (native-inputs
+      `(("premake5" ,premake5)))
+     (synopsis "Bleeding-edge fork of ygopro-core")
+     (description
+      "EDOPro-Core is a bleeding-edge fork of ygopro-core with updates to
 accommodate for new cards and features.  It is incompatible with forks not
 derived from itself.")
-    (home-page "https://github.com/edo9300/ygopro")
-    (license license:agpl3+)))
+     (home-page "https://github.com/edo9300/ygopro")
+     (license license:agpl3+))))
 
 (define nlohmann-json
   (package
