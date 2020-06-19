@@ -15,7 +15,7 @@
   #:use-module (gnu packages lua)
   #:use-module (gnu packages sqlite))
 
-(define %ygopro-version "1.035.1-3")
+(define %ygopro-version "1.035.1-4")
 
 (define-public ygopro-core
   (package
@@ -103,7 +103,7 @@
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "13pky5dbiq21ga5j1m5kp4l4fn6vrnfbya3ppf34wmc8vjvrj9mv"))
+        (base32 "0rc9d84hy8rrzh0fra6hz71d9flswpsfhnxsw2bmjh12pm5kp701"))
        (modules '((guix build utils)))
        (patches
         (search-patches
@@ -204,7 +204,7 @@
 
 (define-public ygopro-scripts
   (let ((commit "f0a30e61e84259d3b7704a3f3e4560a47a1a5cd8")
-        (revision "1"))
+        (revision "0"))
     (package
       (name "ygopro-scripts")
       (version (git-version %ygopro-version revision commit))
@@ -230,7 +230,7 @@
 
 (define-public ygopro-database-en
   (let ((commit "0e13f008dbc2cf62b78fa0e6fb782380016480c3")
-        (revision "1"))
+        (revision "0"))
     (package
       (name "ygopro-database-en")
       (version (git-version %ygopro-version revision commit))
