@@ -300,10 +300,10 @@ Mycard's CI.")
 ;; I'd recommend using ygopro-images directly if you're writing a manifest
 ;; or finding alternative sources
 (define-public ygopro-images-en
-  (ygopro-images "en-US" "1pn7nk15nlk62zbic1rw64bwza7qsyg6f69wy60f86vvn8r98hsc"))
+  (ygopro-images "en-US" "0qgb856hcy2nvqplxpckif2mfyj4yikhfmhpi7zvz0ny8rv1d6kf"))
 
 (define-public ygopro-images-ja
   (ygopro-images "ja-JP" "0ha518if5616cbnggcs4gxibrq03bnd3j4lj6qf58z0y1d6qks8s"))
 
 (define-public ygopro-images-zh
-  (ygopro-images "zh-CN" "0fakrcg11ri55k3qjl9wylf7lp8sk5qsx4rbkvvfbc1b524li904"))
+  (ygopro-images "zh-CN" "0xq0b1zlq3ijy2gplpy5v1fiqcrczlp280j0k59vd82fq9gsks95"))
