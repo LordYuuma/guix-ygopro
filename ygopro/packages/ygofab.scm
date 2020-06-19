@@ -364,7 +364,7 @@ local XDG_CONFIG_HOME = os.getenv(\"XDG_CONFIG_HOME\") or (os.getenv(\"HOME\")\
                   (if replacement
                       (format #f "~a = { file = \"~a\", family = \"~a\" }"
                               idx (apply font (assoc-ref replacement 'file))
-                              (assoc-ref replacement 'family))
+                              (or (assoc-ref replacement 'family) family))
                       (format #f "~a = { file = \"~a/~a/~a\", family = \"~a\"}"
                               idx (assoc-ref outputs "out")
                               "share/ygofab/composer/fonts" file
