@@ -299,7 +299,7 @@ the latin alphabet, it also merges a contemporary feel onto it.")
 (define (make-ygo-fabrica font-packages font-replacements)
   (package
     (name "ygo-fabrica")
-    (version "1.0.1")
+    (version "1.0.2")
     (source
      (origin
        (method git-fetch)
@@ -308,7 +308,7 @@ the latin alphabet, it also merges a contemporary feel onto it.")
              (commit (string-append "v" version))))
        (sha256
         (base32
-         "1866fl751xk1bsd9zvwvlv30jq6cd7kw36cv52y1pcc0730xr88x"))))
+         "1aj3slmhbq4gip8lqyj256vy5v91l6w96v0d0y7dpq0xcnxz51dw"))))
     (build-system copy-build-system)
     (arguments
      `(#:install-plan
@@ -338,12 +338,11 @@ local XDG_CONFIG_HOME = os.getenv(\"XDG_CONFIG_HOME\") or (os.getenv(\"HOME\")\
                                "or load_file")))
              (substitute* (find-files "scripts" ".*\\.lua")
                (("lsqlite3complete") "lsqlite3")
-               (("\"res")
-                (format #f "\"~a/share/ygofab"
-                        (assoc-ref outputs "out"))))
+               (("prjoin\\(\"res\"") "prjoin(\"share\", \"ygofab\""))
              (substitute* "scripts/composer/type-writer.lua"
                (("justify = j,") ""))
              (substitute* "scripts/composer/layouts.lua"
+               (("Fonts.path = .*") "")
                (("Fonts.get_family\\(\"([a-z_]+)\", \"([0-9.]+)\")" all idx size)
                 (let* ((replacement
                         (or (assoc-ref (quote ,font-replacements) idx)
@@ -417,7 +416,9 @@ local XDG_CONFIG_HOME = os.getenv(\"XDG_CONFIG_HOME\") or (os.getenv(\"HOME\")\
                                           (package-cpath "lua-struct")
                                           (package-cpath "lua-zlib"))
                                          ";"))
-                    (format #t "exec ~a ~a/~a.lua \"$PWD\" \"$@\"~%"
+                    (format #t "export YGOFAB_ROOT=\"~a\"~%"
+                            (string-append (assoc-ref outputs "out")))
+                    (format #t "exec ~a ~a/~a.lua \"$@\"~%"
                             (which "luajit") (assoc-ref outputs "out")
                             (string-append "share/lua/5.1/ygofab/scripts/" f))))
                 (chmod (string-append "bin/" f) #o755))
