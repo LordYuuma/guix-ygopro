@@ -282,7 +282,7 @@ built on top of that.")
                           (lambda (in)
                             (dump-port in port)
                             (close-port in))))
-                      '("OCG-Korea" "OCG" "OCG.new" "TCG" "Traditional" "World"))
+                      '("OCG.Korea" "OCG" "TCG" "Traditional" "World"))
                      (close-port port)))
                  (copy-file "Rush.lflist.conf"
                             (string-append (assoc-ref outputs "rush")
@@ -298,10 +298,10 @@ built on top of that.")
              (uri
               (git-reference
                (url "https://github.com/ProjectIgnis/LFLists")
-               (commit "a2f4e0a3d002483f259ac1e1ed5f0b609bb92766")))
+               (commit "fb223b91c4c59113e46c8ec97671b2d04b3d7b93")))
              (sha256
               (base32
-               "1dp0l7055zy4lk22fsbf3yhaq8qa62fjs5ikysfd5hjd9s2hk1aq"))))
+               "17hq9v1xwbksn9f0f0x3al3fyzq1w2f7xf2dwncbvbm0qdh081wv"))))
          ("sqlite" ,sqlite)))
       (synopsis "Card databases for EDOPro")
       (description "Provides various card databases for EDOPro.")
@@ -309,8 +309,8 @@ built on top of that.")
       (license #f))))
 
 (define-public ignis-scripts
-  (let ((commit "6948114f06ce72bad246991210ca6a780f24bf78")
-        (revision "6"))
+  (let ((commit "5a2a0ff2762d44e73da3be3c07de39d009ddb8a8")
+        (revision "7"))
     (package
       (name "ignis-scripts")
       (version (git-version (package-version edopro) revision commit))
@@ -323,7 +323,7 @@ built on top of that.")
          (file-name (git-file-name "ignis-scripts" version))
          (sha256
           (base32
-           "1rffwlgqvxgb74k0ka97447va8yzj8d94lbcrhgfimb866jrq647"))))
+           "19dznj4g48qxp5wia2a1q1qhcq3mmxpwssixd9mswnjv799g4l9x"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "pre-errata" "rush" "skill" "unofficial"))
       (arguments
