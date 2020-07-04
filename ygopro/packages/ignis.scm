@@ -272,24 +272,31 @@ built on top of that.")
            (add-after 'install 'install-lflists
              (lambda* (#:key inputs outputs #:allow-other-keys)
                (with-directory-excursion (assoc-ref inputs "lflists")
-                 (call-with-output-file (string-append
-                                         (assoc-ref outputs "out")
-                                         "/share/ygopro/data/lflist.conf")
-                   (lambda (port)
-                     (for-each
-                      (lambda (f)
-                        (call-with-input-file (string-append f ".lflist.conf")
-                          (lambda (in)
-                            (dump-port in port)
-                            (close-port in))))
-                      '("OCG.Korea" "OCG" "TCG" "Traditional" "World"))
-                     (close-port port)))
-                 (copy-file "Rush.lflist.conf"
-                            (string-append (assoc-ref outputs "rush")
-                                           "/share/ygopro/data/lflist.conf"))
-                 (copy-file "Speed.lflist.conf"
-                            (string-append (assoc-ref outputs "skills")
-                                           "/share/ygopro/data/lflist.conf")))
+                 (define (merge-lflists output lists)
+                   (call-with-output-file (string-append
+                                           (assoc-ref outputs output)
+                                           "/share/ygopro/data/lflist.conf")
+                     (lambda (port)
+                       (for-each
+                        (lambda (f)
+                          (call-with-input-file (string-append f ".lflist.conf")
+                            (lambda (in)
+                              (dump-port in port)
+                              (close-port in))))
+                        lists)
+                       (close-port port))))
+
+                 (merge-lflists
+                  "out"
+                  '("OCG.Korea" "OCG" "TCG" "Traditional" "World" "GOAT"))
+
+                 (merge-lflists
+                  "rush"
+                  '("Rush" "Rush-Prerelease"))
+
+                 (merge-lflists
+                  "skills"
+                  '("Speed")))
                #t)))))
       (inputs
        `(("lflists"
