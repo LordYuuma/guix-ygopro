@@ -25,8 +25,8 @@
   #:use-module (ygopro packages mycard))
 
 (define-public edopro-core
-  (let ((revision "1")
-        (commit "69398817adfe66629cb142f4b1eaa34d016ec313"))
+  (let ((revision "2")
+        (commit "965cc7bdf7c99e81604fb6c046b3a327bb12027e"))
     (package
      (name "edopro-core")
      (version (git-version "8.0" revision commit))
@@ -39,7 +39,7 @@
        (file-name (git-file-name "edopro-core" version))
        (sha256
         (base32
-         "06a1wry6w6q44n9kf48b23jyxdp9zphiarw7lmv589mm9kqbkf8r"))))
+         "1c4sp64vrfwr9dhdbjq26m87gc70jbr2c1jva503fnrx0wzknk3n"))))
      (build-system gnu-build-system)
      (arguments
       `(#:tests? #f ; no `check' target
