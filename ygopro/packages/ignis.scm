@@ -368,7 +368,7 @@ built on top of that.")
 (define-public windbot-ignite
   (package
     (name "windbot-ignite")
-    (version "20200609")
+    (version "20200715")
     (source
      (origin
        (method git-fetch)
@@ -377,7 +377,7 @@ built on top of that.")
              (commit version)))
        (sha256
         (base32
-         "1gdqvgs3rp8h6v7fihzlvzi29wvy5cwhp4j7w042g0mcd0j8wrml"))))
+         "0yk9122s3rrms2d7cn0hf3dylzijfz28v2k2hwlmi8drbrrnv387"))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f
