@@ -1,4 +1,4 @@
-From 59f89fd5061995739a409a52f641d11c835ffdcc Mon Sep 17 00:00:00 2001
+From f64b9d66fb532e32ecede65aba593894081cb6fb Mon Sep 17 00:00:00 2001
 From: LordYuuma <lordyuuma@gmail.com>
 Date: Thu, 9 Apr 2020 18:52:34 +0200
 Subject: [PATCH] edopro: Respect XDG environment variables.
@@ -76,10 +76,10 @@ and screenshots folder in data_directory.
  17 files changed, 275 insertions(+), 114 deletions(-)
 
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
-index f29101e1..731b1ccc 100644
+index e40b750d..823b246a 100644
 --- a/gframe/data_handler.cpp
 +++ b/gframe/data_handler.cpp
-@@ -104,6 +104,7 @@ void DataHandler::LoadZipArchives() {
+@@ -109,6 +109,7 @@ void DataHandler::LoadZipArchives() {
  }
  DataHandler::DataHandler() {
  	configs = std::unique_ptr<GameConfig>(new GameConfig);
@@ -87,7 +87,7 @@ index f29101e1..731b1ccc 100644
  	tmp_device = nullptr;
  #ifndef __ANDROID__
  	tmp_device = GUIUtils::CreateDevice(configs.get());
-@@ -116,7 +117,7 @@ DataHandler::DataHandler() {
+@@ -121,7 +122,7 @@ DataHandler::DataHandler() {
  #ifdef __ANDROID__
  	configs->working_directory = porting::working_directory;
  #endif
@@ -96,7 +96,7 @@ index f29101e1..731b1ccc 100644
  	gitManager->LoadRepositoriesFromJson(configs->user_configs);
  	gitManager->LoadRepositoriesFromJson(configs->configs);
  	dataManager = std::unique_ptr<DataManager>(new DataManager());
-@@ -124,8 +125,9 @@ DataHandler::DataHandler() {
+@@ -129,8 +130,9 @@ DataHandler::DataHandler() {
  	LoadDatabases();
  	LoadPicUrls();
  	deckManager->LoadLFList();
@@ -173,7 +173,7 @@ index 797f2d2b..92295f59 100644
  }
  }
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index 3607ad6a..c5189461 100644
+index f1b3e2a0..2facfb17 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
 @@ -95,7 +95,7 @@ bool Game::Initialize() {
@@ -185,7 +185,7 @@ index 3607ad6a..c5189461 100644
  	if(!skinSystem)
  		ErrorLog("Couldn't create skin system");
  	linePatternD3D = 0;
-@@ -1107,7 +1107,7 @@ bool Game::Initialize() {
+@@ -1133,7 +1133,7 @@ bool Game::Initialize() {
  	wReplay->getCloseButton()->setVisible(false);
  	wReplay->setVisible(false);
  	lstReplayList = irr::gui::CGUIFileSelectListBox::addFileSelectListBox(env, wReplay, LISTBOX_REPLAY_LIST, Scale(10, 30, 350, 400), filesystem, true, true, false);
@@ -194,7 +194,7 @@ index 3607ad6a..c5189461 100644
  	lstReplayList->addFilteredExtensions(coreloaded ? std::vector<std::wstring>{L"yrp", L"yrpx"} : std::vector<std::wstring>{ L"yrpx" });
  	lstReplayList->setItemHeight(Scale(18));
  	btnLoadReplay = env->addButton(Scale(470, 355, 570, 380), wReplay, BUTTON_LOAD_REPLAY, gDataManager->GetSysString(1348).c_str());
-@@ -1144,7 +1144,7 @@ bool Game::Initialize() {
+@@ -1170,7 +1170,7 @@ bool Game::Initialize() {
  	wSinglePlay->setVisible(false);
  	lstSinglePlayList = irr::gui::CGUIFileSelectListBox::addFileSelectListBox(env, wSinglePlay, LISTBOX_SINGLEPLAY_LIST, Scale(10, 30, 350, 400), filesystem, true, true, false);
  	lstSinglePlayList->setItemHeight(Scale(18));
@@ -203,7 +203,7 @@ index 3607ad6a..c5189461 100644
  	lstSinglePlayList->addFilteredExtensions({L"lua"});
  	btnLoadSinglePlay = env->addButton(Scale(460, 355, 570, 380), wSinglePlay, BUTTON_LOAD_SINGLEPLAY, gDataManager->GetSysString(1357).c_str());
  	defaultStrings.emplace_back(btnLoadSinglePlay, 1357);
-@@ -1526,7 +1526,7 @@ bool Game::MainLoop() {
+@@ -1552,7 +1552,7 @@ bool Game::MainLoop() {
  						it->second.push_back(data_path);
  						ReloadElementsStrings();
  					} else {
@@ -212,7 +212,7 @@ index 3607ad6a..c5189461 100644
  						locales.emplace_back(langpath, std::vector<path_string>{ data_path });
  						gSettings.cbCurrentLocale->addItem(BufferIO::DecodeUTF8s(repo->language).c_str());
  					}
-@@ -1864,7 +1864,7 @@ bool Game::ApplySkin(const path_string& skinname, bool reload, bool firstrun) {
+@@ -1890,7 +1890,7 @@ bool Game::ApplySkin(const path_string& skinname, bool reload, bool firstrun) {
  #include "custom_skin_enum.inl"
  #undef DECLR
  #undef CLR
@@ -221,7 +221,7 @@ index 3607ad6a..c5189461 100644
  		} else {
  			applied = false;
  			auto skin = env->createSkin(irr::gui::EGST_WINDOWS_METALLIC);
-@@ -1908,7 +1908,7 @@ bool Game::ApplySkin(const path_string& skinname, bool reload, bool firstrun) {
+@@ -1934,7 +1934,7 @@ bool Game::ApplySkin(const path_string& skinname, bool reload, bool firstrun) {
  }
  void Game::RefreshDeck(irr::gui::IGUIComboBox* cbDeck) {
  	cbDeck->clear();
@@ -230,7 +230,7 @@ index 3607ad6a..c5189461 100644
  		cbDeck->addItem(Utils::ToUnicodeIfNeeded(file.substr(0, file.size() - 4)).c_str());
  	}
  	for(size_t i = 0; i < cbDeck->getItemCount(); ++i) {
-@@ -2032,7 +2032,7 @@ void Game::SaveConfig() {
+@@ -2058,7 +2058,7 @@ void Game::SaveConfig() {
  #ifdef UPDATE_URL
  	gGameConfig->noClientUpdates = gSettings.chkUpdates->isChecked();
  #endif
@@ -239,7 +239,7 @@ index 3607ad6a..c5189461 100644
  }
  Game::RepoGui* Game::AddGithubRepositoryStatusWindow(const GitRepo* repo) {
  	std::wstring name = BufferIO::DecodeUTF8s(repo->repo_name);
-@@ -3100,20 +3100,24 @@ std::vector<char> Game::LoadScript(const std::string& _name) {
+@@ -3142,20 +3142,24 @@ std::vector<char> Game::LoadScript(const std::string& _name) {
  	std::vector<char> buffer;
  	std::ifstream script;
  	path_string name = Utils::ToPathString(_name);
@@ -277,7 +277,7 @@ index 3607ad6a..c5189461 100644
  	if(!script.is_open()) {
  		script.open(name, std::ifstream::binary);
  		if(!script.is_open())
-@@ -3206,32 +3210,32 @@ void Game::PopulateResourcesDirectories() {
+@@ -3248,32 +3252,32 @@ void Game::PopulateResourcesDirectories() {
  				cover_dirs.push_back(image_dir / EPRO_TEXT("cover/"));
  				field_dirs.push_back(image_dir / EPRO_TEXT("field/"));
  			});
@@ -320,7 +320,7 @@ index 3607ad6a..c5189461 100644
 +	cover_dirs.push_back(gGameConfig->cache_directory / EPRO_TEXT("./pics/cover/"));
 +	field_dirs.push_back(gGameConfig->cache_directory / EPRO_TEXT("./pics/field/"));
  }
-
+ 
  void Game::PopulateLocales() {
  	locales.clear();
 -	for(auto& locale : Utils::FindSubfolders(EPRO_TEXT("./config/languages/"), 1, false)) {
@@ -328,7 +328,7 @@ index 3607ad6a..c5189461 100644
  		locales.emplace_back(locale, std::vector<path_string>());
  	}
  }
-@@ -3248,7 +3252,7 @@ void Game::ApplyLocale(int index, bool forced) {
+@@ -3290,7 +3294,7 @@ void Game::ApplyLocale(int index, bool forced) {
  	if(index > 0) {
  		try {
  			gGameConfig->locale = locales[index - 1].first;
@@ -338,7 +338,7 @@ index 3607ad6a..c5189461 100644
  				gDataManager->LoadLocaleDB(fmt::format(EPRO_TEXT("{}/{}"), locale, file));
  			}
 diff --git a/gframe/game_config.cpp b/gframe/game_config.cpp
-index 11927930..a1041f36 100644
+index 483468f8..9a348299 100644
 --- a/gframe/game_config.cpp
 +++ b/gframe/game_config.cpp
 @@ -2,13 +2,91 @@
@@ -370,9 +370,9 @@ index 11927930..a1041f36 100644
 +}
 +
 +#endif
-
+ 
  namespace ygo {
-
+ 
  GameConfig::GameConfig() {
 -	Load(EPRO_TEXT("./config/system.conf"));
 +#if XDG_ENVIRONMENT
@@ -445,7 +445,7 @@ index 11927930..a1041f36 100644
  			try {
  				user_conf_file >> user_configs;
 diff --git a/gframe/game_config.h b/gframe/game_config.h
-index 849667d8..d5f5cb1e 100644
+index d38af3ed..8986b6d1 100644
 --- a/gframe/game_config.h
 +++ b/gframe/game_config.h
 @@ -16,7 +16,13 @@ struct GameConfig
@@ -459,13 +459,13 @@ index 849667d8..d5f5cb1e 100644
 +	inline bool Save(const path_string& path) {
 +		return Save(path.c_str());
 +	}
-
+ 
  	bool use_d3d = true;
  	bool vsync = true;
-@@ -100,6 +106,13 @@ struct GameConfig
+@@ -101,6 +107,13 @@ struct GameConfig
  	path_string locale = EPRO_TEXT("English");
  	path_string working_directory = EPRO_TEXT("./");
-
+ 
 +	path_string cache_directory = EPRO_TEXT("./");
 +	path_string config_directory = EPRO_TEXT("./config");
 +	path_string data_directory = EPRO_TEXT("./");
@@ -534,10 +534,10 @@ index c3788612..96fe8d92 100644
 @@ -9,18 +9,52 @@
  #include <fstream>
  #include <curl/curl.h>
-
+ 
 -#define BASE_PATH EPRO_TEXT("./textures/")
 +#define BASE_PATH EPRO_TEXT("textures/")
-
+ 
  namespace ygo {
 +void ImageManager::InitTexture_(irr::video::ITexture*& texture, irr::video::ITexture*& default_texture, path_string path)
 +{
@@ -575,7 +575,7 @@ index c3788612..96fe8d92 100644
 +	if (!texture) texture = GetTextureFromFile((textures_path2 / jpg).c_str(), mainGame->Scale(w), mainGame->Scale(h));
 +	if (!texture) texture = default_texture;
 +}
-
+ 
 -#define X(x) (textures_path + EPRO_TEXT(x)).c_str()
 -#define GET(obj,fun1,fun2) obj=fun1; if(!obj) obj=fun2;
 -#define GTFF(path,ext,w,h) GetTextureFromFile(X(path ext), mainGame->Scale(w), mainGame->Scale(h))
@@ -594,7 +594,7 @@ index c3788612..96fe8d92 100644
 @@ -77,12 +111,10 @@ bool ImageManager::Initial() {
  	return true;
  }
-
+ 
 -#undef GET
  #undef GET_TEXTURE
  #undef GET_TEXTURE_SIZED
@@ -683,7 +683,7 @@ index 757c0cff..c1ddd20d 100644
 +	if _OPTIONS["xdg-environment"] then
 +		defines { "XDG_ENVIRONMENT" }
 +	end
-
+ 
  	includedirs "../ocgcore"
  	links { "clzma", "freetype", "Irrlicht" }
 diff --git a/gframe/replay.cpp b/gframe/replay.cpp
@@ -724,10 +724,10 @@ index 9ef11d92..d2cec2c0 100644
  			replay_name.clear();
  			return false;
 diff --git a/gframe/single_mode.cpp b/gframe/single_mode.cpp
-index 322405f0..966dc280 100644
+index e6317160..5f8243a5 100644
 --- a/gframe/single_mode.cpp
 +++ b/gframe/single_mode.cpp
-@@ -148,7 +148,7 @@ restart:
+@@ -154,7 +154,7 @@ restart:
  		if(open_file) {
  			script_name = Utils::ToUTF8IfNeeded(open_file_name);
  			if(!mainGame->LoadScript(pduel, script_name)) {
@@ -794,7 +794,7 @@ index 226ddee6..6c83578b 100644
 @@ -15,10 +18,32 @@
  #include <IFileSystem.h>
  #include "bufferio.h"
-
+ 
 +#ifdef _WIN32
 +namespace w32
 +{
@@ -812,7 +812,7 @@ index 226ddee6..6c83578b 100644
  namespace ygo {
  	std::vector<Utils::SynchronizedIrrArchive> Utils::archives;
  	irr::io::IFileSystem* Utils::filesystem;
-
+ 
 +	bool Utils::PathIsRelative(const path_string& path) {
 +#ifdef _WIN32
 +		return w32::PathIsRelative(path.c_str());
@@ -851,10 +851,10 @@ index 226ddee6..6c83578b 100644
 +		MakeDirectory(gGameConfig->data_directory / EPRO_TEXT("replay"));
 +		MakeDirectory(gGameConfig->data_directory / EPRO_TEXT("screenshots"));
  	}
-
+ 
  	void Utils::FindFiles(const path_string& path, const std::function<void(path_string, bool, void*)>& cb, void* payload) {
 @@ -146,8 +175,11 @@ namespace ygo {
-
+ 
  	void Utils::PathForeach(const path_string& path, const std::function<void(path_string)>& cb)
  	{
 -		// FIXME: should be ';' in WIN32 and WIN64.
@@ -879,7 +879,7 @@ index 75b96a20..b5f339e8 100644
  		static bool FileCopy(const path_string& source, const path_string& destination);
  		static bool FileMove(const path_string& source, const path_string& destination);
 diff --git a/gframe/utils_gui.cpp b/gframe/utils_gui.cpp
-index 6c564fe4..70ddd745 100644
+index ed235d53..f1307ca7 100644
 --- a/gframe/utils_gui.cpp
 +++ b/gframe/utils_gui.cpp
 @@ -1,4 +1,5 @@
@@ -888,17 +888,17 @@ index 6c564fe4..70ddd745 100644
  #include <irrlicht.h>
  #include <ICursorControl.h>
  #include <fmt/chrono.h>
-@@ -109,7 +110,7 @@ void GUIUtils::TakeScreenshot(irr::IrrlichtDevice* device)
- 	const auto image = driver->createScreenShot();
- 	if (image) { // In theory this should never be NULL
- 		auto now = std::time(nullptr);
--		path_string filename(fmt::format(EPRO_TEXT("screenshots/EDOPro {:%Y-%m-%d %H-%M-%S}.png"), *std::localtime(&now)).c_str());
-+		path_string filename(gGameConfig->data_directory / fmt::format(EPRO_TEXT("screenshots/EDOPro {:%Y-%m-%d %H-%M-%S}.png"), *std::localtime(&now)).c_str());
- 		if (!driver->writeImageToFile(image, filename.c_str()))
- 			device->getLogger()->log(L"Failed to take screenshot.", irr::ELL_WARNING);
+@@ -111,7 +112,7 @@ bool GUIUtils::TakeScreenshot(irr::IrrlichtDevice* device)
+ 		return false;
+ 	}
+ 	auto now = std::time(nullptr);
+-	path_string filename(fmt::format(EPRO_TEXT("screenshots/EDOPro {:%Y-%m-%d %H-%M-%S}.png"), *std::localtime(&now)).c_str());
++	path_string filename(gGameConfig->data_directory / fmt::format(EPRO_TEXT("screenshots/EDOPro {:%Y-%m-%d %H-%M-%S}.png"), *std::localtime(&now)).c_str());
+ 	if (!driver->writeImageToFile(image, filename.c_str())) {
+ 		device->getLogger()->log(L"Failed to take screenshot.", irr::ELL_WARNING);
  		image->drop();
 diff --git a/premake5.lua b/premake5.lua
-index b1e784c0..d22c81dc 100644
+index 8d13fa47..31337be8 100644
 --- a/premake5.lua
 +++ b/premake5.lua
 @@ -50,6 +50,11 @@ newoption {
@@ -913,5 +913,6 @@ index b1e784c0..d22c81dc 100644
  workspace "ygo"
  	location "build"
  	language "C++"
---
-2.26.2
+-- 
+2.27.0
+

@@ -102,8 +102,8 @@ trivial integration and 100% testing.")
     (license license:expat)))
 
 (define irrlicht-for-edopro
-  (let ((commit "ece3bd7d3ed052028982b7c09da9761339482420")
-        (revision "3"))
+  (let ((commit "cca628a1df97d2738ff7e1e9a1481a4513da4f65")
+        (revision "4"))
     (package
       (inherit irrlicht)
       (name "irrlicht-for-edopro")
@@ -116,12 +116,12 @@ trivial integration and 100% testing.")
                (commit commit)))
          (sha256
           (base32
-           "04ymj92qwb63h3da7gf1gspsh4zn9js4gy56qvgrw3lk6v303w49")))))))
+           "1a14p6k3bqakqa7qlvc0g75snf9cg6nqmb7mnzxpkar6lmryg9x7")))))))
 
 (define-public edopro
   (package
     (name "edopro")
-    (version "38.1.2")
+    (version "38.1.3")
     (source
      (origin
        (method git-fetch)
@@ -130,7 +130,7 @@ trivial integration and 100% testing.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0j0smmd3zpkw0shmq516p3b7hd23lpgbq7pm8gl9rqlqjgmidq4r"))
+        (base32 "1rykd6rzh5lnlahl10nlxk6w46xyz3l2c57ksr1d8264bww9l9m2"))
        (patches
         (search-patches
          "edopro-respect-YGOPRO_-_PATH.patch"
@@ -224,7 +224,7 @@ built on top of that.")
 
 (define-public ignis-database
   (let ((commit "ee92b22b1cccb9ce25f73cb3ee9a74f8313ceb6a")
-        (revision "10"))
+        (revision "0"))
     (package
       (name "ignis-database")
       (version (git-version (package-version edopro) revision commit))
@@ -317,7 +317,7 @@ built on top of that.")
 
 (define-public ignis-scripts
   (let ((commit "144237e207cbd2cdde49f4b2cdcbb495c7f2974c")
-        (revision "11"))
+        (revision "0"))
     (package
       (name "ignis-scripts")
       (version (git-version (package-version edopro) revision commit))
