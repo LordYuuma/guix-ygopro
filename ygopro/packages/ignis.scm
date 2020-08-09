@@ -253,8 +253,9 @@ built on top of that.")
                (install-with-output
                 "out"
                 `(("." "share/ygopro/data/"
-                   #:include ("cards.cdb" "release.cdb")
-                   #:include-regexp ("fix(Misc|OT|Setcode|String)\\.cdb"))))
+                   #:include ("cards.cdb")
+                   #:include-regexp ("(^|/)release.*\\.cdb"
+                                     "fix(Misc|OT|Setcode|String)\\.cdb"))))
                (install-with-output
                 "rush" `(("cards-rush.cdb" "share/ygopro/data/")))
                (install-with-output
