@@ -15,7 +15,7 @@
   #:use-module (gnu packages lua)
   #:use-module (gnu packages sqlite))
 
-(define %ygopro-version "1.035.1-6")
+(define %ygopro-version "1.035.1-7")
 
 (define-public ygopro-core
   (package
@@ -26,11 +26,11 @@
        (method git-fetch)
        (uri (git-reference
              (url "https://github.com/mycard/ygopro-core.git")
-             (commit "3011093ff34bce627c5f28b40417c7efc1c0ac2d")))
+             (commit "b1f9ca9717308afcf7b688650e1e0a304a7691bc")))
        (file-name (git-file-name "ygopro-core" %ygopro-version))
        (sha256
         (base32
-         "0rq5asw5rp154pwh9r0vg1db9fmx9ch056xll1x92q9yqsgnr5wi"))
+         "16nbc7574z8g5c2k6r787dhhbnc0bxpcfr7wqk521j3lxp47gpg0"))
        (modules '((guix build utils)
                   (ice-9 textual-ports)))
        (snippet
@@ -103,7 +103,7 @@
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0nbf61yvxs78v1sc3zvilir8figcdxwmd6wyrzvr7s9m0yfj6ryg"))
+        (base32 "18vijzi3iqyh0gl5jhi2ww88drd4bwfqk4hbp5hlgzpsw9fiqczc"))
        (modules '((guix build utils)))
        (patches
         (search-patches
@@ -203,8 +203,8 @@
     (license license:gpl2)))
 
 (define-public ygopro-scripts
-  (let ((commit "e7b68d504bd34a93d416481b8fd28dbfc927e91f")
-        (revision "3"))
+  (let ((commit "7cbcd346ace1c116d1e90e2d1d1e1e68e25ec98e")
+        (revision "0"))
     (package
       (name "ygopro-scripts")
       (version (git-version %ygopro-version revision commit))
@@ -217,7 +217,7 @@
          (file-name (git-file-name "ygopro-scripts" version))
          (sha256
           (base32
-           "0xz8n7bp9ydikxfa9p8cah39mr1i3683ghwm595ihy8rszwr0ys4"))))
+           "1a7vdaxsgmw3zrawvdk1wjjvkwf83sp0qa90h05r1l9gpjq0l1iy"))))
       (build-system copy-build-system)
       (arguments
        `(#:install-plan
@@ -229,8 +229,8 @@
       (license license:gpl2))))
 
 (define-public ygopro-database-en
-  (let ((commit "64b4e310a890aac106c8a4414418e1e549952bab")
-        (revision "1"))
+  (let ((commit "aba0cbeab449cb2b26861b1789688f10ea49c5c3")
+        (revision "0"))
     (package
       (name "ygopro-database-en")
       (version (git-version %ygopro-version revision commit))
@@ -243,7 +243,7 @@
          (file-name (git-file-name "ygopro-database" version))
          (sha256
           (base32
-           "1nicf7v0n7lrf8rxjvfkzq63f8aq8k66a9j64jjl3kq5aqb46b6c"))))
+           "13w4bi9iz52qg17cmwayb8z3wv9964w589pbn711wf5h4kzagkwk"))))
       (build-system copy-build-system)
       (arguments
        `(#:install-plan
