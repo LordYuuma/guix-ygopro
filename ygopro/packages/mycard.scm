@@ -229,8 +229,8 @@
       (license license:gpl2))))
 
 (define-public ygopro-database-en
-  (let ((commit "aba0cbeab449cb2b26861b1789688f10ea49c5c3")
-        (revision "0"))
+  (let ((commit "184474373a6df7cd87b7f0eb885428dadf888471")
+        (revision "1"))
     (package
       (name "ygopro-database-en")
       (version (git-version %ygopro-version revision commit))
@@ -243,7 +243,7 @@
          (file-name (git-file-name "ygopro-database" version))
          (sha256
           (base32
-           "13w4bi9iz52qg17cmwayb8z3wv9964w589pbn711wf5h4kzagkwk"))))
+           "1qnrpfyfvpanp5hfj4bbw75wi9y9i8s431dq0m1rrfxpvz656d2z"))))
       (build-system copy-build-system)
       (arguments
        `(#:install-plan
