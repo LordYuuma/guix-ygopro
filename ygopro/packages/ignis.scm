@@ -289,7 +289,8 @@ built on top of that.")
 
                  (merge-lflists
                   "out"
-                  '("OCG.Korea" "OCG" "TCG" "Traditional" "World" "GOAT"))
+                  '("OCG.Korea" "OCG" "OCG.new" "TCG" "TCG.new" "Traditional"
+                    "World" "GOAT"))
 
                  (merge-lflists
                   "rush"
