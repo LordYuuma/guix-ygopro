@@ -223,8 +223,8 @@ built on top of that.")
     (license license:agpl3+)))
 
 (define-public ignis-database
-  (let ((commit "4e3104d1278a248dc77f352791b1d5a9a3849983")
-        (revision "21"))
+  (let ((commit "c2ffc468904037fb784677c09029534df631caa7")
+        (revision "23"))
     (package
       (name "ignis-database")
       (version (git-version (package-version edopro) revision commit))
@@ -237,7 +237,7 @@ built on top of that.")
          (file-name (git-file-name "ignis-database" version))
          (sha256
           (base32
-           "1if7g3n9ikkqcx4rks2bvg0pwz5xmivkvl6djz2lfnz71yvvpkwc"))))
+           "03ml8lvmqf9kpak6rf90v6ivny764pv3z8csjrrgl9lzlkx654sm"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "rush" "skills" "unofficial"))
       (arguments
@@ -254,7 +254,8 @@ built on top of that.")
                 "out"
                 `(("." "share/ygopro/data/"
                    #:include ("cards.cdb")
-                   #:include-regexp ("(^|/)release.*\\.cdb"
+                   #:include-regexp (".*-release\\.cdb"
+                                     "(^|/)release.*\\.cdb"
                                      "fix(Misc|OT|Setcode|String)\\.cdb"))))
                (install-with-output
                 "rush" `(("cards-rush.cdb" "share/ygopro/data/")))
@@ -306,10 +307,10 @@ built on top of that.")
              (uri
               (git-reference
                (url "https://github.com/ProjectIgnis/LFLists")
-               (commit "b53eaa40bacb56d7f4aac8e8e81d0793f714aa44")))
+               (commit "b15725d187ae05d00612b0392b8f3c9d6ecaab6f")))
              (sha256
               (base32
-               "10giil73bqylgxhm6wgdpw1r72z1f7v9a4ymblygsqr8im84kr0a"))))
+               "19j17vyw2hglijmzdrlns1i9n16m0cnbz4bllkzg3zd0vl5xkqq7"))))
          ("sqlite" ,sqlite)))
       (synopsis "Card databases for EDOPro")
       (description "Provides various card databases for EDOPro.")
@@ -317,8 +318,8 @@ built on top of that.")
       (license #f))))
 
 (define-public ignis-scripts
-  (let ((commit "6d031a523ef5e4a693f302e0bc60b28e181613c4")
-        (revision "21"))
+  (let ((commit "6a2fb7073b5ea9cf85ab453de88f2dec11b3d4b3")
+        (revision "23"))
     (package
       (name "ignis-scripts")
       (version (git-version (package-version edopro) revision commit))
@@ -331,7 +332,7 @@ built on top of that.")
          (file-name (git-file-name "ignis-scripts" version))
          (sha256
           (base32
-           "0i7ihfxkwqsq34jkn8nayr8p55g0mc9jx3rqhf5vsqnfvgfdrlrd"))))
+           "1m32vrhx0r7ylznp0w9bmii5rrizq055zn1fzlap0b2kp4hx5yyy"))))
       (build-system copy-build-system)
       (outputs '("out" "pre-release" "pre-errata" "rush" "skill" "unofficial"))
       (arguments
