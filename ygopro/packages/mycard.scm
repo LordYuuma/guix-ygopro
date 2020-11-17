@@ -203,8 +203,8 @@
     (license license:gpl2)))
 
 (define-public ygopro-scripts
-  (let ((commit "35f0ad7f8ecf5a39e167b0a1b49ef36683f3f170")
-        (revision "1"))
+  (let ((commit "da4091b10bb2e621a7b5cb44a72698117d56220b")
+        (revision "2"))
     (package
       (name "ygopro-scripts")
       (version (git-version %ygopro-version revision commit))
@@ -217,7 +217,7 @@
          (file-name (git-file-name "ygopro-scripts" version))
          (sha256
           (base32
-           "0argybn1fxwgv8h6582mfmkcqrca0hfb7vyh8r5kk6j1hhv6g73f"))))
+           "15r91lqqb80jcq8kabs4q3pb247ybq5066p66sy2j67p20c6lr88"))))
       (build-system copy-build-system)
       (arguments
        `(#:install-plan
