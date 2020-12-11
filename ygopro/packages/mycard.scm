@@ -283,8 +283,8 @@ and other localization data needed by YGOPro.")))
     (source
      (origin
        (method url-fetch/zipbomb)
-       (uri (string-append "https://cdn01.moecube.com/images/ygopro-images-"
-                           locale ".zip"))
+       (uri (string-append "https://minio-tokin.mycard.moe:9001/"
+                           "mycard/images/ygopro-images-" locale ".zip"))
        (sha256 (base32 hash))))
     (build-system copy-build-system)
     (arguments
@@ -300,10 +300,10 @@ Mycard's CI.")
 ;; I'd recommend using ygopro-images directly if you're writing a manifest
 ;; or finding alternative sources
 (define-public ygopro-images-en
-  (ygopro-images "en-US" "0qgb856hcy2nvqplxpckif2mfyj4yikhfmhpi7zvz0ny8rv1d6kf"))
+  (ygopro-images "en-US" "114qykad7lvgzbpnk5faf8kk6kwq77z617gqk3pdahjimi2gz9xr"))
 
 (define-public ygopro-images-ja
   (ygopro-images "ja-JP" "0ha518if5616cbnggcs4gxibrq03bnd3j4lj6qf58z0y1d6qks8s"))
 
 (define-public ygopro-images-zh
-  (ygopro-images "zh-CN" "0xq0b1zlq3ijy2gplpy5v1fiqcrczlp280j0k59vd82fq9gsks95"))
+  (ygopro-images "zh-CN" "1klfqihx6jnv9h7c5x7ii7jqvk4m9cz2c21hywqxhax8bh2z18ip"))
