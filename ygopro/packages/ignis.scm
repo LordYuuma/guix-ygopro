@@ -77,6 +77,22 @@ derived from itself.")
      (home-page "https://github.com/edo9300/ygopro")
      (license license:agpl3+))))
 
+(define-public edopro-core-next
+  (package
+    (inherit edopro-core)
+    (name "edopro-core-next")
+    (version "9.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/edo9300/ygopro-core.git")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name "edopro-core" version))
+       (sha256
+        (base32
+         "0cx8mmbg6ipr6w44dp52l6p3axpaszg3mz349qpbz4fpl21gwnmm"))))))
+
 (define nlohmann-json
   (package
     (name "nlohmann-json")
