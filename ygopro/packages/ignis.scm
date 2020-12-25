@@ -338,6 +338,34 @@ built on top of that.")
    (home-page "https://github.com/ProjectIgnis/BabelCDB")
    (license #f)))
 
+(define-public ignis-database-nightly
+  (let ((database-night "20201224")
+        (database-commit "28dc49106edb938d553c90fc82c87311eba64b00")
+        (database-hash "0j8dyrwsz8q82j8kc4zicn10341xrwnzfj8pw160w06wqs6xk3na")
+        (lflists-commit "e27a53f3d710f264642ab16f9deff8fa9503220c")
+        (lflists-hash "1k4rkr1bjypsxypakgc8yqdwn04gl3rnrfz0sbk2iz4a2ma4bz4z"))
+    (package
+      (inherit ignis-database-baseline)
+      (version (string-append database-night "-nightly"))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/ProjectIgnis/BabelCDB.git")
+               (commit database-commit)))
+         (file-name (git-file-name "ignis-database" version))
+         (sha256 (base32 database-hash))))
+      (inputs
+       `(("lflists"
+          ,(origin
+            (method git-fetch)
+            (uri
+             (git-reference
+              (url "https://github.com/ProjectIgnis/LFLists")
+              (commit lflists-commit)))
+            (sha256 (base32 lflists-hash))))
+         ,@(package-inputs ignis-database-baseline))))))
+
 (define-public ignis-scripts-baseline
   (package
     (name "ignis-scripts")
@@ -385,6 +413,22 @@ built on top of that.")
     (description "Provides card scripts for EDOPro.")
     (home-page "https://github.com/ProjectIgnis/CardScripts")
     (license license:agpl3+)))
+
+(define-public ignis-scripts-nightly
+  (let ((scripts-night "20201224")
+        (scripts-commit "cc087f7e8794c3a1527b03bf67b8a01d32ceca75")
+        (scripts-hash "07h2p47n7a19r51gh1sbaiaji51hx945k5la9xrf0saqvpfjbr70"))
+    (package
+      (inherit ignis-scripts-baseline)
+      (version (string-append scripts-night "-nightly"))
+      (source
+       (origin
+         (method git-fetch)
+         (uri (git-reference
+               (url "https://github.com/ProjectIgnis/CardScripts.git")
+               (commit scripts-commit)))
+         (file-name (git-file-name "ignis-scripts" version))
+         (sha256 (base32 scripts-hash)))))))
 
 (define-public windbot-ignite
   (package
