@@ -1,6 +1,11 @@
 ;; -*- mode: scheme -*-
 (channel-news
  (version 0)
+ (entry (commit "f94f710b12d0cbe557c974de6089e44158dbec56")
+        (title (en "New edopro packages"))
+        (body (en "edopro has been updated to 39.0.0, but this update has not
+yet landed in the ProjectIgnis mirror.  Until it is updated, we will refer to
+this version as edopro-next.")))
  (entry (commit "04dcfbaf63dc34672a10ba817def1efbfce3f024")
         (title (en "ygopro and edopro now log to stderr"))
         (body (en "Use shell operators if you want to record log files.")))
