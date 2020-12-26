@@ -571,7 +571,7 @@ built on top of that.")
                #t))))))
     (inputs
      `(("sqlite" ,sqlite)
-       ("ignis-database" ,ignis-database)))
+       ("ignis-database" ,ignis-database-baseline)))
     (native-inputs
      `(("mono" ,mono)))
     (synopsis "EDOPro-compatible bot")
