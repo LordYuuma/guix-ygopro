@@ -171,7 +171,7 @@ trivial integration and 100% testing.")
                  (("(ocgapi|progressivebuffer)\\.h" all lib)
                   (string-append "ygopro-core/" all)))
                (substitute* "gframe/premake5.lua"
-                 (("/usr/include/freetype2")
+                 (("(/usr/include/freetype2|../freetype/include)")
                   (string-append (assoc-ref inputs "freetype")
                                  "/include/freetype2"))
                  (("/usr/include/irrlicht")
@@ -237,6 +237,38 @@ on its own fork of the ygopro-core, it is incompatible with other clients not
 built on top of that.")
     (home-page "https://github.com/ProjectIgnis/ygopro")
     (license license:agpl3+)))
+
+(define-public edopro-next
+  (package/inherit edopro
+    (name "edopro-next")
+    (version "39.0.0")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/edo9300/edopro.git")
+             (commit version)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "1sy0kxzxxbl4nji53igqm5lq8s16h9w7ycbrjdf87jnvhdzkhqc6"))
+       (patches
+        (search-patches
+         "edopro-next-fix-segfault.patch"
+         "edopro-next-missing-config.patch"
+         "edopro-next-utf8-source.patch"
+         "edopro-next-respect-YGOPRO_-_PATH.patch"
+         "edopro-next-respect-XDG-environment-variables.patch"))
+       (modules '((guix build utils)))
+       (snippet
+        '(begin
+           (delete-file-recursively "freetype")
+           (substitute* "premake5.lua"
+             (("include \"freetype\"") ""))
+           (delete-file-recursively "sfAudio")
+           #t))))
+    (inputs
+     `(("edopro-core" ,edopro-core-next)
+       ,@(package-inputs edopro)))))
 
 (define-public ignis-database-baseline
   (package

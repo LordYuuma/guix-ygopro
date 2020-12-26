@@ -1,0 +1,40 @@
+From 1c34a39bf03bb8b6bd9b58198f644c6c05c15955 Mon Sep 17 00:00:00 2001
+From: LordYuuma <lordyuuma@gmail.com>
+Date: Thu, 22 Oct 2020 02:34:10 +0200
+Subject: [PATCH] gframe/Base64.h: Use UTF-8.
+
+---
+ gframe/Base64.h | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/gframe/Base64.h b/gframe/Base64.h
+index 0206fc71..bf4dd7d3 100644
+--- a/gframe/Base64.h
++++ b/gframe/Base64.h
+@@ -4,7 +4,7 @@
+    More information at
+ 	 https://renenyffenegger.ch/notes/development/Base64/Encoding-and-decoding-base-64-with-cpp
+    Version: 2.rc.04 (release candidate)
+-   Copyright (C) 2004-2017, 2020 René Nyffenegger
++   Copyright (C) 2004-2017, 2020 RenÃ© Nyffenegger
+    This source code is provided 'as-is', without any express or implied
+    warranty. In no event will the author be held liable for any damages
+    arising from the use of this software.
+@@ -18,7 +18,7 @@
+    2. Altered source versions must be plainly marked as such, and must not be
+ 	  misrepresented as being the original source code.
+    3. This notice may not be removed or altered from any source distribution.
+-   René Nyffenegger rene.nyffenegger@adp-gmbh.ch
++   RenÃ© Nyffenegger rene.nyffenegger@adp-gmbh.ch
+
+    Templated header only version by edo9300
+ */
+@@ -123,4 +123,4 @@ template<typename R = std::vector<uint8_t>, typename T = std::wstring>
+ R base64_decode(const T& encoded_string) {
+ 	return base64_decode<R, T::value_type>(encoded_string.data(), encoded_string.size());
+ }
+-#endif //BASE64_H
+\ No newline at end of file
++#endif //BASE64_H
+--
+2.29.2
