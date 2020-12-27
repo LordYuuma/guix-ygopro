@@ -371,11 +371,11 @@ built on top of that.")
    (license #f)))
 
 (define-public ignis-database-nightly
-  (let ((database-night "20201225")
+  (let ((database-night "20201227")
         (database-commit "7b3ae498c6566804fdef6316ff4e88fd1f418eeb")
         (database-hash "1bi851vkcd41xkrx56f5qa6imnrqi3pk2652ngvg2bajj4rxwj2z")
-        (lflists-commit "d9e0535918c2867714d88c39f58bd4d7b68ccc50")
-        (lflists-hash "1kpch4gfhq3c4ys9zpiskdvl0mfhk2lrd6sscd4m95ylpkx9q013"))
+        (lflists-commit "ea6ffa991df0ba200e02d209f38026bbfd1ba2e0")
+        (lflists-hash "1wxkygkxc0jsddi3c5n4w0mpgrh0lp104k0jc7s7hj8lcgvgrvwh"))
     (package
       (inherit ignis-database-baseline)
       (version (string-append database-night "-nightly"))
@@ -421,9 +421,7 @@ built on top of that.")
                        (lambda (port)
                          (for-each
                           (lambda (f)
-                            (call-with-input-file
-                                (if (file-exists? f) f
-                                    (string-append f ".lflist.conf"))
+                            (call-with-input-file (string-append f ".lflist.conf")
                               (lambda (in)
                                 (dump-port in port)
                                 (close-port in))))
@@ -432,8 +430,7 @@ built on top of that.")
 
                    (merge-lflists
                     "out"
-                    '("OCG.Korea" "OCG" "0TCG" "OCG.lflist.new.conf"
-                      "Traditional" "World"))
+                    '("OCG" "OCG.Korea" "0TCG" "Traditional" "World" "OCG.new"))
                    (merge-lflists "goat" '("GOAT"))
                    (merge-lflists "rush" '("Rush" "Rush-Prerelease"))
                    (merge-lflists "skills" '("Speed"))))))))))))
@@ -487,9 +484,9 @@ built on top of that.")
     (license license:agpl3+)))
 
 (define-public ignis-scripts-nightly
-  (let ((scripts-night "20201225")
-        (scripts-commit "0da061c9693ff140fadec8c2d8c2632e745b8166")
-        (scripts-hash "08905nkwlq09y11h692zgcih5h90m21a9v7drngnls2gbhzsblak"))
+  (let ((scripts-night "20201227")
+        (scripts-commit "2d6a7699e7ac92cc579e8384deefdaddc709efb8")
+        (scripts-hash "1zzinpj1hx8iqi0snmb8i6zq3crk9jd1dc9pakwp9a9npwd0b0yr"))
     (package
       (inherit ignis-scripts-baseline)
       (version (string-append scripts-night "-nightly"))
