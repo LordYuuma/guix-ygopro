@@ -241,7 +241,7 @@ built on top of that.")
 (define-public edopro-next
   (package/inherit edopro
     (name "edopro-next")
-    (version "39.0.0")
+    (version "39.0.2")
     (source
      (origin
        (method git-fetch)
@@ -250,7 +250,7 @@ built on top of that.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1sy0kxzxxbl4nji53igqm5lq8s16h9w7ycbrjdf87jnvhdzkhqc6"))
+        (base32 "14zcqp4xq5n7h0rms8h4hvmg0q4vn57195smp711vdkir29wav11"))
        (patches
         (search-patches
          "edopro-next-fix-segfault.patch"
@@ -266,6 +266,15 @@ built on top of that.")
              (("include \"freetype\"") ""))
            (delete-file-recursively "sfAudio")
            #t))))
+    (arguments
+     (substitute-keyword-arguments (package-arguments edopro)
+       ((#:phases phases)
+        `(modify-phases ,phases
+           (add-after 'unpack 'ya-didnt-package-all-the-textures
+             (lambda _
+               (substitute* "gframe/image_manager.cpp"
+                 (("CHECK_RETURN\\(tSettings\\);") ""))
+               #t))))))
     (inputs
      `(("edopro-core" ,edopro-core-next)
        ,@(package-inputs edopro)))))
