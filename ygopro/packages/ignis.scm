@@ -380,11 +380,11 @@ built on top of that.")
    (license #f)))
 
 (define-public ignis-database-nightly
-  (let ((database-night "20210110")
-        (database-commit "9a072d517154eb80af4a709d1d0f02c9d24f5981")
-        (database-hash "1c0fv6ln3fjz9bdg3n292k0pg41m8ffhwklh2qypklkgbx20c2xh")
-        (lflists-commit "652d02a58570542faa6556371989c5aca1026961")
-        (lflists-hash "1ljhv7n1zdb5x95qlflns5ykjmrf6vahm70m0z0gdjynn7n870k3"))
+  (let ((database-night "20210111")
+        (database-commit "f8cef7e2b5133e859b94b66259924ebe14c261ee")
+        (database-hash "0il67iqmkn80jg9bn3bhfj6bq8984jn4dc93vq1vgifsnsbynycz")
+        (lflists-commit "1defca11c750ef0d7bcaefd3656a15ed1b4857bd")
+        (lflists-hash "16pk9n2qch80s88j6ldakqwlcqb239adcps820djfcqpqpx1wcv4"))
     (package
       (inherit ignis-database-baseline)
       (version (string-append database-night "-nightly"))
@@ -411,6 +411,7 @@ built on top of that.")
        (substitute-keyword-arguments (package-arguments ignis-database-baseline)
          ((#:phases phases)
           `(modify-phases ,phases
+             (delete 'fix-names)
              (add-after 'install 'install-goat-entries
                (lambda* (#:key outputs #:allow-other-keys)
                  (define (install-with-output output install-plan)
@@ -493,9 +494,9 @@ built on top of that.")
     (license license:agpl3+)))
 
 (define-public ignis-scripts-nightly
-  (let ((scripts-night "20210110")
-        (scripts-commit "628ff0d87f3ea5060dfd7de8d8af28c4c08c4eaa")
-        (scripts-hash "0yc8l7mw7r78qgbd1jc4qmc3vz52d6mmj72hljd862xp9kq8c42d"))
+  (let ((scripts-night "20210111")
+        (scripts-commit "dde2a7b10790f4eff47eb5962b4b35535f5c61d4")
+        (scripts-hash "1m094z8fq9lsm1hikbbj08dhybzl6dhwxp6frayjhzgpch2xsjhm"))
     (package
       (inherit ignis-scripts-baseline)
       (version (string-append scripts-night "-nightly"))
