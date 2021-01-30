@@ -25,73 +25,55 @@
   #:use-module (ygopro packages mycard))
 
 (define-public edopro-core
-  (let ((revision "2")
-        (commit "965cc7bdf7c99e81604fb6c046b3a327bb12027e"))
-    (package
-     (name "edopro-core")
-     (version (git-version "8.0" revision commit))
-     (source
-      (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/ProjectIgnis/EDOPro-Core.git")
-             (commit commit)))
-       (file-name (git-file-name "edopro-core" version))
-       (sha256
-        (base32
-         "1c4sp64vrfwr9dhdbjq26m87gc70jbr2c1jva503fnrx0wzknk3n"))))
-     (build-system gnu-build-system)
-     (arguments
-      `(#:tests? #f ; no `check' target
-        #:make-flags `("CC=gcc" "--directory=build")
-        #:phases
-        (modify-phases %standard-phases
-          (add-after 'unpack 'patch-sources
-            (lambda* (#:key inputs #:allow-other-keys)
-              (substitute* "interpreter.h"
-                (("#include <l([a-z]+).h>" all lua-cont)
-                 (string-append "extern \"C\" {\n"
-                                "#include <l" lua-cont ".h>\n"
-                                "}")))
-              #t))
-          (delete 'bootstrap)
-          (replace 'configure (lambda _ (invoke "premake5" "gmake")))
-          (replace 'install
-            (lambda* (#:key outputs #:allow-other-keys)
-              (let* ((out (assoc-ref outputs "out"))
-                     (lib (string-append out "/lib"))
-                     (inc (string-append out "/include/ygopro-core")))
-                (for-each (lambda (f) (install-file f inc))
-                          (find-files "." ".*\\.h"))
-                (install-file "bin/debug/libocgcore.so" lib)
-                #t))))))
-     (inputs
-      `(("lua" ,lua)))
-     (native-inputs
-      `(("premake5" ,premake5)))
-     (synopsis "Bleeding-edge fork of ygopro-core")
-     (description
-      "EDOPro-Core is a bleeding-edge fork of ygopro-core with updates to
-accommodate for new cards and features.  It is incompatible with forks not
-derived from itself.")
-     (home-page "https://github.com/edo9300/ygopro")
-     (license license:agpl3+))))
-
-(define-public edopro-core-next
   (package
-    (inherit edopro-core)
-    (name "edopro-core-next")
+    (name "edopro-core")
     (version "9.0")
     (source
      (origin
        (method git-fetch)
        (uri (git-reference
-             (url "https://github.com/edo9300/ygopro-core.git")
+             (url "https://github.com/ProjectIgnis/EDOPro-Core.git")
              (commit (string-append "v" version))))
        (file-name (git-file-name "edopro-core" version))
        (sha256
         (base32
-         "0cx8mmbg6ipr6w44dp52l6p3axpaszg3mz349qpbz4fpl21gwnmm"))))))
+         "0cx8mmbg6ipr6w44dp52l6p3axpaszg3mz349qpbz4fpl21gwnmm"))))
+    (build-system gnu-build-system)
+    (arguments
+     `(#:tests? #f ; no `check' target
+       #:make-flags `("CC=gcc" "--directory=build")
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'unpack 'patch-sources
+           (lambda* (#:key inputs #:allow-other-keys)
+             (substitute* "interpreter.h"
+               (("#include <l([a-z]+).h>" all lua-cont)
+                (string-append "extern \"C\" {\n"
+                               "#include <l" lua-cont ".h>\n"
+                               "}")))
+             #t))
+         (delete 'bootstrap)
+         (replace 'configure (lambda _ (invoke "premake5" "gmake")))
+         (replace 'install
+           (lambda* (#:key outputs #:allow-other-keys)
+             (let* ((out (assoc-ref outputs "out"))
+                    (lib (string-append out "/lib"))
+                    (inc (string-append out "/include/ygopro-core")))
+               (for-each (lambda (f) (install-file f inc))
+                         (find-files "." ".*\\.h"))
+               (install-file "bin/debug/libocgcore.so" lib)
+               #t))))))
+    (inputs
+     `(("lua" ,lua)))
+    (native-inputs
+     `(("premake5" ,premake5)))
+    (synopsis "Bleeding-edge fork of ygopro-core")
+    (description
+     "EDOPro-Core is a bleeding-edge fork of ygopro-core with updates to
+accommodate for new cards and features.  It is incompatible with forks not
+derived from itself.")
+    (home-page "https://github.com/edo9300/ygopro")
+    (license license:agpl3+)))
 
 (define nlohmann-json
   (package
@@ -137,7 +119,7 @@ trivial integration and 100% testing.")
 (define-public edopro
   (package
     (name "edopro")
-    (version "38.1.3")
+    (version "39.0.2")
     (source
      (origin
        (method git-fetch)
@@ -146,12 +128,22 @@ trivial integration and 100% testing.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "1rykd6rzh5lnlahl10nlxk6w46xyz3l2c57ksr1d8264bww9l9m2"))
+        (base32 "14zcqp4xq5n7h0rms8h4hvmg0q4vn57195smp711vdkir29wav11"))
        (patches
         (search-patches
+         "edopro-fix-segfault.patch"
+         "edopro-missing-config.patch"
+         "edopro-utf8-source.patch"
          "edopro-respect-YGOPRO_-_PATH.patch"
-         "edopro-respect-XDG-environment-variables.patch"
-         "edopro-fix-strings.patch"))))
+         "edopro-respect-XDG-environment-variables.patch"))
+       (modules '((guix build utils)))
+       (snippet
+        '(begin
+           (delete-file-recursively "freetype")
+           (substitute* "premake5.lua"
+             (("include \"freetype\"") ""))
+           (delete-file-recursively "sfAudio")
+           #t))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f ; no `check' target
@@ -189,6 +181,11 @@ trivial integration and 100% testing.")
                  (("numfont = .*$")
                   (string-append "numfont = " font "\n")))
                #t)))
+         (add-after 'unpack 'ya-didnt-package-all-the-textures
+           (lambda _
+             (substitute* "gframe/image_manager.cpp"
+               (("CHECK_RETURN\\(tSettings\\);") ""))
+             #t))
          (delete 'bootstrap)
          (replace 'configure
            (lambda* (#:key configure-flags inputs #:allow-other-keys)
@@ -237,47 +234,6 @@ on its own fork of the ygopro-core, it is incompatible with other clients not
 built on top of that.")
     (home-page "https://github.com/ProjectIgnis/ygopro")
     (license license:agpl3+)))
-
-(define-public edopro-next
-  (package/inherit edopro
-    (name "edopro-next")
-    (version "39.0.2")
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/edo9300/edopro.git")
-             (commit version)))
-       (file-name (git-file-name name version))
-       (sha256
-        (base32 "14zcqp4xq5n7h0rms8h4hvmg0q4vn57195smp711vdkir29wav11"))
-       (patches
-        (search-patches
-         "edopro-next-fix-segfault.patch"
-         "edopro-next-missing-config.patch"
-         "edopro-next-utf8-source.patch"
-         "edopro-next-respect-YGOPRO_-_PATH.patch"
-         "edopro-next-respect-XDG-environment-variables.patch"))
-       (modules '((guix build utils)))
-       (snippet
-        '(begin
-           (delete-file-recursively "freetype")
-           (substitute* "premake5.lua"
-             (("include \"freetype\"") ""))
-           (delete-file-recursively "sfAudio")
-           #t))))
-    (arguments
-     (substitute-keyword-arguments (package-arguments edopro)
-       ((#:phases phases)
-        `(modify-phases ,phases
-           (add-after 'unpack 'ya-didnt-package-all-the-textures
-             (lambda _
-               (substitute* "gframe/image_manager.cpp"
-                 (("CHECK_RETURN\\(tSettings\\);") ""))
-               #t))))))
-    (inputs
-     `(("edopro-core" ,edopro-core-next)
-       ,@(package-inputs edopro)))))
 
 (define-public ignis-database-baseline
   (package

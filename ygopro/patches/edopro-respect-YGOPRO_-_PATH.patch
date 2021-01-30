@@ -1,69 +1,38 @@
-From e5145d4f81b2c382dcd605d32a91eb89837ba85b Mon Sep 17 00:00:00 2001
+From 2704d1966043561ffe0cbc8899d181203e99f6ff Mon Sep 17 00:00:00 2001
 From: LordYuuma <lordyuuma@gmail.com>
-Date: Sun, 5 Apr 2020 14:32:35 +0200
-Subject: [PATCH] edopro: Respect YGOPRO_*_PATH.
+Date: Thu, 22 Oct 2020 02:34:10 +0200
+Subject: [PATCH] edopro: Respect YGOPRO environment paths.
 
 * premake5.lua (environment-paths): New option.
-* gframe/Base64.h: Use UTF-8.
+* gframe/game.cpp (PopulateResourcesDirectories)[YGOPRO_ENVIRONMENT_PATHS]:
+Load scripts from YGOPRO_SCRIPT_PATH.
+Load pics from YGOPRO_IMAGE_PATH.  Fall back to local downloader.
 * gframe/data_handler.cpp (LoadDatabases)[YGOPRO_ENVIRONMENT_PATHS]:
 Load databases and LFLists from YGOPRO_DATA_PATH.
 * gframe/deck_manager.cpp (LoadLFList)[YGOPRO_ENVIRONMENT_PATHS]:
 Don't load local LFLists -- use those loaded by the DataHandler instead.
-* gframe/game.cpp (PopulateResourcesDirectories)[YGOPRO_ENVIRONMENT_PATHS]:
-Load scripts from YGOPRO_SCRIPT_PATH.
-Load pics from YGOPRO_IMAGE_PATH.  Fall back to local downloader.
 * gframe/premake5.lua (ygopro-config)[environment-paths]:
 Define YGOPRO_ENVIRONMENT_PATHS.
-* gframe/text_types.h (operator/): Override for path_string.
 * gframe/utils.h (NormalizePath): Allow absolute paths.
 (PathForeach): New function.
 * gframe/utils.cpp (PathForeach): Implement it.
+* gframe/text_types.h (operator/): Override for path_string.
 ---
- gframe/Base64.h         |  6 +++---
  gframe/data_handler.cpp | 15 +++++++++++++++
  gframe/deck_manager.cpp |  2 ++
  gframe/game.cpp         | 26 ++++++++++++++++++++++++++
  gframe/premake5.lua     |  4 ++++
- gframe/text_types.h     | 16 +++++++++++++++-
- gframe/utils.cpp        | 12 +++++++++++-
- gframe/utils.h          |  3 +++
+ gframe/text_types.h     | 15 ++++++++++++++-
+ gframe/utils.cpp        | 11 ++++++++++-
+ gframe/utils.h          |  5 ++++-
  premake5.lua            |  4 ++++
- 9 files changed, 83 insertions(+), 5 deletions(-)
+ 8 files changed, 79 insertions(+), 3 deletions(-)
 
-diff --git a/gframe/Base64.h b/gframe/Base64.h
-index b018a273..b36ab8a5 100644
---- a/gframe/Base64.h
-+++ b/gframe/Base64.h
-@@ -2,7 +2,7 @@
-    base64.cpp and base64.h
-    base64 encoding and decoding with C++.
-    Version: 1.01.00
--   Copyright (C) 2004-2017 René Nyffenegger
-+   Copyright (C) 2004-2017 RenÃ© Nyffenegger
-    This source code is provided 'as-is', without any express or implied
-    warranty. In no event will the author be held liable for any damages
-    arising from the use of this software.
-@@ -16,7 +16,7 @@
-    2. Altered source versions must be plainly marked as such, and must not be
- 	  misrepresented as being the original source code.
-    3. This notice may not be removed or altered from any source distribution.
--   René Nyffenegger rene.nyffenegger@adp-gmbh.ch
-+   RenÃ© Nyffenegger rene.nyffenegger@adp-gmbh.ch
- */
- #ifndef BASE64_H
- #define BASE64_H
-@@ -108,4 +108,4 @@ std::vector<uint8_t> base64_decode(const T* encoded_string, size_t in_len) {
-
- 	return ret;
- }
--#endif //BASE64_H
-\ No newline at end of file
-+#endif //BASE64_H
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
-index 08496f82..f29101e1 100644
+index e909167f..b7440395 100644
 --- a/gframe/data_handler.cpp
 +++ b/gframe/data_handler.cpp
-@@ -12,15 +12,30 @@
+@@ -13,15 +13,30 @@
  #include "IrrlichtCommonIncludes1.9/CFileSystem.h"
  #include "Android/porting_android.h"
  #endif
@@ -75,10 +44,10 @@ index 08496f82..f29101e1 100644
 +#ifdef YGOPRO_ENVIRONMENT_PATHS
 +	const char* data_path_env = getenv("YGOPRO_DATA_PATH");
 +	if(!data_path_env) return;
-+	path_string data_path_s = Utils::ToPathString(data_path_env);
++	epro::path_string data_path_s = Utils::ToPathString(data_path_env);
 +	ygo::Utils::PathForeach(
 +		data_path_s,
-+		[&](const path_string& prefix) {
++		[&](const epro::path_string& prefix) {
 +			for (auto& file : Utils::FindFiles(prefix, { EPRO_TEXT("cdb") }))
 +				dataManager->LoadDB(prefix / file);
 +			deckManager->LoadLFListSingle(prefix / EPRO_TEXT("lflist.conf"));
@@ -95,10 +64,10 @@ index 08496f82..f29101e1 100644
  void DataHandler::LoadArchivesDB() {
  	std::vector<char> buffer;
 diff --git a/gframe/deck_manager.cpp b/gframe/deck_manager.cpp
-index 383edbe8..797f2d2b 100644
+index f84cedea..e41996ca 100644
 --- a/gframe/deck_manager.cpp
 +++ b/gframe/deck_manager.cpp
-@@ -73,9 +73,11 @@ bool DeckManager::LoadLFListFolder(path_string path) {
+@@ -98,9 +98,11 @@ bool DeckManager::LoadLFListFolder(epro::path_string path) {
  	return loaded;
  }
  void DeckManager::LoadLFList() {
@@ -111,10 +80,10 @@ index 383edbe8..797f2d2b 100644
  	nolimit.listName = L"N/A"; // N/A
  	nolimit.hash = 0;
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index f27d501e..3607ad6a 100644
+index 1a3cd3bc..0630719e 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
-@@ -3185,6 +3185,31 @@ void Game::UpdateUnzipBar(unzip_payload* payload) {
+@@ -3350,6 +3350,31 @@ void Game::UpdateUnzipBar(unzip_payload* payload) {
  	game->updateProgressBottom->setProgress(payload->percentage);
  }
  void Game::PopulateResourcesDirectories() {
@@ -123,8 +92,8 @@ index f27d501e..3607ad6a 100644
 +	if (script_path_env)
 +		Utils::PathForeach(
 +			Utils::ToPathString(script_path_env),
-+			[this](const path_string& prefix) {
-+				path_string script_dir = Utils::NormalizePath(prefix);
++			[this](const epro::path_string& prefix) {
++				epro::path_string script_dir = Utils::NormalizePath(prefix);
 +				script_dirs.push_back(script_dir);
 +				auto script_subdirs = Utils::FindSubfolders(script_dir);
 +				script_dirs.insert(script_dirs.end(), script_subdirs.begin(), script_subdirs.end());
@@ -133,8 +102,8 @@ index f27d501e..3607ad6a 100644
 +	if(image_path_env)
 +		Utils::PathForeach(
 +			Utils::ToPathString(image_path_env),
-+			[this](const path_string& prefix) {
-+				path_string image_dir = Utils::NormalizePath(prefix);
++			[this](const epro::path_string& prefix) {
++				epro::path_string image_dir = Utils::NormalizePath(prefix);
 +				pic_dirs.push_back(image_dir);
 +				cover_dirs.push_back(image_dir / EPRO_TEXT("cover/"));
 +				field_dirs.push_back(image_dir / EPRO_TEXT("field/"));
@@ -145,8 +114,8 @@ index f27d501e..3607ad6a 100644
 +#else
  	script_dirs.push_back(EPRO_TEXT("./expansions/script/"));
  	auto expansions_subdirs = Utils::FindSubfolders(EPRO_TEXT("./expansions/script/"));
- 	script_dirs.insert(script_dirs.end(), expansions_subdirs.begin(), expansions_subdirs.end());
-@@ -3201,6 +3226,7 @@ void Game::PopulateResourcesDirectories() {
+ 	script_dirs.insert(script_dirs.end(), std::make_move_iterator(expansions_subdirs.begin()), std::make_move_iterator(expansions_subdirs.end()));
+@@ -3366,6 +3391,7 @@ void Game::PopulateResourcesDirectories() {
  	field_dirs.push_back(EPRO_TEXT("./expansions/pics/field/"));
  	field_dirs.push_back(EPRO_TEXT("archives"));
  	field_dirs.push_back(EPRO_TEXT("./pics/field/"));
@@ -155,10 +124,10 @@ index f27d501e..3607ad6a 100644
 
  void Game::PopulateLocales() {
 diff --git a/gframe/premake5.lua b/gframe/premake5.lua
-index a2581ea5..757c0cff 100644
+index 2ce7cace..bff5ed28 100644
 --- a/gframe/premake5.lua
 +++ b/gframe/premake5.lua
-@@ -21,6 +21,10 @@ local ygopro_config=function(static_core)
+@@ -27,6 +27,10 @@ local ygopro_config=function(static_core)
  	if _OPTIONS["update-url"] then
  		defines { "UPDATE_URL=" .. _OPTIONS["update-url"] }
  	end
@@ -168,25 +137,24 @@ index a2581ea5..757c0cff 100644
 +
  	includedirs "../ocgcore"
  	links { "clzma", "freetype", "Irrlicht" }
- 	if _OPTIONS["sound"] then
+ 	filter "system:macosx"
 diff --git a/gframe/text_types.h b/gframe/text_types.h
-index 6d274a79..4574cabd 100644
+index 64f76b5d..dd707db8 100644
 --- a/gframe/text_types.h
 +++ b/gframe/text_types.h
-@@ -13,4 +13,18 @@ using path_char = wchar_t;
- using path_char = char;
- #endif // UNICODE
- using path_string = std::basic_string<path_char>;
+@@ -32,4 +32,17 @@ using stringview = nonstd::basic_string_view<char>;
+ using wstringview = nonstd::basic_string_view<wchar_t>;
+ }
+ using namespace nonstd::literals;
 -#endif /* TEXT_TYPES_H_ */
 \ No newline at end of file
-+
-+inline path_string operator/(const path_string& base, const path_string subdir) {
++inline epro::path_string operator/(const epro::path_string& base, const epro::path_string subdir) {
 +	if (base.empty() || base == EPRO_TEXT(".")) {
-+		path_string path(subdir);
++		epro::path_string path(subdir);
 +		return path;
 +	}
 +	else {
-+		path_string path(base);
++		epro::path_string path(base);
 +		if (base.back() != EPRO_TEXT('/'))
 +			path += EPRO_TEXT("/");
 +		path += subdir;
@@ -195,65 +163,57 @@ index 6d274a79..4574cabd 100644
 +}
 +#endif /* TEXT_TYPES_H_ */
 diff --git a/gframe/utils.cpp b/gframe/utils.cpp
-index 8a26a56f..226ddee6 100644
+index 125b7fd5..1fa5cafa 100644
 --- a/gframe/utils.cpp
 +++ b/gframe/utils.cpp
-@@ -1,6 +1,7 @@
- #include "utils.h"
- #include <cmath> // std::round
- #include <fstream>
-+#include <sstream>
- #ifdef _WIN32
- #define WIN32_LEAN_AND_MEAN
- #include <Windows.h>
-@@ -143,6 +144,16 @@ namespace ygo {
- #endif
+@@ -325,6 +325,16 @@ namespace ygo {
+ 		return true;
  	}
 
-+	void Utils::PathForeach(const path_string& path, const std::function<void(path_string)>& cb)
++	void Utils::PathForeach(epro::path_stringview path, const std::function<void(epro::path_string)>& cb)
 +	{
 +		// FIXME: should be ';' in WIN32 and WIN64.
-+		static const path_char path_sep = EPRO_TEXT(':');
-+		std::basic_istringstream<path_char> dirs(path);
-+		path_string dir;
++		static const epro::path_char path_sep = EPRO_TEXT(':');
++		std::basic_istringstream<epro::path_char> dirs(path.data());
++		epro::path_string dir;
 +		while (std::getline(dirs, dir, path_sep))
 +			cb(dir);
 +	}
 +
- 	std::vector<path_string> Utils::FindFiles(const path_string& path, std::vector<path_string> extensions, int subdirectorylayers) {
- 		std::vector<path_string> res;
- 		FindFiles(path, [&res, extensions, path, subdirectorylayers](path_string name, bool isdir, void* payload) {
-@@ -433,4 +444,3 @@ namespace ygo {
+ 	epro::path_stringview Utils::GetExePath() {
+ 		static epro::path_string binarypath = []()->epro::path_string {
+ #ifdef _WIN32
+@@ -483,4 +493,3 @@ namespace ygo {
  #endif
  	}
  }
 -
 diff --git a/gframe/utils.h b/gframe/utils.h
-index c8a14ee8..75b96a20 100644
+index 86a7e553..d4590c7e 100644
 --- a/gframe/utils.h
 +++ b/gframe/utils.h
-@@ -74,6 +74,7 @@ namespace ygo {
- 		static bool ClearDirectory(const path_string& path);
- 		static bool DeleteDirectory(const path_string& source);
+@@ -95,6 +95,7 @@ namespace ygo {
  		static void CreateResourceFolders();
-+		static void PathForeach(const path_string& path, const std::function<void(path_string)>& cb);
- 		static void FindFiles(const path_string& path, const std::function<void(path_string, bool, void*)>& cb, void* payload = nullptr);
- 		static std::vector<path_string> FindFiles(const path_string& path, std::vector<path_string> extensions, int subdirectorylayers = 0);
+ 		static void FindFiles(epro::path_stringview path, const std::function<void(epro::path_stringview, bool)>& cb);
+ 		static std::vector<epro::path_string> FindFiles(epro::path_stringview path, const std::vector<epro::path_stringview>& extensions, int subdirectorylayers = 0);
++		static void PathForeach(epro::path_stringview path, const std::function<void(epro::path_string)>& cb);
  		/** Returned subfolder names are prefixed by the provided path */
-@@ -144,6 +145,8 @@ T Utils::NormalizePath(T path, bool trailing_slash) {
+ 		static std::vector<epro::path_string> FindSubfolders(epro::path_stringview path, int subdirectorylayers = 1, bool addparentpath = true);
+ 		static std::vector<int> FindFiles(irr::io::IFileArchive* archive, epro::path_stringview path, const std::vector<epro::path_stringview>& extensions, int subdirectorylayers = 0);
+@@ -180,6 +181,8 @@ T Utils::NormalizePath(T path, bool trailing_slash) {
  		}
  		it++;
  	}
-+        if (path.front() == slash)
++	if (path.front() == slash)
 +        	normalpath += slash;
  	for(auto it = paths.begin(); it != (paths.end() - 1); it++) {
  		normalpath += *it + slash;
  	}
 diff --git a/premake5.lua b/premake5.lua
-index d52d9299..b1e784c0 100644
+index 1c32f434..20a97554 100644
 --- a/premake5.lua
 +++ b/premake5.lua
-@@ -46,6 +46,10 @@ newoption {
+@@ -59,6 +59,10 @@ newoption {
  	value = "url",
  	description = "API endpoint to check for updates from"
  }
@@ -265,4 +225,4 @@ index d52d9299..b1e784c0 100644
  	location "build"
  	language "C++"
 --
-2.26.2
+2.29.2
