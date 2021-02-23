@@ -336,11 +336,11 @@ built on top of that.")
    (license #f)))
 
 (define-public ignis-database-nightly
-  (let ((database-night "20210220")
-        (database-commit "f53f1e085136b8dab96f339c2274d4b2f5ec3c0a")
-        (database-hash "0xzz085nh21kpz0pzm7vlb5s4br65ifmfjrgf3d2z4bj35f6l764")
-        (lflists-commit "2aba83cfbb0140f32afce50176c21fc0b8613805")
-        (lflists-hash "007il9k8fixkhgf2zj2kfa66lp1p21wjd7ln1ldhqfkhf4y8c4r4"))
+  (let ((database-night "20210223")
+        (database-commit "aa55bb725e518d86d38ffd8a96f078470be7d82c")
+        (database-hash "045ryfn6q6ikvhpp89ahcid33qnw9f6pi1xr11hx190k5q0jda3s")
+        (lflists-commit "39f33cfd5d9d784759b3f47e8772cfc7341e23d3")
+        (lflists-hash "1fhsx53bpwfv1jcvy8rzx1bnpv6qyv1ppqbqjlbdjwd6kfv11x59"))
     (package
       (inherit ignis-database-baseline)
       (version (string-append database-night "-nightly"))
@@ -396,7 +396,7 @@ built on top of that.")
 
                    (merge-lflists
                     "out"
-                    '("OCG" "OCG.Korea" "0TCG" "Traditional" "World" "OCG.new"))
+                    '("OCG" "OCG.Korea" "0TCG" "Traditional" "World"))
                    (merge-lflists "goat" '("GOAT"))
                    (merge-lflists "rush" '("Rush" "Rush-Prerelease"))
                    (merge-lflists "skills" '("Speed"))))))))))))
@@ -450,9 +450,9 @@ built on top of that.")
     (license license:agpl3+)))
 
 (define-public ignis-scripts-nightly
-  (let ((scripts-night "20210220")
-        (scripts-commit "0854aa8a42d2ce6303e009449bc9794d03bd4ea8")
-        (scripts-hash "0kyg27bhbfsnas1cxpfp8fm7vc8l31lvzzdvw1q6bjkapny81zas"))
+  (let ((scripts-night "20210223")
+        (scripts-commit "5ac425c5bc7f034beb8f6468609ba4366a5c2538")
+        (scripts-hash "0b86fs79h3c7k9l65dq9j4dz7yn44nnsc2jpdy4rl3k1bwaf2vb9"))
     (package
       (inherit ignis-scripts-baseline)
       (version (string-append scripts-night "-nightly"))
