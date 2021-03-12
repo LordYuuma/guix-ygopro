@@ -368,7 +368,7 @@ built on top of that.")
          ((#:phases phases)
           `(modify-phases ,phases
              (delete 'fix-names)
-             (add-after 'install 'install-goat-entries
+             (add-after 'install 'install-missing-cdbs
                (lambda* (#:key outputs #:allow-other-keys)
                  (define (install-with-output output install-plan)
                    ((assoc-ref %standard-phases 'install)
@@ -376,6 +376,9 @@ built on top of that.")
                     #:install-plan install-plan))
                  (install-with-output
                   "goat" `(("goat-entries.cdb" "share/ygopro/data/")))
+                 ;; baseline is missing plain prerelease.cdb
+                 (install-with-output
+                  "pre-release" `(("prerelease.cdb" "share/ygopro/data/")))
                  #t))
              (replace 'install-lflists
                (lambda* (#:key inputs outputs #:allow-other-keys)
