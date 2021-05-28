@@ -336,9 +336,9 @@ built on top of that.")
    (license #f)))
 
 (define-public ignis-database-nightly
-  (let ((database-night "20210527")
-        (database-commit "83d10fa80d6e216af37586260e62de97a7e7a569")
-        (database-hash "1sqjfkiji092ambxxj8nzx0zyp75kbigiwhcm6bxipzyrf7a0anh")
+  (let ((database-night "20210528")
+        (database-commit "58de2147263da9b1eac6084bf56aaf8e58a99bd9")
+        (database-hash "18xnpkpirb12h9kbchj8g3cqy06m2z2vdadbzyfhx5l3jvpjfahy")
         (lflists-commit "aa5f5b87fc53769e57ce373f57cfb65381e89c53")
         (lflists-hash "1dfkjfzks3v6j541slrw5mmi4f6k72lnnfqf1q10cnhvlcdyl1fq"))
     (package
@@ -376,9 +376,6 @@ built on top of that.")
                     #:install-plan install-plan))
                  (install-with-output
                   "goat" `(("goat-entries.cdb" "share/ygopro/data/")))
-                 ;; baseline is missing plain prerelease.cdb
-                 (install-with-output
-                  "pre-release" `(("prerelease.cdb" "share/ygopro/data/")))
                  #t))
              (replace 'install-lflists
                (lambda* (#:key inputs outputs #:allow-other-keys)
@@ -453,9 +450,9 @@ built on top of that.")
     (license license:agpl3+)))
 
 (define-public ignis-scripts-nightly
-  (let ((scripts-night "20210527")
-        (scripts-commit "2f9f229b06ba62cea7745def4eb34f2fbf9cc036")
-        (scripts-hash "000z8yz1lnahgcxg8mzlc31wxgx0dds6n3kv7k24jdih3wwdmbvp"))
+  (let ((scripts-night "20210528")
+        (scripts-commit "0cfc14155bf8073385dc99fdc720c42a5e7324b5")
+        (scripts-hash "0374zh9cy50vpy3dkc51lki1fp9n0zr29nkb4399wc4pmkc5si1p"))
     (package
       (inherit ignis-scripts-baseline)
       (version (string-append scripts-night "-nightly"))
