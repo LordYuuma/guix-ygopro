@@ -78,7 +78,7 @@ derived from itself.")
 (define nlohmann-json
   (package
     (name "nlohmann-json")
-    (version "3.7.3")
+    (version "3.9.1")
     (source
      (origin
        (method git-fetch)
@@ -87,7 +87,7 @@ derived from itself.")
              (commit (string-append "v" version))))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "04rry1xzis71z5gj1ylcj8b4li5q18zxhcwaviwvi3hx0frzxl9w"))))
+        (base32 "0ar4mzp53lskxw3vdzw07f47njcshl3lwid9jfq6l7yx6ds2nyjc"))))
     (build-system copy-build-system)
     (arguments
      `(#:install-plan
