@@ -100,8 +100,8 @@ trivial integration and 100% testing.")
     (license license:expat)))
 
 (define irrlicht-for-edopro
-  (let ((commit "333382b2fd495fac1161b8aac2aa7ccb13439684")
-        (revision "5"))
+  (let ((commit "6e2f47aa041a8bd505d419e85c963ec60af094a2")
+        (revision "6"))
     (package
       (inherit irrlicht)
       (name "irrlicht-for-edopro")
@@ -114,7 +114,7 @@ trivial integration and 100% testing.")
                (commit commit)))
          (sha256
           (base32
-           "0jic9ss7x250ng82vpnkkkfpx4n7z2jbhyhn72ll2zcj1zn7qdzp")))))))
+           "0lfhkfglbh1h5d6zhlnpxwir2z6k9z45ggk47fmhkcgbwlmija6m")))))))
 
 (define-public edopro
   (package
