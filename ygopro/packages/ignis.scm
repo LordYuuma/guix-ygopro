@@ -119,23 +119,23 @@ trivial integration and 100% testing.")
 (define-public edopro
   (package
     (name "edopro")
-    (version "39.0.2")
+    (version "39.1.0")
     (source
      (origin
        (method git-fetch)
        (uri (git-reference
-             (url "https://github.com/ProjectIgnis/EDOPro.git")
+             (url "https://github.com/edo9300/edopro.git")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "14zcqp4xq5n7h0rms8h4hvmg0q4vn57195smp711vdkir29wav11"))
+        (base32 "11iz94a74lr1kc130ish5ylq3y7n87w9f9yaxqi27rsc7klmqcyr"))
        (patches
         (search-patches
-         "edopro-fix-segfault.patch"
          "edopro-missing-config.patch"
          "edopro-utf8-source.patch"
          "edopro-respect-YGOPRO_-_PATH.patch"
-         "edopro-respect-XDG-environment-variables.patch"))
+         "edopro-respect-XDG-environment-variables.patch"
+         "edopro-drop-repo-manager.patch"))
        (modules '((guix build utils)))
        (snippet
         '(begin
@@ -184,7 +184,7 @@ trivial integration and 100% testing.")
          (add-after 'unpack 'ya-didnt-package-all-the-textures
            (lambda _
              (substitute* "gframe/image_manager.cpp"
-               (("CHECK_RETURN\\(tSettings\\);") ""))
+               (("CHECK_RETURN\\(tSettings.*\\);") ""))
              #t))
          (delete 'bootstrap)
          (replace 'configure

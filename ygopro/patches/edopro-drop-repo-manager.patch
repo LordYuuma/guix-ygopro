@@ -1,0 +1,814 @@
+From 44259a7468c7bfb16b8ea4f97767cfba3815ea9f Mon Sep 17 00:00:00 2001
+From: Lord Yuuma <lordyuuma@gmail.com>
+Date: Sat, 12 Jun 2021 02:27:25 +0200
+Subject: [PATCH] Drop RepoManager.
+
+---
+ gframe/data_handler.cpp  |   3 ---
+ gframe/data_handler.h    |   2 --
+ gframe/event_handler.cpp |  11 -----------
+ gframe/game.cpp          | 187 +++----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ gframe/gframe.cpp        |   2 --
+ gframe/premake5.lua      |   2 +-
+ gframe/repo_manager.cpp  | 329 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ gframe/repo_manager.h    | 104 --------------------------------------------------------------------------------------------------------
+ 8 files changed, 4 insertions(+), 636 deletions(-)
+ delete mode 100644 gframe/repo_manager.cpp
+ delete mode 100644 gframe/repo_manager.h
+
+diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
+index e9aa32c..266adc3 100644
+--- a/gframe/data_handler.cpp
++++ b/gframe/data_handler.cpp
+@@ -172,10 +172,7 @@ DataHandler::DataHandler(epro::path_stringview working_dir) {
+ 	Utils::working_dir = Utils::NormalizePath(working_dir);
+ 	LoadZipArchives();
+ 	deckManager = std::unique_ptr<DeckManager>(new DeckManager());
+-	gitManager = std::unique_ptr<RepoManager>(new RepoManager());
+ 	sounds = std::unique_ptr<SoundManager>(new SoundManager(configs->soundVolume / 100.0, configs->musicVolume / 100.0, configs->enablesound, configs->enablemusic, configs->data_directory));
+-	gitManager->LoadRepositoriesFromJson(configs->user_configs);
+-	gitManager->LoadRepositoriesFromJson(configs->configs);
+ 	imageDownloader = std::unique_ptr<ImageDownloader>(new ImageDownloader());
+ 	LoadDatabases();
+ 	LoadPicUrls();
+diff --git a/gframe/data_handler.h b/gframe/data_handler.h
+index f7ae35f..27d98cc 100644
+--- a/gframe/data_handler.h
++++ b/gframe/data_handler.h
+@@ -2,7 +2,6 @@
+ #define DATA_LOADER_H
+ #include <memory>
+ #include "image_downloader.h"
+-#include "repo_manager.h"
+ #include "game_config.h"
+ #include "sound_manager.h"
+ #include "data_manager.h"
+@@ -29,7 +28,6 @@ public:
+ 	~DataHandler();
+ 	irr::IrrlichtDevice* tmp_device;
+ 	std::unique_ptr<DeckManager> deckManager = nullptr;
+-	std::unique_ptr<RepoManager> gitManager = nullptr;
+ 	std::unique_ptr<GameConfig> configs = nullptr;
+ 	std::unique_ptr<SoundManager> sounds = nullptr;
+ 	std::unique_ptr<DataManager> dataManager = nullptr;
+diff --git a/gframe/event_handler.cpp b/gframe/event_handler.cpp
+index 9a50a95..1ee0d78 100644
+--- a/gframe/event_handler.cpp
++++ b/gframe/event_handler.cpp
+@@ -2617,17 +2617,6 @@ void ClientField::ShowMenu(int flag, int x, int y) {
+ 		mainGame->btnSSet->setRelativePosition(irr::core::vector2di(1, height));
+ 		height += increase;
+ 	} else mainGame->btnSSet->setVisible(false);
+-	if(flag & COMMAND_REPOS) {
+-		if(clicked_card->position & POS_FACEDOWN)
+-			mainGame->btnRepos->setText(gDataManager->GetSysString(1154).data());
+-		else if(clicked_card->position & POS_ATTACK)
+-			mainGame->btnRepos->setText(gDataManager->GetSysString(1155).data());
+-		else
+-			mainGame->btnRepos->setText(gDataManager->GetSysString(1156).data());
+-		mainGame->btnRepos->setVisible(true);
+-		mainGame->btnRepos->setRelativePosition(irr::core::vector2di(1, height));
+-		height += increase;
+-	} else mainGame->btnRepos->setVisible(false);
+ 	if(flag & COMMAND_ATTACK) {
+ 		mainGame->btnAttack->setVisible(true);
+ 		mainGame->btnAttack->setRelativePosition(irr::core::vector2di(1, height));
+diff --git a/gframe/game.cpp b/gframe/game.cpp
+index e377e85..3046905 100644
+--- a/gframe/game.cpp
++++ b/gframe/game.cpp
+@@ -6,7 +6,6 @@
+ #include <irrlicht.h>
+ #include "client_updater.h"
+ #include "game_config.h"
+-#include "repo_manager.h"
+ #include "image_downloader.h"
+ #include "config.h"
+ #include "game.h"
+@@ -152,7 +151,6 @@ bool Game::Initialize() {
+ 	chkCommitLogExpand = env->addCheckBox(false, Scale(295, 435, 500, 460), wCommitsLog, BUTTON_REPO_CHANGELOG_EXPAND, gDataManager->GetSysString(1447).data());
+ 	defaultStrings.emplace_back(chkCommitLogExpand, 1447);
+ 	mTopMenu = irr::gui::CGUICustomMenu::addCustomMenu(env);
+-	mRepositoriesInfo = mTopMenu->getSubMenu(mTopMenu->addItem(gDataManager->GetSysString(2045).data(), 1, true, true));
+ 	mAbout = mTopMenu->getSubMenu(mTopMenu->addItem(gDataManager->GetSysString(1970).data(), 2, true, true));
+ 	wAbout = env->addWindow(Scale(0, 0, 450, 700), false, L"", mAbout);
+ 	wAbout->getCloseButton()->setVisible(false);
+@@ -750,11 +748,6 @@ bool Game::Initialize() {
+ 	btnSettings->setDrawBorder(false);
+ 	btnSettings->setImageSize(dimBtnSettings.getSize());
+ 	btnSettings->setImage(imageManager.tSettings);
+-	//log
+-	tabRepositories = wInfos->addTab(gDataManager->GetSysString(2045).data());
+-	defaultStrings.emplace_back(tabRepositories, 2045);
+-	mTabRepositories = irr::gui::CGUICustomContextMenu::addCustomContextMenu(env, tabRepositories, -1, Scale(1, 275, 301, 639));
+-	mTabRepositories->setCloseHandling(irr::gui::ECONTEXT_MENU_CLOSE::ECMC_HIDE);
+ 	//
+ 	wHand = env->addWindow(Scale(500, 450, 825, 605), false, L"");
+ 	wHand->getCloseButton()->setVisible(false);
+@@ -937,8 +930,6 @@ bool Game::Initialize() {
+ 	defaultStrings.emplace_back(btnMSet, 1153);
+ 	btnSSet = env->addButton(Scale(1, 85, 99, 105), wCmdMenu, BUTTON_CMD_SSET, gDataManager->GetSysString(1153).data());
+ 	defaultStrings.emplace_back(btnSSet, 1153);
+-	btnRepos = env->addButton(Scale(1, 106, 99, 126), wCmdMenu, BUTTON_CMD_REPOS, gDataManager->GetSysString(1154).data());
+-	defaultStrings.emplace_back(btnRepos, 1154);
+ 	btnAttack = env->addButton(Scale(1, 127, 99, 147), wCmdMenu, BUTTON_CMD_ATTACK, gDataManager->GetSysString(1157).data());
+ 	defaultStrings.emplace_back(btnAttack, 1157);
+ 	btnShowList = env->addButton(Scale(1, 148, 99, 168), wCmdMenu, BUTTON_CMD_SHOWLIST, gDataManager->GetSysString(1158).data());
+@@ -1453,7 +1444,6 @@ bool Game::Initialize() {
+ 
+ 	Utils::CreateResourceFolders();
+ 
+-	LoadGithubRepositories();
+ 	ApplySkin(EPRO_TEXT(""), true);
+ 	if(selectedLocale)
+ 		ApplyLocale(selectedLocale, true);
+@@ -1523,60 +1513,11 @@ bool Game::MainLoop() {
+ 				ApplySkin(EPRO_TEXT(""), true);
+ 			}
+ 		}
+-		auto repos = gRepoManager->GetReadyRepos();
+-		if(!repos.empty()) {
+-			bool refresh_db = false;
+-			for(auto& repo : repos) {
+-				auto grepo = &repoInfoGui[repo->repo_path];
+-				UpdateRepoInfo(repo, grepo);
+-				auto data_path = Utils::ToPathString(repo->data_path);
+-				auto files = Utils::FindFiles(data_path, { EPRO_TEXT("cdb") }, 0);
+-				if(!repo->is_language) {
+-					for(auto& file : files) {
+-						const auto db_path = data_path + file;
+-						bool db_loaded = gDataManager->LoadDB(db_path);
+-						if(db_loaded)
+-							WindBot::AddDatabase(db_path);
+-						refresh_db = db_loaded || refresh_db;
+-					}
+-					gDataManager->LoadStrings(data_path + EPRO_TEXT("strings.conf"));
+-				} else {
+-					if(Utils::ToUTF8IfNeeded(gGameConfig->locale) == repo->language) {
+-						for(auto& file : files)
+-							refresh_db = gDataManager->LoadLocaleDB(data_path + file) || refresh_db;
+-						gDataManager->LoadLocaleStrings(data_path + EPRO_TEXT("strings.conf"));
+-					}
+-					auto langpath = Utils::ToPathString(repo->language);
+-					auto lang = Utils::ToUpperNoAccents(langpath);
+-					auto it = std::find_if(locales.begin(), locales.end(),
+-										   [&lang]
+-					(const std::pair<epro::path_string, std::vector<epro::path_string>>& locale)->bool
+-					{
+-						return Utils::ToUpperNoAccents(locale.first) == lang;
+-					});
+-					if(it != locales.end()) {
+-						it->second.push_back(std::move(data_path));
+-					} else {
+-						Utils::MakeDirectory(EPRO_TEXT("./config/languages/") + langpath);
+-						locales.emplace_back(std::move(langpath), std::vector<epro::path_string>{ std::move(data_path) });
+-						gSettings.cbCurrentLocale->addItem(BufferIO::DecodeUTF8(repo->language).data());
+-					}
+-				}
+-			}
+-			if(refresh_db && is_building && !is_siding)
+-				gdeckManager->RefreshDeck(gdeckManager->current_deck);
+-			if(refresh_db && is_building && deckBuilder.results.size())
+-				deckBuilder.StartFilter(true);
+-			if(gRepoManager->GetUpdatingReposNumber() == 0) {
+-				gdeckManager->StopDummyLoading();
+-				ReloadElementsStrings();
+-			}
+-		}
+ 		if(ServerLobby::HasRefreshedRooms())
+ 			ServerLobby::FillOnlineRooms();
+ #ifdef YGOPRO_BUILD_DLL
+ 		bool coreJustLoaded = false;
+-		if(!dInfo.isStarted && cores_to_load.size() && gRepoManager->GetUpdatingReposNumber() == 0) {
++		if(!dInfo.isStarted && cores_to_load.size()) {
+ 			for(auto& path : cores_to_load) {
+ 				void* ncore = nullptr;
+ 				if((ncore = ChangeOCGcore(Utils::working_dir + path, ocgcore))) {
+@@ -1607,10 +1548,6 @@ bool Game::MainLoop() {
+ 			coreJustLoaded = false;
+ 		}
+ #endif //YGOPRO_BUILD_DLL
+-		for(auto& repo : gRepoManager->GetRepoStatus()) {
+-			repoInfoGui[repo.first].progress1->setProgress(repo.second);
+-			repoInfoGui[repo.first].progress2->setProgress(repo.second);
+-		}
+ 		gSoundManager->Tick();
+ 		fps++;
+ 		auto now = timer->getRealTime();
+@@ -2092,123 +2029,6 @@ void Game::SaveConfig() {
+ #endif
+ 	gGameConfig->Save(gGameConfig->config_directory / EPRO_TEXT("system.conf"));
+ }
+-Game::RepoGui* Game::AddGithubRepositoryStatusWindow(const GitRepo* repo) {
+-	std::wstring name = BufferIO::DecodeUTF8(repo->repo_name);
+-	auto a = env->addWindow(Scale(0, 0, 470, 55), false, L"", mRepositoriesInfo);
+-	a->getCloseButton()->setVisible(false);
+-	a->setDraggable(false);
+-	a->setDrawTitlebar(false);
+-	a->setDrawBackground(false);
+-	env->addStaticText(name.data(), Scale(5, 5, 90 + 295, 20 + 5), false, false, a);
+-	auto& grepo = repoInfoGui[repo->repo_path];
+-	grepo.progress1 = new IProgressBar(env, Scale(5, 20 + 15, 170 + 295, 20 + 30), -1, a);
+-	grepo.progress1->addBorder(1);
+-	grepo.progress1->setColors(skin::PROGRESSBAR_FILL_COLOR_VAL, skin::PROGRESSBAR_EMPTY_COLOR_VAL);
+-	grepo.progress1->drop();
+-	((irr::gui::CGUICustomContextMenu*)mRepositoriesInfo)->addItem(a, -1);
+-	grepo.history_button1 = env->addButton(Scale(90 + 295, 0, 170 + 295, 20 + 5), a, BUTTON_REPO_CHANGELOG, gDataManager->GetSysString(1443).data());
+-	defaultStrings.emplace_back(grepo.history_button1, 1443);
+-	grepo.history_button1->setEnabled(repo->ready);
+-
+-	auto b = env->addWindow(Scale(0, 0, 10000, 55), false, L"", tabRepositories);
+-	b->getCloseButton()->setVisible(false);
+-	b->setDraggable(false);
+-	b->setDrawTitlebar(false);
+-	b->setDrawBackground(false);
+-	env->addStaticText(name.data(), Scale(5, 5, 300, 20 + 5), false, false, b);
+-	grepo.progress2 = new IProgressBar(env, Scale(5, 20 + 15, 300 - 5, 20 + 30), -1, b);
+-	grepo.progress2->addBorder(1);
+-	grepo.progress2->setColors(skin::PROGRESSBAR_FILL_COLOR_VAL, skin::PROGRESSBAR_EMPTY_COLOR_VAL);
+-	grepo.progress2->drop();
+-	((irr::gui::CGUICustomContextMenu*)mTabRepositories)->addItem(b, -1);
+-	grepo.history_button2 = env->addButton(Scale(200, 5, 300 - 5, 20 + 10), b, BUTTON_REPO_CHANGELOG, gDataManager->GetSysString(1443).data());
+-	defaultStrings.emplace_back(grepo.history_button2, 1443);
+-	grepo.history_button2->setEnabled(repo->ready);
+-	return &grepo;
+-}
+-void Game::LoadGithubRepositories() {
+-	bool update_ready = true;
+-	for(auto& repo : gRepoManager->GetAllRepos()) {
+-		auto grepo = AddGithubRepositoryStatusWindow(repo);
+-		if(repo->ready && update_ready) {
+-			UpdateRepoInfo(repo, grepo);
+-			if(repo->is_language) {
+-				auto lang = Utils::ToPathString(repo->language);
+-				auto it = std::find_if(locales.begin(), locales.end(),
+-									   [&lang]
+-				(const std::pair<epro::path_string, std::vector<epro::path_string>>& locale)->bool {
+-					return locale.first == lang;
+-				});
+-				if(it != locales.end()) {
+-					it->second.push_back(Utils::ToPathString(repo->data_path));
+-				}
+-			}
+-		} else {
+-			update_ready = false;
+-		}
+-	}
+-}
+-void Game::UpdateRepoInfo(const GitRepo* repo, RepoGui* grepo) {
+-	if(repo->history.error.size()) {
+-		ErrorLog(fmt::format("The repo {} couldn't be cloned", repo->url));
+-		ErrorLog(fmt::format("Error: {}", repo->history.error));
+-		grepo->history_button1->setText(gDataManager->GetSysString(1434).data());
+-		defaultStrings.emplace_back(grepo->history_button1, 1434);
+-		grepo->history_button1->setEnabled(true);
+-		grepo->history_button2->setText(gDataManager->GetSysString(1434).data());
+-		defaultStrings.emplace_back(grepo->history_button2, 1434);
+-		grepo->history_button2->setEnabled(true);
+-		grepo->commit_history_full = fmt::format(L"{}\n{}",
+-												fmt::format(gDataManager->GetSysString(1435), BufferIO::DecodeUTF8(repo->url)),
+-												fmt::format(gDataManager->GetSysString(1436), BufferIO::DecodeUTF8(repo->history.error))
+-		);
+-		grepo->commit_history_partial = grepo->commit_history_full;
+-		return;
+-	}
+-	std::string text;
+-	std::for_each(repo->history.full_history.begin(), repo->history.full_history.end(), [&text](const std::string& n) { if(n.size()) { text += n + "\n\n"; }});
+-	if(text.size())
+-		text.erase(text.size() - 2, 2);
+-	grepo->commit_history_full = BufferIO::DecodeUTF8(text);
+-	grepo->commit_history_partial.clear();
+-	if(repo->history.partial_history.size()) {
+-		if(repo->history.partial_history.front() == repo->history.full_history.front() && repo->history.partial_history.back() == repo->history.full_history.back()) {
+-			grepo->commit_history_partial = grepo->commit_history_full;
+-		} else {
+-			text.clear();
+-			std::for_each(repo->history.partial_history.begin(), repo->history.partial_history.end(), [&text](const std::string& n) { if(n.size()) { text += n + "\n\n"; }});
+-			if(text.size())
+-				text.erase(text.size() - 2, 2);
+-			grepo->commit_history_partial = BufferIO::DecodeUTF8(text);
+-		}
+-	} else {
+-		if(repo->history.warning.size()) {
+-			grepo->history_button1->setText(gDataManager->GetSysString(1448).data());
+-			grepo->commit_history_partial = fmt::format(L"{}\n{}\n\n{}",
+-				gDataManager->GetSysString(1449),
+-				gDataManager->GetSysString(1450),
+-				BufferIO::DecodeUTF8(repo->history.warning));
+-		} else {
+-			grepo->commit_history_partial = gDataManager->GetSysString(1446).data();
+-		}
+-	}
+-	grepo->history_button1->setEnabled(true);
+-	grepo->history_button2->setEnabled(true);
+-	if(!repo->is_language) {
+-		script_dirs.insert(script_dirs.begin(), Utils::ToPathString(repo->script_path));
+-		auto script_subdirs = Utils::FindSubfolders(Utils::ToPathString(repo->script_path), 2);
+-		script_dirs.insert(script_dirs.begin(), std::make_move_iterator(script_subdirs.begin()), std::make_move_iterator(script_subdirs.end()));
+-		pic_dirs.insert(pic_dirs.begin(), Utils::ToPathString(repo->pics_path));
+-		if(repo->has_core)
+-			cores_to_load.insert(cores_to_load.begin(), Utils::ToPathString(repo->core_path));
+-		auto data_path = Utils::ToPathString(repo->data_path);
+-		auto lflist_path = Utils::ToPathString(repo->lflist_path);
+-		if(gdeckManager->LoadLFListSingle(data_path + EPRO_TEXT("lflist.conf")) || gdeckManager->LoadLFListFolder(lflist_path)) {
+-			gdeckManager->RefreshLFList();
+-			RefreshLFLists();
+-		}
+-	}
+-}
+ void Game::LoadServers() {
+ 	for(auto& _config : { &gGameConfig->user_configs, &gGameConfig->configs }) {
+ 		auto& config = *_config;
+@@ -2945,9 +2765,8 @@ void Game::ReloadElementsStrings() {
+ 	((irr::gui::CGUICustomTable*)roomListTable)->setColumnText(7, gDataManager->GetSysString(1988).data());
+ 	roomListTable->setColumnWidth(0, roomListTable->getColumnWidth(0));
+ 
+-	mTopMenu->setItemText(0, gDataManager->GetSysString(2045).data()); //mRepositoriesInfo
+-	mTopMenu->setItemText(1, gDataManager->GetSysString(1970).data()); //mAbout
+-	mTopMenu->setItemText(2, gDataManager->GetSysString(2040).data()); //mVersion
++	mTopMenu->setItemText(0, gDataManager->GetSysString(1970).data()); //mAbout
++	mTopMenu->setItemText(1, gDataManager->GetSysString(2040).data()); //mVersion
+ 	RefreshUICoreVersion();
+ 	stExpectedCoreVersion->setText(GetLocalizedExpectedCore().data());
+ 	stCompatVersion->setText(GetLocalizedCompatVersion().data());
+diff --git a/gframe/gframe.cpp b/gframe/gframe.cpp
+index a371671..e76b778 100644
+--- a/gframe/gframe.cpp
++++ b/gframe/gframe.cpp
+@@ -36,7 +36,6 @@ ygo::ImageDownloader* ygo::gImageDownloader = nullptr;
+ ygo::DataManager* ygo::gDataManager = nullptr;
+ ygo::SoundManager* ygo::gSoundManager = nullptr;
+ ygo::GameConfig* ygo::gGameConfig = nullptr;
+-ygo::RepoManager* ygo::gRepoManager = nullptr;
+ ygo::DeckManager* ygo::gdeckManager = nullptr;
+ ygo::ClientUpdater* ygo::gClientUpdater = nullptr;
+ JWrapper* gJWrapper = nullptr;
+@@ -211,7 +210,6 @@ int _tmain(int argc, epro::path_char* argv[]) {
+ 		ygo::gImageDownloader = data->imageDownloader.get();
+ 		ygo::gDataManager = data->dataManager.get();
+ 		ygo::gSoundManager = data->sounds.get();
+-		ygo::gRepoManager = data->gitManager.get();
+ 		ygo::gdeckManager = data->deckManager.get();
+ 	}
+ 	catch(const std::exception& e) {
+diff --git a/gframe/premake5.lua b/gframe/premake5.lua
+index 3a74bb6..6930f84 100644
+--- a/gframe/premake5.lua
++++ b/gframe/premake5.lua
+@@ -109,7 +109,7 @@ local ygopro_config=function(static_core)
+ 		if _OPTIONS["discord"] then
+ 			links "discord-rpc"
+ 		end
+-		links { "sqlite3", "event", "event_pthreads", "dl", "git2" }
++		links { "sqlite3", "event", "event_pthreads", "dl" }
+ 
+ 	filter "system:macosx"
+ 		files "*.m"
+diff --git a/gframe/repo_manager.cpp b/gframe/repo_manager.cpp
+deleted file mode 100644
+index 37afbc3..0000000
+--- a/gframe/repo_manager.cpp
++++ /dev/null
+@@ -1,329 +0,0 @@
+-// Copyright (c) 2019-2020 Edoardo Lolletti <edoardo762@gmail.com>
+-// Copyright (c) 2020 Dylam De La Torre <dyxel04@gmail.com>
+-// SPDX-License-Identifier: AGPL-3.0-or-later
+-// Refer to the COPYING file included.
+-
+-#include "repo_manager.h"
+-#include <fmt/format.h>
+-#include "game_config.h"
+-#include "logging.h"
+-#include "utils.h"
+-#include "libgit2.hpp"
+-
+-static constexpr int MAX_HISTORY_LENGTH = 100;
+-
+-namespace ygo {
+-
+-// GitRepo
+-
+-// public
+-
+-bool GitRepo::Sanitize() {
+-	if(url.empty())
+-		return false;
+-
+-	if(repo_path.size())
+-		repo_path = fmt::format("./{}", repo_path);
+-
+-	if(repo_name.empty() && repo_path.empty()) {
+-		repo_name = Utils::GetFileName(url);
+-		if(repo_name.empty())
+-			return false;
+-		repo_path = fmt::format("./repositories/{}", repo_name);
+-	} else if(repo_name.empty())
+-		repo_name = Utils::GetFileName(repo_path);
+-	else if(repo_path.empty())
+-		repo_path = fmt::format("./repositories/{}", repo_name);
+-
+-	data_path = Utils::NormalizePath(fmt::format("{}/{}/", repo_path, data_path));
+-
+-	if(lflist_path.size())
+-		lflist_path = Utils::NormalizePath(fmt::format("{}/{}/", repo_path, lflist_path));
+-	else
+-		lflist_path = Utils::NormalizePath(fmt::format("{}/lflists/", repo_path));
+-
+-	if(script_path.size())
+-		script_path = Utils::NormalizePath(fmt::format("{}/{}/", repo_path, script_path));
+-	else
+-		script_path = Utils::NormalizePath(fmt::format("{}/script/", repo_path));
+-
+-	if(pics_path.size())
+-		pics_path = Utils::NormalizePath(fmt::format("{}/{}/", repo_path, pics_path));
+-	else
+-		pics_path = Utils::NormalizePath(fmt::format("{}/pics/", repo_path));
+-
+-	if(has_core || core_path.size()) {
+-		has_core = true;
+-		core_path = Utils::NormalizePath(fmt::format("{}/{}/", repo_path, core_path));
+-	}
+-	return true;
+-}
+-
+-// RepoManager
+-
+-// public
+-
+-RepoManager::RepoManager() {
+-	git_libgit2_init();
+-	if(gGameConfig->ssl_certificate_path.size() && Utils::FileExists(Utils::ToPathString(gGameConfig->ssl_certificate_path)))
+-		git_libgit2_opts(GIT_OPT_SET_SSL_CERT_LOCATIONS, gGameConfig->ssl_certificate_path.data(), "");
+-#ifdef _WIN32
+-	else
+-		git_libgit2_opts(GIT_OPT_SET_SSL_CERT_LOCATIONS, "SYSTEM", "");
+-#endif
+-	git_libgit2_opts(GIT_OPT_SET_USER_AGENT, ygo::Utils::GetUserAgent().data());
+-	for(int i = 0; i < 3; i++)
+-		cloning_threads.emplace_back(&RepoManager::CloneOrUpdateTask, this);
+-}
+-
+-RepoManager::~RepoManager() {
+-	TerminateThreads();
+-}
+-
+-size_t RepoManager::GetUpdatingReposNumber() const {
+-	return available_repos.size();
+-};
+-
+-std::vector<const GitRepo*> RepoManager::GetAllRepos() const {
+-	std::vector<const GitRepo*> res;
+-	for(const auto& repo : all_repos)
+-		res.insert(res.begin(), &repo);
+-	return res;
+-}
+-
+-std::vector<const GitRepo*> RepoManager::GetReadyRepos() {
+-	std::vector<const GitRepo*> res;
+-	if(available_repos.empty())
+-		return res;
+-	auto it = available_repos.cbegin();
+-	{
+-		std::unique_lock<std::mutex> lck(syncing_mutex);
+-		for(; it != available_repos.cend(); it++) {
+-			//set internal_ready instead of ready as that's not thread safe
+-			//and it'll be read synchronously from the main thread after calling
+-			//GetAllRepos
+-			if(!((*it)->ready = (*it)->internal_ready))
+-				break;
+-			res.push_back(*it);
+-		}
+-	}
+-	if(res.size())
+-		available_repos.erase(available_repos.cbegin(), it);
+-	//by design, once repositories are added at startup, no new ones are added
+-	//so when they finish, the threads are no longer needed
+-	if(available_repos.empty())
+-		TerminateThreads();
+-	return res;
+-}
+-
+-std::map<std::string, int> RepoManager::GetRepoStatus() {
+-	std::lock_guard<std::mutex> lock(syncing_mutex);
+-	return repos_status;
+-}
+-
+-#define JSON_SET_IF_VALID(field, jsontype, cpptype) \
+-	do { auto it = obj.find(#field); \
+-		if(it != obj.end() && it->is_##jsontype()) \
+-			tmp_repo.field = it->get<cpptype>(); \
+-	} while(0)
+-
+-void RepoManager::LoadRepositoriesFromJson(const nlohmann::json& configs) {
+-	auto cit = configs.find("repos");
+-	if(cit != configs.end() && cit->is_array()) {
+-		for(auto& obj : *cit) {
+-			{
+-				auto it = obj.find("should_read");
+-				if(it != obj.end() && it->is_boolean() && !it->get<bool>())
+-					continue;
+-			}
+-			GitRepo tmp_repo;
+-			JSON_SET_IF_VALID(url, string, std::string);
+-			JSON_SET_IF_VALID(should_update, boolean, bool);
+-			if(tmp_repo.url == "default") {
+-#ifdef DEFAULT_LIVE_URL
+-				tmp_repo.url = DEFAULT_LIVE_URL;
+-#ifdef YGOPRO_BUILD_DLL
+-				tmp_repo.has_core = true;
+-#endif
+-#else
+-				continue;
+-#endif //DEFAULT_LIVE_URL
+-			} else if(tmp_repo.url == "default_anime") {
+-#ifdef DEFAULT_LIVEANIME_URL
+-				tmp_repo.url = DEFAULT_LIVEANIME_URL;
+-#else
+-				continue;
+-#endif //DEFAULT_LIVEANIME_URL
+-			} else {
+-				JSON_SET_IF_VALID(repo_path, string, std::string);
+-				JSON_SET_IF_VALID(repo_name, string, std::string);
+-				JSON_SET_IF_VALID(data_path, string, std::string);
+-				JSON_SET_IF_VALID(lflist_path, string, std::string);
+-				JSON_SET_IF_VALID(script_path, string, std::string);
+-				JSON_SET_IF_VALID(pics_path, string, std::string);
+-				JSON_SET_IF_VALID(is_language, boolean, bool);
+-				if(tmp_repo.is_language)
+-					JSON_SET_IF_VALID(language, string, std::string);
+-#ifdef YGOPRO_BUILD_DLL
+-				JSON_SET_IF_VALID(core_path, string, std::string);
+-				JSON_SET_IF_VALID(has_core, boolean, bool);
+-#endif
+-			}
+-			if(tmp_repo.Sanitize())
+-				AddRepo(std::move(tmp_repo));
+-		}
+-	}
+-}
+-
+-void RepoManager::TerminateThreads() {
+-	if(fetchReturnValue != -1) {
+-		fetchReturnValue = -1;
+-		cv.notify_all();
+-		for(auto& thread : cloning_threads)
+-			thread.join();
+-		cloning_threads.clear();
+-		git_libgit2_shutdown();
+-	}
+-}
+-
+-// private
+-
+-void RepoManager::AddRepo(GitRepo repo) {
+-	std::unique_lock<std::mutex> lck(syncing_mutex);
+-	if(repos_status.find(repo.repo_path) != repos_status.end())
+-		return;
+-	repos_status.emplace(repo.repo_path, 0);
+-	all_repos.emplace_front(std::move(repo));
+-	available_repos.push_back(&all_repos.front());
+-	to_sync.push(&all_repos.front());
+-	cv.notify_all();
+-}
+-
+-void RepoManager::SetRepoPercentage(const std::string& path, int percent)
+-{
+-	std::lock_guard<std::mutex> lock(syncing_mutex);
+-	repos_status[path] = percent;
+-}
+-
+-void RepoManager::CloneOrUpdateTask() {
+-	Utils::SetThreadName("Git update task");
+-	while(fetchReturnValue != -1) {
+-		std::unique_lock<std::mutex> lck(syncing_mutex);
+-		while(to_sync.empty()) {
+-			cv.wait(lck);
+-			if(fetchReturnValue == -1)
+-				return;
+-		}
+-		auto& _repo = *to_sync.front();
+-		to_sync.pop();
+-		lck.unlock();
+-		GitRepo::CommitHistory history;
+-		try {
+-			auto DoesRepoExist = [](const char* path) -> bool {
+-				git_repository* tmp = nullptr;
+-				int status = git_repository_open_ext(&tmp, path,
+-													 GIT_REPOSITORY_OPEN_NO_SEARCH, nullptr);
+-				git_repository_free(tmp);
+-				return status == 0;
+-			};
+-			auto AppendCommit = [](std::vector<std::string>& v, git_commit* commit) {
+-				std::string message{ git_commit_message(commit) };
+-				message.resize(message.find_last_not_of(" \n") + 1);
+-				auto authorName = git_commit_author(commit)->name;
+-				v.push_back(fmt::format("{:s}\nAuthor: {:s}\n", message, authorName));
+-			};
+-			auto QueryFullHistory = [&](git_repository* repo, git_revwalk* walker) {
+-				git_revwalk_reset(walker);
+-				// git log HEAD~MAX_HISTORY_LENGTH..HEAD
+-				Git::Check(git_revwalk_push_head(walker));
+-				for(git_oid oid; git_revwalk_next(&oid, walker) == 0;) {
+-					auto commit = Git::MakeUnique(git_commit_lookup, repo, &oid);
+-					if(git_oid_iszero(&oid) || history.full_history.size() > MAX_HISTORY_LENGTH)
+-						break;
+-					AppendCommit(history.full_history, commit.get());
+-				}
+-			};
+-			auto QueryPartialHistory = [&](git_repository* repo, git_revwalk* walker) {
+-				git_revwalk_reset(walker);
+-				// git log HEAD..FETCH_HEAD
+-				Git::Check(git_revwalk_push_range(walker, "HEAD..FETCH_HEAD"));
+-				for(git_oid oid; git_revwalk_next(&oid, walker) == 0;) {
+-					auto commit = Git::MakeUnique(git_commit_lookup, repo, &oid);
+-					AppendCommit(history.partial_history, commit.get());
+-				}
+-			};
+-			const std::string& url = _repo.url;
+-			const std::string& path = _repo.repo_path;
+-			FetchCbPayload payload{ this, path };
+-			if(DoesRepoExist(path.data())) {
+-				auto repo = Git::MakeUnique(git_repository_open_ext, path.data(),
+-											GIT_REPOSITORY_OPEN_NO_SEARCH, nullptr);
+-				auto walker = Git::MakeUnique(git_revwalk_new, repo.get());
+-				git_revwalk_sorting(walker.get(), GIT_SORT_TOPOLOGICAL | GIT_SORT_TIME);
+-				if(_repo.should_update) {
+-					try {
+-						// git fetch
+-						git_fetch_options fetchOpts = GIT_FETCH_OPTIONS_INIT;
+-						fetchOpts.callbacks.transfer_progress = RepoManager::FetchCb;
+-						fetchOpts.callbacks.payload = &payload;
+-						auto remote = Git::MakeUnique(git_remote_lookup, repo.get(), "origin");
+-						Git::Check(git_remote_fetch(remote.get(), nullptr, &fetchOpts, nullptr));
+-						QueryPartialHistory(repo.get(), walker.get());
+-						// git reset --hard FETCH_HEAD
+-						git_oid oid;
+-						Git::Check(git_reference_name_to_id(&oid, repo.get(), "FETCH_HEAD"));
+-						auto commit = Git::MakeUnique(git_commit_lookup, repo.get(), &oid);
+-						Git::Check(git_reset(repo.get(), reinterpret_cast<git_object*>(commit.get()),
+-											 GIT_RESET_HARD, nullptr));
+-					}
+-					catch(const std::exception& e) {
+-						history.partial_history.clear();
+-						history.warning = e.what();
+-						ErrorLog(fmt::format("Warning occurred in repo {}: {}", url, e.what()));
+-					}
+-				}
+-				if(history.partial_history.size() >= MAX_HISTORY_LENGTH) {
+-					history.full_history.swap(history.partial_history);
+-					history.partial_history.clear();
+-					history.partial_history.push_back(history.full_history.front());
+-					history.partial_history.push_back(history.full_history.back());
+-				} else
+-					QueryFullHistory(repo.get(), walker.get());
+-			} else {
+-				Utils::DeleteDirectory(Utils::ToPathString(path + "/"));
+-				// git clone <url> <path>
+-				git_clone_options cloneOpts = GIT_CLONE_OPTIONS_INIT;
+-				cloneOpts.fetch_opts.callbacks.transfer_progress = RepoManager::FetchCb;
+-				cloneOpts.fetch_opts.callbacks.payload = &payload;
+-				auto repo = Git::MakeUnique(git_clone, url.data(), path.data(), &cloneOpts);
+-				auto walker = Git::MakeUnique(git_revwalk_new, repo.get());
+-				git_revwalk_sorting(walker.get(), GIT_SORT_TOPOLOGICAL | GIT_SORT_TIME);
+-				QueryFullHistory(repo.get(), walker.get());
+-			}
+-			SetRepoPercentage(path, 100);
+-		}
+-		catch(const std::exception& e) {
+-			history.error = e.what();
+-			ErrorLog(fmt::format("Exception occurred in repo {}: {}", _repo.url, e.what()));
+-		}
+-		lck.lock();
+-		_repo.history = std::move(history);
+-		_repo.internal_ready = true;
+-	}
+-}
+-
+-int RepoManager::FetchCb(const git_indexer_progress* stats, void* payload) {
+-	int percent;
+-	if(stats->received_objects != stats->total_objects) {
+-		percent = (75 * stats->received_objects) / stats->total_objects;
+-	} else if(stats->total_deltas == 0) {
+-		percent = 75;
+-	} else {
+-		percent = 75 + ((25 * stats->indexed_deltas) / stats->total_deltas);
+-	}
+-	auto pl = static_cast<FetchCbPayload*>(payload);
+-	pl->rm->SetRepoPercentage(pl->path, percent);
+-	return pl->rm->fetchReturnValue;
+-}
+-
+-}
+diff --git a/gframe/repo_manager.h b/gframe/repo_manager.h
+deleted file mode 100644
+index 75875dc..0000000
+--- a/gframe/repo_manager.h
++++ /dev/null
+@@ -1,104 +0,0 @@
+-// Copyright (c) 2019-2020 Edoardo Lolletti <edoardo762@gmail.com>
+-// Copyright (c) 2020 Dylam De La Torre <dyxel04@gmail.com>
+-// SPDX-License-Identifier: AGPL-3.0-or-later
+-// Refer to the COPYING file included.
+-
+-#ifndef REPOMANAGER_H
+-#define REPOMANAGER_H
+-#include <atomic>
+-#include <map>
+-#include <forward_list>
+-#include <string>
+-#include <vector>
+-#include <mutex>
+-#include <nlohmann/json.hpp>
+-#include <git2/version.h>
+-#include <queue>
+-#include <condition_variable>
+-#include <thread>
+-
+-// libgit2 forward declarations
+-struct git_repository;
+-#if LIBGIT2_VER_MAJOR>0 || LIBGIT2_VER_MINOR>=99
+-struct git_indexer_progress;
+-#else
+-struct git_transfer_progress;
+-using git_indexer_progress = git_transfer_progress;
+-#endif
+-
+-namespace ygo {
+-
+-class GitRepo {
+-public:
+-	// first = all changes history, second = only HEAD..FETCH_HEAD changes
+-	struct CommitHistory {
+-		std::vector<std::string> full_history;
+-		std::vector<std::string> partial_history;
+-		std::string error;
+-		std::string warning;
+-	};
+-	std::string url{};
+-	std::string repo_name{};
+-	std::string repo_path{};
+-	std::string data_path{};
+-	std::string lflist_path{"lflists"};
+-	std::string script_path{"script"};
+-	std::string pics_path{"pics"};
+-	std::string core_path{};
+-	std::string language{};
+-	bool should_update{true};
+-	bool has_core{false};
+-	bool ready{false};
+-	bool is_language{false};
+-	CommitHistory history;
+-	bool Sanitize();
+-	friend class RepoManager;
+-private:
+-	bool internal_ready{ false };
+-};
+-
+-class RepoManager {
+-public:
+-
+-	RepoManager();	
+-	// Cancel fetching of repos and synchronize with futures
+-	~RepoManager();
+-
+-	size_t GetUpdatingReposNumber() const;
+-	std::vector<const GitRepo*> GetAllRepos() const;
+-	std::vector<const GitRepo*> GetReadyRepos(); // changes available_repos
+-	std::map<std::string, int> GetRepoStatus(); // locks mutex
+-
+-	void LoadRepositoriesFromJson(const nlohmann::json& configs);
+-private:
+-	void TerminateThreads();
+-	std::forward_list<GitRepo> all_repos{};
+-	std::vector<GitRepo*> available_repos{};
+-	std::map<std::string, int> repos_status{};
+-	std::queue<GitRepo*> to_sync;
+-	std::mutex syncing_mutex;
+-	std::condition_variable cv;
+-	std::vector<std::thread> cloning_threads;
+-	// Initialized with GIT_OK (0), changed to cancel fetching
+-	std::atomic<int> fetchReturnValue{0};
+-
+-	void AddRepo(GitRepo repo);
+-	void SetRepoPercentage(const std::string& path, int percent);
+-	
+-	// Will be started on a new thread
+-	void CloneOrUpdateTask();
+-	
+-	// libgit2 Callbacks stuff
+-	struct FetchCbPayload
+-	{
+-		RepoManager* rm;
+-		const std::string& path;
+-	};
+-	static int FetchCb(const git_indexer_progress* stats, void* payload);
+-};
+-
+-extern RepoManager* gRepoManager;
+-
+-}
+-
+-#endif // REPOMANAGER_H
+--
+libgit2 1.1.0
+

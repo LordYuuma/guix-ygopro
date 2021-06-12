@@ -1,6 +1,6 @@
-From 2704d1966043561ffe0cbc8899d181203e99f6ff Mon Sep 17 00:00:00 2001
+From 12db386729a50f353f21c6b235fa4a73b411f190 Mon Sep 17 00:00:00 2001
 From: LordYuuma <lordyuuma@gmail.com>
-Date: Thu, 22 Oct 2020 02:34:10 +0200
+Date: Sat, 12 Jun 2021 01:19:44 +0200
 Subject: [PATCH] edopro: Respect YGOPRO environment paths.
 
 * premake5.lua (environment-paths): New option.
@@ -18,28 +18,28 @@ Define YGOPRO_ENVIRONMENT_PATHS.
 * gframe/utils.cpp (PathForeach): Implement it.
 * gframe/text_types.h (operator/): Override for path_string.
 ---
- gframe/data_handler.cpp | 15 +++++++++++++++
+ gframe/data_handler.cpp | 16 ++++++++++++++++
  gframe/deck_manager.cpp |  2 ++
  gframe/game.cpp         | 26 ++++++++++++++++++++++++++
  gframe/premake5.lua     |  4 ++++
- gframe/text_types.h     | 15 ++++++++++++++-
+ gframe/text_types.h     | 16 +++++++++++++++-
  gframe/utils.cpp        | 11 ++++++++++-
- gframe/utils.h          |  5 ++++-
+ gframe/utils.h          |  3 ++-
  premake5.lua            |  4 ++++
  8 files changed, 79 insertions(+), 3 deletions(-)
 
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
-index e909167f..b7440395 100644
+index 3adbc52..56a2f6c 100644
 --- a/gframe/data_handler.cpp
 +++ b/gframe/data_handler.cpp
-@@ -13,15 +13,30 @@
- #include "IrrlichtCommonIncludes1.9/CFileSystem.h"
+@@ -17,10 +17,25 @@
+ #include "Android/COSAndroidOperator.h"
  #include "Android/porting_android.h"
  #endif
 +#include "deck_manager.h"
-
+ 
  namespace ygo {
-
+ 
  void DataHandler::LoadDatabases() {
 +#ifdef YGOPRO_ENVIRONMENT_PATHS
 +	const char* data_path_env = getenv("YGOPRO_DATA_PATH");
@@ -49,25 +49,28 @@ index e909167f..b7440395 100644
 +		data_path_s,
 +		[&](const epro::path_string& prefix) {
 +			for (auto& file : Utils::FindFiles(prefix, { EPRO_TEXT("cdb") }))
-+				dataManager->LoadDB(prefix / file);
++				if(dataManager->LoadDB(prefix / file))
++					WindBot::AddDatabase(prefix / file);
 +			deckManager->LoadLFListSingle(prefix / EPRO_TEXT("lflist.conf"));
 +			dataManager->LoadStrings(prefix / EPRO_TEXT("strings.conf"));
 +		});
 +#else
- 	if(std::ifstream("cards.cdb").good())
- 		dataManager->LoadDB(EPRO_TEXT("cards.cdb"));
- 	for(auto& file : Utils::FindFiles(EPRO_TEXT("./expansions/"), { EPRO_TEXT("cdb") }, 2))
- 		dataManager->LoadDB(EPRO_TEXT("./expansions/") + file);
+ 	if(Utils::FileExists(EPRO_TEXT("cards.cdb")) && std::ifstream(EPRO_TEXT("cards.cdb")).good()) {
+ 		if(dataManager->LoadDB(EPRO_TEXT("cards.cdb")))
+ 			WindBot::AddDatabase(EPRO_TEXT("cards.cdb"));
+@@ -31,6 +46,7 @@ void DataHandler::LoadDatabases() {
+ 			WindBot::AddDatabase(db);
+ 	}
  	LoadArchivesDB();
 +#endif
  }
  void DataHandler::LoadArchivesDB() {
- 	std::vector<char> buffer;
+ 	for(auto& archive : Utils::archives) {
 diff --git a/gframe/deck_manager.cpp b/gframe/deck_manager.cpp
-index f84cedea..e41996ca 100644
+index 909f5dd..b3edeb5 100644
 --- a/gframe/deck_manager.cpp
 +++ b/gframe/deck_manager.cpp
-@@ -98,9 +98,11 @@ bool DeckManager::LoadLFListFolder(epro::path_string path) {
+@@ -99,9 +99,11 @@ bool DeckManager::LoadLFListFolder(epro::path_string path) {
  	return loaded;
  }
  void DeckManager::LoadLFList() {
@@ -80,10 +83,10 @@ index f84cedea..e41996ca 100644
  	nolimit.listName = L"N/A"; // N/A
  	nolimit.hash = 0;
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index 1a3cd3bc..0630719e 100644
+index bf7f440..87233ad 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
-@@ -3350,6 +3350,31 @@ void Game::UpdateUnzipBar(unzip_payload* payload) {
+@@ -3347,6 +3347,31 @@ void Game::UpdateUnzipBar(unzip_payload* payload) {
  	game->updateProgressBottom->setProgress(payload->percentage);
  }
  void Game::PopulateResourcesDirectories() {
@@ -115,16 +118,16 @@ index 1a3cd3bc..0630719e 100644
  	script_dirs.push_back(EPRO_TEXT("./expansions/script/"));
  	auto expansions_subdirs = Utils::FindSubfolders(EPRO_TEXT("./expansions/script/"));
  	script_dirs.insert(script_dirs.end(), std::make_move_iterator(expansions_subdirs.begin()), std::make_move_iterator(expansions_subdirs.end()));
-@@ -3366,6 +3391,7 @@ void Game::PopulateResourcesDirectories() {
+@@ -3363,6 +3388,7 @@ void Game::PopulateResourcesDirectories() {
  	field_dirs.push_back(EPRO_TEXT("./expansions/pics/field/"));
  	field_dirs.push_back(EPRO_TEXT("archives"));
  	field_dirs.push_back(EPRO_TEXT("./pics/field/"));
 +#endif
  }
-
+ 
  void Game::PopulateLocales() {
 diff --git a/gframe/premake5.lua b/gframe/premake5.lua
-index 2ce7cace..bff5ed28 100644
+index 5297693..1a14fb7 100644
 --- a/gframe/premake5.lua
 +++ b/gframe/premake5.lua
 @@ -27,6 +27,10 @@ local ygopro_config=function(static_core)
@@ -139,16 +142,16 @@ index 2ce7cace..bff5ed28 100644
  	links { "clzma", "freetype", "Irrlicht" }
  	filter "system:macosx"
 diff --git a/gframe/text_types.h b/gframe/text_types.h
-index 64f76b5d..dd707db8 100644
+index c1072c0..d3ac1e3 100644
 --- a/gframe/text_types.h
 +++ b/gframe/text_types.h
-@@ -32,4 +32,17 @@ using stringview = nonstd::basic_string_view<char>;
- using wstringview = nonstd::basic_string_view<wchar_t>;
+@@ -44,4 +44,18 @@ template<typename T>
+ using basic_string_view = nonstd::basic_string_view<T>;
  }
  using namespace nonstd::literals;
 -#endif /* TEXT_TYPES_H_ */
 \ No newline at end of file
-+inline epro::path_string operator/(const epro::path_string& base, const epro::path_string subdir) {
++inline epro::path_string operator/(const epro::path_string& base, epro::path_stringview subdir) {
 +	if (base.empty() || base == EPRO_TEXT(".")) {
 +		epro::path_string path(subdir);
 +		return path;
@@ -157,19 +160,20 @@ index 64f76b5d..dd707db8 100644
 +		epro::path_string path(base);
 +		if (base.back() != EPRO_TEXT('/'))
 +			path += EPRO_TEXT("/");
-+		path += subdir;
++		path += epro::path_string(subdir);
 +		return path;
 +	}
 +}
++
 +#endif /* TEXT_TYPES_H_ */
 diff --git a/gframe/utils.cpp b/gframe/utils.cpp
-index 125b7fd5..1fa5cafa 100644
+index 5483546..448178f 100644
 --- a/gframe/utils.cpp
 +++ b/gframe/utils.cpp
-@@ -325,6 +325,16 @@ namespace ygo {
+@@ -341,6 +341,16 @@ namespace ygo {
  		return true;
  	}
-
+ 
 +	void Utils::PathForeach(epro::path_stringview path, const std::function<void(epro::path_string)>& cb)
 +	{
 +		// FIXME: should be ';' in WIN32 and WIN64.
@@ -183,16 +187,25 @@ index 125b7fd5..1fa5cafa 100644
  	epro::path_stringview Utils::GetExePath() {
  		static epro::path_string binarypath = []()->epro::path_string {
  #ifdef _WIN32
-@@ -483,4 +493,3 @@ namespace ygo {
+@@ -484,4 +494,3 @@ namespace ygo {
  #endif
  	}
  }
 -
 diff --git a/gframe/utils.h b/gframe/utils.h
-index 86a7e553..d4590c7e 100644
+index 1fdf817..922a816 100644
 --- a/gframe/utils.h
 +++ b/gframe/utils.h
-@@ -95,6 +95,7 @@ namespace ygo {
+@@ -49,7 +49,7 @@ namespace ygo {
+ 			static_assert(N <= 16, "Thread name on posix can't be more than 16 bytes!");
+ 			InternalSetThreadName(s, ws);
+ 		}
+-		
++
+ 		static std::vector<SynchronizedIrrArchive> archives;
+ 		static irr::io::IFileSystem* filesystem;
+ 		static irr::IOSOperator* OSOperator;
+@@ -69,6 +69,7 @@ namespace ygo {
  		static void CreateResourceFolders();
  		static void FindFiles(epro::path_stringview path, const std::function<void(epro::path_stringview, bool)>& cb);
  		static std::vector<epro::path_string> FindFiles(epro::path_stringview path, const std::vector<epro::path_stringview>& extensions, int subdirectorylayers = 0);
@@ -200,20 +213,11 @@ index 86a7e553..d4590c7e 100644
  		/** Returned subfolder names are prefixed by the provided path */
  		static std::vector<epro::path_string> FindSubfolders(epro::path_stringview path, int subdirectorylayers = 1, bool addparentpath = true);
  		static std::vector<int> FindFiles(irr::io::IFileArchive* archive, epro::path_stringview path, const std::vector<epro::path_stringview>& extensions, int subdirectorylayers = 0);
-@@ -180,6 +181,8 @@ T Utils::NormalizePath(T path, bool trailing_slash) {
- 		}
- 		it++;
- 	}
-+	if (path.front() == slash)
-+        	normalpath += slash;
- 	for(auto it = paths.begin(); it != (paths.end() - 1); it++) {
- 		normalpath += *it + slash;
- 	}
 diff --git a/premake5.lua b/premake5.lua
-index 1c32f434..20a97554 100644
+index 1e71da1..eea655c 100644
 --- a/premake5.lua
 +++ b/premake5.lua
-@@ -59,6 +59,10 @@ newoption {
+@@ -60,6 +60,10 @@ newoption {
  	value = "url",
  	description = "API endpoint to check for updates from"
  }
@@ -225,4 +229,5 @@ index 1c32f434..20a97554 100644
  	location "build"
  	language "C++"
 --
-2.29.2
+libgit2 1.1.0
+
