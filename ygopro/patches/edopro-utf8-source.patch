@@ -1,4 +1,4 @@
-From 4d58fa5d0340ad78a02acfe049e820edc4958e5d Mon Sep 17 00:00:00 2001
+From 161c982eb6ebcd0b70f8db315e9f84cb749e6ed4 Mon Sep 17 00:00:00 2001
 From: LordYuuma <lordyuuma@gmail.com>
 Date: Sat, 12 Jun 2021 01:19:44 +0200
 Subject: [PATCH] gframe/Base64.h: Use UTF-8.
@@ -8,7 +8,7 @@ Subject: [PATCH] gframe/Base64.h: Use UTF-8.
  1 file changed, 3 insertions(+), 3 deletions(-)
 
 diff --git a/gframe/Base64.h b/gframe/Base64.h
-index 91d7d0c..bb6115c 100644
+index 91d7d0cd..bb6115c5 100644
 --- a/gframe/Base64.h
 +++ b/gframe/Base64.h
 @@ -8,7 +8,7 @@
@@ -36,6 +36,6 @@ index 91d7d0c..bb6115c 100644
 -#endif //BASE64_H
 \ No newline at end of file
 +#endif //BASE64_H
---
-libgit2 1.1.0
+-- 
+2.32.0
 

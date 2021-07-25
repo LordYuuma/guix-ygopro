@@ -1,23 +1,23 @@
-From 44259a7468c7bfb16b8ea4f97767cfba3815ea9f Mon Sep 17 00:00:00 2001
+From ec81bd8c5cb391147f0cae258e8c70689faf20fa Mon Sep 17 00:00:00 2001
 From: Lord Yuuma <lordyuuma@gmail.com>
 Date: Sat, 12 Jun 2021 02:27:25 +0200
 Subject: [PATCH] Drop RepoManager.
 
 ---
- gframe/data_handler.cpp  |   3 ---
- gframe/data_handler.h    |   2 --
- gframe/event_handler.cpp |  11 -----------
- gframe/game.cpp          | 187 +++----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- gframe/gframe.cpp        |   2 --
+ gframe/data_handler.cpp  |   3 -
+ gframe/data_handler.h    |   2 -
+ gframe/event_handler.cpp |  11 --
+ gframe/game.cpp          | 187 +---------------------
+ gframe/gframe.cpp        |   2 -
  gframe/premake5.lua      |   2 +-
- gframe/repo_manager.cpp  | 329 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- gframe/repo_manager.h    | 104 --------------------------------------------------------------------------------------------------------
+ gframe/repo_manager.cpp  | 329 ---------------------------------------
+ gframe/repo_manager.h    | 104 -------------
  8 files changed, 4 insertions(+), 636 deletions(-)
  delete mode 100644 gframe/repo_manager.cpp
  delete mode 100644 gframe/repo_manager.h
 
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
-index e9aa32c..266adc3 100644
+index 8d6a43c7..dad2d349 100644
 --- a/gframe/data_handler.cpp
 +++ b/gframe/data_handler.cpp
 @@ -172,10 +172,7 @@ DataHandler::DataHandler(epro::path_stringview working_dir) {
@@ -32,7 +32,7 @@ index e9aa32c..266adc3 100644
  	LoadDatabases();
  	LoadPicUrls();
 diff --git a/gframe/data_handler.h b/gframe/data_handler.h
-index f7ae35f..27d98cc 100644
+index f7ae35f1..27d98cc3 100644
 --- a/gframe/data_handler.h
 +++ b/gframe/data_handler.h
 @@ -2,7 +2,6 @@
@@ -52,7 +52,7 @@ index f7ae35f..27d98cc 100644
  	std::unique_ptr<SoundManager> sounds = nullptr;
  	std::unique_ptr<DataManager> dataManager = nullptr;
 diff --git a/gframe/event_handler.cpp b/gframe/event_handler.cpp
-index 9a50a95..1ee0d78 100644
+index 9a50a951..1ee0d78c 100644
 --- a/gframe/event_handler.cpp
 +++ b/gframe/event_handler.cpp
 @@ -2617,17 +2617,6 @@ void ClientField::ShowMenu(int flag, int x, int y) {
@@ -74,7 +74,7 @@ index 9a50a95..1ee0d78 100644
  		mainGame->btnAttack->setVisible(true);
  		mainGame->btnAttack->setRelativePosition(irr::core::vector2di(1, height));
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index e377e85..3046905 100644
+index 2dc60688..bea934c3 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
 @@ -6,7 +6,6 @@
@@ -85,7 +85,7 @@ index e377e85..3046905 100644
  #include "image_downloader.h"
  #include "config.h"
  #include "game.h"
-@@ -152,7 +151,6 @@ bool Game::Initialize() {
+@@ -156,7 +155,6 @@ bool Game::Initialize() {
  	chkCommitLogExpand = env->addCheckBox(false, Scale(295, 435, 500, 460), wCommitsLog, BUTTON_REPO_CHANGELOG_EXPAND, gDataManager->GetSysString(1447).data());
  	defaultStrings.emplace_back(chkCommitLogExpand, 1447);
  	mTopMenu = irr::gui::CGUICustomMenu::addCustomMenu(env);
@@ -93,7 +93,7 @@ index e377e85..3046905 100644
  	mAbout = mTopMenu->getSubMenu(mTopMenu->addItem(gDataManager->GetSysString(1970).data(), 2, true, true));
  	wAbout = env->addWindow(Scale(0, 0, 450, 700), false, L"", mAbout);
  	wAbout->getCloseButton()->setVisible(false);
-@@ -750,11 +748,6 @@ bool Game::Initialize() {
+@@ -754,11 +752,6 @@ bool Game::Initialize() {
  	btnSettings->setDrawBorder(false);
  	btnSettings->setImageSize(dimBtnSettings.getSize());
  	btnSettings->setImage(imageManager.tSettings);
@@ -105,7 +105,7 @@ index e377e85..3046905 100644
  	//
  	wHand = env->addWindow(Scale(500, 450, 825, 605), false, L"");
  	wHand->getCloseButton()->setVisible(false);
-@@ -937,8 +930,6 @@ bool Game::Initialize() {
+@@ -941,8 +934,6 @@ bool Game::Initialize() {
  	defaultStrings.emplace_back(btnMSet, 1153);
  	btnSSet = env->addButton(Scale(1, 85, 99, 105), wCmdMenu, BUTTON_CMD_SSET, gDataManager->GetSysString(1153).data());
  	defaultStrings.emplace_back(btnSSet, 1153);
@@ -114,7 +114,7 @@ index e377e85..3046905 100644
  	btnAttack = env->addButton(Scale(1, 127, 99, 147), wCmdMenu, BUTTON_CMD_ATTACK, gDataManager->GetSysString(1157).data());
  	defaultStrings.emplace_back(btnAttack, 1157);
  	btnShowList = env->addButton(Scale(1, 148, 99, 168), wCmdMenu, BUTTON_CMD_SHOWLIST, gDataManager->GetSysString(1158).data());
-@@ -1453,7 +1444,6 @@ bool Game::Initialize() {
+@@ -1457,7 +1448,6 @@ bool Game::Initialize() {
  
  	Utils::CreateResourceFolders();
  
@@ -122,7 +122,7 @@ index e377e85..3046905 100644
  	ApplySkin(EPRO_TEXT(""), true);
  	if(selectedLocale)
  		ApplyLocale(selectedLocale, true);
-@@ -1523,60 +1513,11 @@ bool Game::MainLoop() {
+@@ -1527,60 +1517,11 @@ bool Game::MainLoop() {
  				ApplySkin(EPRO_TEXT(""), true);
  			}
  		}
@@ -184,8 +184,8 @@ index e377e85..3046905 100644
  			for(auto& path : cores_to_load) {
  				void* ncore = nullptr;
  				if((ncore = ChangeOCGcore(Utils::working_dir + path, ocgcore))) {
-@@ -1607,10 +1548,6 @@ bool Game::MainLoop() {
- 			coreJustLoaded = false;
+@@ -1602,10 +1543,6 @@ bool Game::MainLoop() {
+ 			cores_to_load.clear();
  		}
  #endif //YGOPRO_BUILD_DLL
 -		for(auto& repo : gRepoManager->GetRepoStatus()) {
@@ -195,7 +195,7 @@ index e377e85..3046905 100644
  		gSoundManager->Tick();
  		fps++;
  		auto now = timer->getRealTime();
-@@ -2092,123 +2029,6 @@ void Game::SaveConfig() {
+@@ -2103,123 +2040,6 @@ void Game::SaveConfig() {
  #endif
  	gGameConfig->Save(gGameConfig->config_directory / EPRO_TEXT("system.conf"));
  }
@@ -319,7 +319,7 @@ index e377e85..3046905 100644
  void Game::LoadServers() {
  	for(auto& _config : { &gGameConfig->user_configs, &gGameConfig->configs }) {
  		auto& config = *_config;
-@@ -2945,9 +2765,8 @@ void Game::ReloadElementsStrings() {
+@@ -2956,9 +2776,8 @@ void Game::ReloadElementsStrings() {
  	((irr::gui::CGUICustomTable*)roomListTable)->setColumnText(7, gDataManager->GetSysString(1988).data());
  	roomListTable->setColumnWidth(0, roomListTable->getColumnWidth(0));
  
@@ -332,7 +332,7 @@ index e377e85..3046905 100644
  	stExpectedCoreVersion->setText(GetLocalizedExpectedCore().data());
  	stCompatVersion->setText(GetLocalizedCompatVersion().data());
 diff --git a/gframe/gframe.cpp b/gframe/gframe.cpp
-index a371671..e76b778 100644
+index a371671f..e76b7780 100644
 --- a/gframe/gframe.cpp
 +++ b/gframe/gframe.cpp
 @@ -36,7 +36,6 @@ ygo::ImageDownloader* ygo::gImageDownloader = nullptr;
@@ -352,21 +352,21 @@ index a371671..e76b778 100644
  	}
  	catch(const std::exception& e) {
 diff --git a/gframe/premake5.lua b/gframe/premake5.lua
-index 3a74bb6..6930f84 100644
+index 30836f2d..506522dc 100644
 --- a/gframe/premake5.lua
 +++ b/gframe/premake5.lua
-@@ -109,7 +109,7 @@ local ygopro_config=function(static_core)
+@@ -113,7 +113,7 @@ local ygopro_config=function(static_core)
  		if _OPTIONS["discord"] then
  			links "discord-rpc"
  		end
 -		links { "sqlite3", "event", "event_pthreads", "dl", "git2" }
 +		links { "sqlite3", "event", "event_pthreads", "dl" }
  
- 	filter "system:macosx"
- 		files "*.m"
+ 	filter { "system:windows", "action:not vs*" }
+ 		if _OPTIONS["discord"] then
 diff --git a/gframe/repo_manager.cpp b/gframe/repo_manager.cpp
 deleted file mode 100644
-index 37afbc3..0000000
+index 37afbc3e..00000000
 --- a/gframe/repo_manager.cpp
 +++ /dev/null
 @@ -1,329 +0,0 @@
@@ -701,7 +701,7 @@ index 37afbc3..0000000
 -}
 diff --git a/gframe/repo_manager.h b/gframe/repo_manager.h
 deleted file mode 100644
-index 75875dc..0000000
+index 75875dcf..00000000
 --- a/gframe/repo_manager.h
 +++ /dev/null
 @@ -1,104 +0,0 @@
@@ -809,6 +809,6 @@ index 75875dc..0000000
 -}
 -
 -#endif // REPOMANAGER_H
---
-libgit2 1.1.0
+-- 
+2.32.0
 

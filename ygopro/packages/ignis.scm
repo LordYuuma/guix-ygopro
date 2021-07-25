@@ -119,7 +119,7 @@ trivial integration and 100% testing.")
 (define-public edopro
   (package
     (name "edopro")
-    (version "39.1.0")
+    (version "39.1.2")
     (source
      (origin
        (method git-fetch)
@@ -128,7 +128,7 @@ trivial integration and 100% testing.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "11iz94a74lr1kc130ish5ylq3y7n87w9f9yaxqi27rsc7klmqcyr"))
+        (base32 "08jsx6l9dn3q7jwcnrdffhk0rvbc04a9m4vrc4k2cf6xd5ky4wm3"))
        (patches
         (search-patches
          "edopro-missing-config.patch"
