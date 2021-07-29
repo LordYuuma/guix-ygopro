@@ -8,6 +8,7 @@
   #:use-module ((guix licenses) #:prefix license:)
   #:use-module (ygopro packages)
   #:use-module (gnu packages build-tools)
+  #:use-module (gnu packages compression)
   #:use-module (gnu packages curl)
   #:use-module (gnu packages fonts)
   #:use-module (gnu packages fontutils)
@@ -133,7 +134,6 @@ trivial integration and 100% testing.")
         (base32 "08jsx6l9dn3q7jwcnrdffhk0rvbc04a9m4vrc4k2cf6xd5ky4wm3"))
        (patches
         (search-patches
-         "edopro-missing-config.patch"
          "edopro-utf8-source.patch"
          "edopro-respect-YGOPRO_-_PATH.patch"
          "edopro-respect-XDG-environment-variables.patch"
@@ -188,6 +188,11 @@ trivial integration and 100% testing.")
              (substitute* "gframe/image_manager.cpp"
                (("CHECK_RETURN\\(tSettings.*\\);") ""))
              #t))
+         (add-after 'unpack 'unpack-assets
+           (lambda* (#:key inputs #:allow-other-keys)
+             (invoke "unzip" "-o"
+                     (assoc-ref inputs "edopro-assets")
+                     "config/strings.conf")))
          (delete 'bootstrap)
          (replace 'configure
            (lambda* (#:key configure-flags inputs #:allow-other-keys)
@@ -208,9 +213,20 @@ trivial integration and 100% testing.")
                                  (string-append datadir "/textures"))
                (install-file "bin/debug/ygopro" bindir)
                #t))))))
+    (native-inputs
+     `(("unzip" ,unzip)))
     (inputs
      `(("curl" ,curl)
        ("edopro-core" ,edopro-core)
+       ("edopro-assets"
+        ,(origin
+           (method url-fetch)
+           (uri
+            (string-append "https://github.com/ProjectIgnis/edopro-assets/"
+                           "releases/download/" version
+                           "/ProjectIgnis-EDOPro-" version "-linux-patch.zip"))
+           (sha256
+            (base32 "04z7rjh0lw7icq9n6fcjzyqry2j0jpmjb351rsg02xxiligdljj0"))))
        ("font-google-noto" ,font-google-noto)
        ("freetype" ,freetype)
        ("fmt" ,fmt)
