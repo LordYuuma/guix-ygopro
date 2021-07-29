@@ -1,18 +1,17 @@
-From ec81bd8c5cb391147f0cae258e8c70689faf20fa Mon Sep 17 00:00:00 2001
+From 79b939e5914c818f6f302a9aab4b05621fda5105 Mon Sep 17 00:00:00 2001
 From: Lord Yuuma <lordyuuma@gmail.com>
 Date: Sat, 12 Jun 2021 02:27:25 +0200
 Subject: [PATCH] Drop RepoManager.
 
 ---
- gframe/data_handler.cpp  |   3 -
- gframe/data_handler.h    |   2 -
- gframe/event_handler.cpp |  11 --
- gframe/game.cpp          | 187 +---------------------
- gframe/gframe.cpp        |   2 -
- gframe/premake5.lua      |   2 +-
- gframe/repo_manager.cpp  | 329 ---------------------------------------
- gframe/repo_manager.h    | 104 -------------
- 8 files changed, 4 insertions(+), 636 deletions(-)
+ gframe/data_handler.cpp |   3 -
+ gframe/data_handler.h   |   2 -
+ gframe/game.cpp         | 185 +---------------------
+ gframe/gframe.cpp       |   2 -
+ gframe/premake5.lua     |   2 +-
+ gframe/repo_manager.cpp | 329 ----------------------------------------
+ gframe/repo_manager.h   | 104 -------------
+ 7 files changed, 4 insertions(+), 623 deletions(-)
  delete mode 100644 gframe/repo_manager.cpp
  delete mode 100644 gframe/repo_manager.h
 
@@ -51,30 +50,8 @@ index f7ae35f1..27d98cc3 100644
  	std::unique_ptr<GameConfig> configs = nullptr;
  	std::unique_ptr<SoundManager> sounds = nullptr;
  	std::unique_ptr<DataManager> dataManager = nullptr;
-diff --git a/gframe/event_handler.cpp b/gframe/event_handler.cpp
-index 9a50a951..1ee0d78c 100644
---- a/gframe/event_handler.cpp
-+++ b/gframe/event_handler.cpp
-@@ -2617,17 +2617,6 @@ void ClientField::ShowMenu(int flag, int x, int y) {
- 		mainGame->btnSSet->setRelativePosition(irr::core::vector2di(1, height));
- 		height += increase;
- 	} else mainGame->btnSSet->setVisible(false);
--	if(flag & COMMAND_REPOS) {
--		if(clicked_card->position & POS_FACEDOWN)
--			mainGame->btnRepos->setText(gDataManager->GetSysString(1154).data());
--		else if(clicked_card->position & POS_ATTACK)
--			mainGame->btnRepos->setText(gDataManager->GetSysString(1155).data());
--		else
--			mainGame->btnRepos->setText(gDataManager->GetSysString(1156).data());
--		mainGame->btnRepos->setVisible(true);
--		mainGame->btnRepos->setRelativePosition(irr::core::vector2di(1, height));
--		height += increase;
--	} else mainGame->btnRepos->setVisible(false);
- 	if(flag & COMMAND_ATTACK) {
- 		mainGame->btnAttack->setVisible(true);
- 		mainGame->btnAttack->setRelativePosition(irr::core::vector2di(1, height));
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index 2dc60688..bea934c3 100644
+index 2dc60688..39d99afa 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
 @@ -6,7 +6,6 @@
@@ -105,16 +82,7 @@ index 2dc60688..bea934c3 100644
  	//
  	wHand = env->addWindow(Scale(500, 450, 825, 605), false, L"");
  	wHand->getCloseButton()->setVisible(false);
-@@ -941,8 +934,6 @@ bool Game::Initialize() {
- 	defaultStrings.emplace_back(btnMSet, 1153);
- 	btnSSet = env->addButton(Scale(1, 85, 99, 105), wCmdMenu, BUTTON_CMD_SSET, gDataManager->GetSysString(1153).data());
- 	defaultStrings.emplace_back(btnSSet, 1153);
--	btnRepos = env->addButton(Scale(1, 106, 99, 126), wCmdMenu, BUTTON_CMD_REPOS, gDataManager->GetSysString(1154).data());
--	defaultStrings.emplace_back(btnRepos, 1154);
- 	btnAttack = env->addButton(Scale(1, 127, 99, 147), wCmdMenu, BUTTON_CMD_ATTACK, gDataManager->GetSysString(1157).data());
- 	defaultStrings.emplace_back(btnAttack, 1157);
- 	btnShowList = env->addButton(Scale(1, 148, 99, 168), wCmdMenu, BUTTON_CMD_SHOWLIST, gDataManager->GetSysString(1158).data());
-@@ -1457,7 +1448,6 @@ bool Game::Initialize() {
+@@ -1457,7 +1450,6 @@ bool Game::Initialize() {
  
  	Utils::CreateResourceFolders();
  
@@ -122,7 +90,7 @@ index 2dc60688..bea934c3 100644
  	ApplySkin(EPRO_TEXT(""), true);
  	if(selectedLocale)
  		ApplyLocale(selectedLocale, true);
-@@ -1527,60 +1517,11 @@ bool Game::MainLoop() {
+@@ -1527,60 +1519,11 @@ bool Game::MainLoop() {
  				ApplySkin(EPRO_TEXT(""), true);
  			}
  		}
@@ -184,7 +152,7 @@ index 2dc60688..bea934c3 100644
  			for(auto& path : cores_to_load) {
  				void* ncore = nullptr;
  				if((ncore = ChangeOCGcore(Utils::working_dir + path, ocgcore))) {
-@@ -1602,10 +1543,6 @@ bool Game::MainLoop() {
+@@ -1602,10 +1545,6 @@ bool Game::MainLoop() {
  			cores_to_load.clear();
  		}
  #endif //YGOPRO_BUILD_DLL
@@ -195,7 +163,7 @@ index 2dc60688..bea934c3 100644
  		gSoundManager->Tick();
  		fps++;
  		auto now = timer->getRealTime();
-@@ -2103,123 +2040,6 @@ void Game::SaveConfig() {
+@@ -2103,123 +2042,6 @@ void Game::SaveConfig() {
  #endif
  	gGameConfig->Save(gGameConfig->config_directory / EPRO_TEXT("system.conf"));
  }
@@ -319,7 +287,7 @@ index 2dc60688..bea934c3 100644
  void Game::LoadServers() {
  	for(auto& _config : { &gGameConfig->user_configs, &gGameConfig->configs }) {
  		auto& config = *_config;
-@@ -2956,9 +2776,8 @@ void Game::ReloadElementsStrings() {
+@@ -2956,9 +2778,8 @@ void Game::ReloadElementsStrings() {
  	((irr::gui::CGUICustomTable*)roomListTable)->setColumnText(7, gDataManager->GetSysString(1988).data());
  	roomListTable->setColumnWidth(0, roomListTable->getColumnWidth(0));
  
