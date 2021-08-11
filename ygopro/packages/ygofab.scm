@@ -15,6 +15,37 @@
   #:use-module (gnu packages lua)
   #:use-module (gnu packages sqlite))
 
+(define (make-lua-i18n name lua)
+  (package
+    (name name)
+    (version "0.9.2")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/kikito/i18n.lua")
+             (commit (string-append "v" version))))
+       (sha256
+        (base32
+         "0sm9v1nsyn8z3kb0z45if7ig7bqvkry1y0gi70rl5gqqv62w8xi2"))))
+    (build-system copy-build-system)
+    (arguments
+     `(#:install-plan
+       `(("i18n"
+          ,(string-append "share/lua/"
+                          ,(version-major+minor (package-version lua))
+                          "/i18n")))))
+    (inputs `(("lua" ,lua-5.1)))
+    (home-page "https://github.com/jonstoler/lua-toml")
+    (synopsis "Internationalization library for Lua")
+    (description "i18n is an internationalization library that handles
+hierarchies of tags, accepts entries in several ways (one by one, in a table
+or in a file) and implements a lot of pluralization rules, fallbacks,
+and more.")
+    (license license:expat)))
+
+(define-public lua5.1-i18n (make-lua-i18n "lua5.1-i18n" lua-5.1))
+
 (define-public (make-lua-path name lua)
   (package
     (name name)
