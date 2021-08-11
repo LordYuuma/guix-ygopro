@@ -544,18 +544,21 @@ generating card pics, etc.")
    `(("font-cinzel" ,font-cinzel)
      ("font-dejavu" ,font-dejavu))
    '(("card_name"
-      (file "font-cinzel" "opentype/Cinzel-Bold.otf")
+      (file "font-cinzel" "truetype/Cinzel-Bold.ttf")
       (family . "Cinzel Bold")
       (scale . 0.9))
      ("monster_desc"
-      (file "font-cinzel" "opentype/Cinzel-Black.otf")
+      (file "font-cinzel" "truetype/Cinzel-Black.ttf")
       (family . "Cinzel Black")
       (scale . 0.9))
      ("values"
-      (file "font-cinzel" "opentype/Cinzel-SemiBold.otf")
+      (file "font-cinzel" "truetype/Cinzel-SemiBold.ttf")
       (family . "Cinzel SemiBold")
       (scale . 0.85))
      ("signature"
+      (file "font-dejavu" "truetype/DejaVuSerif.ttf")
+      (family . "DejaVu Serif"))
+     ("edition"
       (file "font-dejavu" "truetype/DejaVuSerif.ttf")
       (family . "DejaVu Serif"))
      ("effect"
