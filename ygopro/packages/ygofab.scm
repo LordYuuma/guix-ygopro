@@ -276,17 +276,21 @@ library using FFI and luajit.")
 (define lua5.1-vips (make-lua-vips "lua5.1-vips" lua-5.1 luajit))
 
 (define font-cinzel
-  (package
+  (let ((commit "dd598495b0fb2ad84270d5cc75d642d2f1e8eabf")
+        (revision "0"))
+   (package
     (name "font-cinzel")
-    (version "1.001")
+    (version (git-version "1.001" revision commit))
     (source
      (origin
-       (method url-fetch/zipbomb)
-       (uri (string-append "http://www.ndiscover.com/wp-content/themes"
-                           "/barrel-child/fonts/demo/cinzel/cinzel.zip"))
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/NDISCOVER/Cinzel")
+             (commit commit)))
+       (file-name (git-file-name name version))
        (sha256
         (base32
-         "14xr8grbm75wxalhyxj6mjvwbgrrs22l9bc14vymylx5j87s64ky"))))
+         "0s39byijgcwpcph6gsgp1kx9afw7bih9lwwra80xs72yxv2x4ysp"))))
     (build-system font-build-system)
     (home-page "https://www.ndiscover.com")
     (synopsis "SmallCaps font inspired by Roman inscriptions")
@@ -294,7 +298,7 @@ library using FFI and luajit.")
      "Cinzel is a typeface inspired in first century roman inscriptions, and
 based on classical proportions.  While it conveys all the ancient history of
 the latin alphabet, it also merges a contemporary feel onto it.")
-    (license license:silofl1.1)))
+    (license license:silofl1.1))))
 
 (define (make-ygo-fabrica font-packages font-replacements)
   (package
