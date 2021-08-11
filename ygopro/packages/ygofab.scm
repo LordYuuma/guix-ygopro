@@ -380,7 +380,7 @@ the latin alphabet, it also merges a contemporary feel onto it.")
 (define (make-ygo-fabrica font-packages font-replacements)
   (package
     (name "ygo-fabrica")
-    (version "1.0.2")
+    (version "2.0.0")
     (source
      (origin
        (method git-fetch)
@@ -389,23 +389,26 @@ the latin alphabet, it also merges a contemporary feel onto it.")
              (commit (string-append "v" version))))
        (sha256
         (base32
-         "1aj3slmhbq4gip8lqyj256vy5v91l6w96v0d0y7dpq0xcnxz51dw"))))
+         "1kgx4hry0ynr5c44j66yih1y2svvfcaqxga4fvc1akd6q13sbdy2"))))
     (build-system copy-build-system)
     (arguments
      `(#:install-plan
        `(("bin" "bin")
          ("etc" "etc")
-         ("lib"
-          ,(string-append
-            "share/lua/5.1/ygofab/lib"))
-         ("scripts"
-          ,(string-append
-            "share/lua/5.1/ygofab/scripts"))
-         ("res" "share/ygofab"))
+         ("lib" "share/lua/5.1/ygofab/lib")
+         ("locale" "share/ygofab/locale" #:exclude ("init.lua"))
+         ("locale/init.lua" "share/lua/5.1/ygofab/locale.lua")
+         ("scripts" "share/lua/5.1/ygofab/scripts")
+         ("scripts/composer/modes" "share/ygofab/composer/modes")
+         ("res" "share/ygofab" #:exclude-regexp ("\\.lua$"))
+         ("res/composer/fonts/init.lua"
+          "share/lua/5.1/ygofab/res/composer/fonts.lua"))
        #:phases
        (modify-phases %standard-phases
          (add-after 'unpack 'patch-sources
            (lambda* (#:key inputs outputs #:allow-other-keys)
+             (substitute* "locale/init.lua"
+               (("prjoin\\('locale'") "prjoin('share', 'ygofab', 'locale'"))
              (substitute* "scripts/config.lua"
                (("HOME") "INSTALL_HOME")
                (("local INSTALL_HOME = .*$")
@@ -419,10 +422,10 @@ local XDG_CONFIG_HOME = os.getenv(\"XDG_CONFIG_HOME\") or (os.getenv(\"HOME\")\
                                "or load_file")))
              (substitute* (find-files "scripts" ".*\\.lua")
                (("lsqlite3complete") "lsqlite3")
-               (("prjoin\\(\"res\"") "prjoin(\"share\", \"ygofab\""))
+               (("prjoin\\('(res\|scripts)'") "prjoin('share', 'ygofab'"))
              (substitute* "scripts/composer/type-writer.lua"
                (("justify = j,") ""))
-             (substitute* "scripts/composer/layouts.lua"
+             (substitute* (find-files "scripts/composer" "layouts\\.lua$")
                (("Fonts.path = .*") "")
                (("Fonts.get_family\\(\"([a-z_]+)\", \"([0-9.]+)\")" all idx size)
                 (let* ((replacement
@@ -431,10 +434,11 @@ local XDG_CONFIG_HOME = os.getenv(\"XDG_CONFIG_HOME\") or (os.getenv(\"HOME\")\
                        (size (* (or (assoc-ref replacement 'scale) 1)
                                 (string->number size))))
                  (format #f "Fonts.get_family(\"~a\", \"~1$\")" idx size))))
-             (substitute* "scripts/composer/fonts.lua"
+             (substitute* "res/composer/fonts/init.lua"
                (("path = .*,") "")
-               (("Fonts.path .. \"/\" ..") "")
-               (("([a-z_]*) = \\{ file = \"(.*)\", family = \"(.*)\" \\}"
+               (("path.join\\(Fonts\\.path, Fonts\\.fonts\\[id\\]\\.file\\)")
+                "Fonts.fonts[id].file")
+               (("([a-z_]*) = \\{[ ]*file = '(.*)', family = '(.*)'[ ]*\\}"
                  all idx file family)
                 (let ((replacement (assoc-ref (quote ,font-replacements) idx))
                       (font (lambda (input file)
@@ -442,10 +446,10 @@ local XDG_CONFIG_HOME = os.getenv(\"XDG_CONFIG_HOME\") or (os.getenv(\"HOME\")\
                                              "/share/fonts/"
                                              file))))
                   (if replacement
-                      (format #f "~a = { file = \"~a\", family = \"~a\" }"
+                      (format #f "~a = { file = '~a', family = '~a' }"
                               idx (apply font (assoc-ref replacement 'file))
                               (or (assoc-ref replacement 'family) family))
-                      (format #f "~a = { file = \"~a/~a/~a\", family = \"~a\"}"
+                      (format #f "~a = { file = '~a/~a/~a', family = '~a' }"
                               idx (assoc-ref outputs "out")
                               "share/ygofab/composer/fonts" file
                               family)))))
@@ -472,6 +476,8 @@ local XDG_CONFIG_HOME = os.getenv(\"XDG_CONFIG_HOME\") or (os.getenv(\"HOME\")\
            (lambda* (#:key inputs outputs #:allow-other-keys)
              (define* (package-path pkg #:optional (version? #t))
                (string-append (assoc-ref inputs pkg) "/share/lua/5.1/?.lua"))
+             (define* (package-init-lua pkg #:optional (version? #t))
+               (string-append (assoc-ref inputs pkg) "/share/lua/5.1/?/init.lua"))
              (define (package-cpath pkg)
                (string-append (assoc-ref inputs pkg) "/lib/lua/5.1/?.so"))
              (mkdir-p "bin")
@@ -484,7 +490,11 @@ local XDG_CONFIG_HOME = os.getenv(\"XDG_CONFIG_HOME\") or (os.getenv(\"HOME\")\
                             (string-join
                              (list
                               (string-append (assoc-ref outputs "out")
+                                             "/share/lua/5.1/ygofab/?/init.lua")
+                              (string-append (assoc-ref outputs "out")
                                              "/share/lua/5.1/ygofab/?.lua")
+                              (package-init-lua "lua-i18n")
+                              (package-path "lua-i18n")
                               (package-path "lua-path")
                               (package-path "lua-toml")
                               (package-path "lua-vips")
@@ -495,6 +505,7 @@ local XDG_CONFIG_HOME = os.getenv(\"XDG_CONFIG_HOME\") or (os.getenv(\"HOME\")\
                                           (package-cpath "lua-filesystem")
                                           (package-cpath "lua-sqlite")
                                           (package-cpath "lua-struct")
+                                          (package-cpath "lua-utf8")
                                           (package-cpath "lua-zlib"))
                                          ";"))
                     (format #t "export YGOFAB_ROOT=\"~a\"~%"
@@ -510,10 +521,12 @@ local XDG_CONFIG_HOME = os.getenv(\"XDG_CONFIG_HOME\") or (os.getenv(\"HOME\")\
        ("lua" ,lua-5.1)
        ("luajit" ,luajit)
        ("lua-filesystem" ,lua5.1-filesystem)
+       ("lua-i18n" ,lua5.1-i18n)
        ("lua-path" ,lua5.1-path)
        ("lua-sqlite" ,lua5.1-sqlite)
        ("lua-struct" ,lua5.1-struct)
        ("lua-toml" ,lua5.1-toml)
+       ("lua-utf8" ,lua5.1-utf8)
        ("lua-vips" ,lua5.1-vips)
        ("lua-zipwriter" ,lua5.1-zipwriter)
        ("lua-zlib" ,lua5.1-zlib)))
