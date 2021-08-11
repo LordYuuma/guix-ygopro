@@ -156,6 +156,52 @@ an interface to read/write TOML files.")
 
 (define-public lua5.1-toml (make-lua-toml "lua5.1-toml" lua-5.1))
 
+(define (make-lua-utf8 name lua)
+  (package
+    (name name)
+    (version "0.1.3")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/starwing/luautf8")
+             (commit version)))
+       (sha256
+        (base32
+         "19hs8rml4klj05c3g5hf3fnskk2jlcamlx2n014yxdyz6qngv6pn"))))
+    (build-system copy-build-system)
+    (arguments
+     `(#:install-plan
+       `(("lua-utf8.so"
+          ,(string-append "lib/lua/"
+                          ,(version-major+minor (package-version lua))
+                          "/")))
+       #:phases
+       (modify-phases %standard-phases
+         (add-before 'install 'build
+           (lambda _
+             (invoke "gcc" "-Wall"
+                     "-fPIC" "-shared"
+                     "lutf8lib.c" "-o" "lua-utf8.so")))
+         (add-after 'install 'link
+           (lambda* (#:key outputs #:allow-other-keys)
+             (let ((out (assoc-ref outputs "out"))
+                   (version ,(version-major+minor (package-version lua))))
+
+               (symlink (string-append out "/lib/lua/" version "/lua-utf8.so")
+                        (string-append out "/lib/lua/" version "/utf8.so")))
+             #t)))))
+    (inputs `(("lua" ,lua-5.1)))
+    (home-page "https://github.com/jonstoler/lua-toml")
+    (synopsis "Internationalization library for Lua")
+    (description "i18n is an internationalization library that handles
+hierarchies of tags, accepts entries in several ways (one by one, in a table
+or in a file) and implements a lot of pluralization rules, fallbacks,
+and more.")
+    (license license:expat)))
+
+(define-public lua5.1-utf8 (make-lua-utf8 "lua5.1-utf8" lua-5.1))
+
 (define (make-lua-zlib name lua)
   (package
     (name "lua-zlib")
