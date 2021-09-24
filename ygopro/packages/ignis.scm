@@ -414,7 +414,8 @@ built on top of that.")
 
                    (merge-lflists
                     "out"
-                    '("OCG" "OCG.Korea" "0TCG" "Traditional" "World"))
+                    '("OCG" "OCG.new" "OCG.Korea"
+                      "0TCG" "0TCG.new" "Traditional" "World"))
                    (merge-lflists "goat" '("GOAT"))
                    (merge-lflists "rush" '("Rush" "Rush-Prerelease"))
                    (merge-lflists "skills" '("Speed"))))))))))))
