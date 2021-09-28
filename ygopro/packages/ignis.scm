@@ -122,7 +122,7 @@ trivial integration and 100% testing.")
 (define-public edopro
   (package
     (name "edopro")
-    (version "39.1.2")
+    (version "39.2.1")
     (source
      (origin
        (method git-fetch)
@@ -131,7 +131,7 @@ trivial integration and 100% testing.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "08jsx6l9dn3q7jwcnrdffhk0rvbc04a9m4vrc4k2cf6xd5ky4wm3"))
+        (base32 "17kb4lnl1mkmcdl4ynfv5na4cz0n8rmv2v78d4cybfk9pcx5cv6i"))
        (patches
         (search-patches
          "edopro-utf8-source.patch"
@@ -219,14 +219,15 @@ trivial integration and 100% testing.")
      `(("curl" ,curl)
        ("edopro-core" ,edopro-core)
        ("edopro-assets"
-        ,(origin
-           (method url-fetch)
-           (uri
-            (string-append "https://github.com/ProjectIgnis/edopro-assets/"
-                           "releases/download/" version
-                           "/ProjectIgnis-EDOPro-" version "-linux-patch.zip"))
-           (sha256
-            (base32 "04z7rjh0lw7icq9n6fcjzyqry2j0jpmjb351rsg02xxiligdljj0"))))
+        ,(let ((version "39.1.2"))
+           (origin
+            (method url-fetch)
+            (uri
+             (string-append "https://github.com/ProjectIgnis/edopro-assets/"
+                            "releases/download/" version
+                            "/ProjectIgnis-EDOPro-" version "-linux-patch.zip"))
+            (sha256
+             (base32 "04z7rjh0lw7icq9n6fcjzyqry2j0jpmjb351rsg02xxiligdljj0")))))
        ("font-google-noto" ,font-google-noto)
        ("freetype" ,freetype)
        ("fmt" ,fmt)

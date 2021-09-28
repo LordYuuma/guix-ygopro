@@ -1,25 +1,25 @@
-From 79b939e5914c818f6f302a9aab4b05621fda5105 Mon Sep 17 00:00:00 2001
+From 5d9e942d3e6abe617f17947c8d7b63eaa1a7afaf Mon Sep 17 00:00:00 2001
 From: Lord Yuuma <lordyuuma@gmail.com>
 Date: Sat, 12 Jun 2021 02:27:25 +0200
 Subject: [PATCH] Drop RepoManager.
 
 ---
- gframe/data_handler.cpp |   3 -
- gframe/data_handler.h   |   2 -
- gframe/game.cpp         | 185 +---------------------
- gframe/gframe.cpp       |   2 -
+ gframe/data_handler.cpp |   3 ---
+ gframe/data_handler.h   |   2 --
+ gframe/game.cpp         | 183 +++------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ gframe/gframe.cpp       |   2 --
  gframe/premake5.lua     |   2 +-
- gframe/repo_manager.cpp | 329 ----------------------------------------
- gframe/repo_manager.h   | 104 -------------
- 7 files changed, 4 insertions(+), 623 deletions(-)
+ gframe/repo_manager.cpp | 352 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ gframe/repo_manager.h   | 105 ---------------------------------------------------------------------------------------------------------
+ 7 files changed, 4 insertions(+), 645 deletions(-)
  delete mode 100644 gframe/repo_manager.cpp
  delete mode 100644 gframe/repo_manager.h
 
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
-index 8d6a43c7..dad2d349 100644
+index a904dcc..f2728db 100644
 --- a/gframe/data_handler.cpp
 +++ b/gframe/data_handler.cpp
-@@ -172,10 +172,7 @@ DataHandler::DataHandler(epro::path_stringview working_dir) {
+@@ -136,10 +136,7 @@ DataHandler::DataHandler(epro::path_stringview working_dir) {
  	Utils::working_dir = Utils::NormalizePath(working_dir);
  	LoadZipArchives();
  	deckManager = std::unique_ptr<DeckManager>(new DeckManager());
@@ -31,7 +31,7 @@ index 8d6a43c7..dad2d349 100644
  	LoadDatabases();
  	LoadPicUrls();
 diff --git a/gframe/data_handler.h b/gframe/data_handler.h
-index f7ae35f1..27d98cc3 100644
+index f7ae35f..27d98cc 100644
 --- a/gframe/data_handler.h
 +++ b/gframe/data_handler.h
 @@ -2,7 +2,6 @@
@@ -51,7 +51,7 @@ index f7ae35f1..27d98cc3 100644
  	std::unique_ptr<SoundManager> sounds = nullptr;
  	std::unique_ptr<DataManager> dataManager = nullptr;
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index 2dc60688..39d99afa 100644
+index b86b1d3..309ee44 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
 @@ -6,7 +6,6 @@
@@ -62,7 +62,7 @@ index 2dc60688..39d99afa 100644
  #include "image_downloader.h"
  #include "config.h"
  #include "game.h"
-@@ -156,7 +155,6 @@ bool Game::Initialize() {
+@@ -167,7 +166,6 @@ bool Game::Initialize() {
  	chkCommitLogExpand = env->addCheckBox(false, Scale(295, 435, 500, 460), wCommitsLog, BUTTON_REPO_CHANGELOG_EXPAND, gDataManager->GetSysString(1447).data());
  	defaultStrings.emplace_back(chkCommitLogExpand, 1447);
  	mTopMenu = irr::gui::CGUICustomMenu::addCustomMenu(env);
@@ -70,7 +70,7 @@ index 2dc60688..39d99afa 100644
  	mAbout = mTopMenu->getSubMenu(mTopMenu->addItem(gDataManager->GetSysString(1970).data(), 2, true, true));
  	wAbout = env->addWindow(Scale(0, 0, 450, 700), false, L"", mAbout);
  	wAbout->getCloseButton()->setVisible(false);
-@@ -754,11 +752,6 @@ bool Game::Initialize() {
+@@ -772,11 +770,6 @@ bool Game::Initialize() {
  	btnSettings->setDrawBorder(false);
  	btnSettings->setImageSize(dimBtnSettings.getSize());
  	btnSettings->setImage(imageManager.tSettings);
@@ -82,7 +82,7 @@ index 2dc60688..39d99afa 100644
  	//
  	wHand = env->addWindow(Scale(500, 450, 825, 605), false, L"");
  	wHand->getCloseButton()->setVisible(false);
-@@ -1457,7 +1450,6 @@ bool Game::Initialize() {
+@@ -1511,7 +1504,6 @@ bool Game::Initialize() {
  
  	Utils::CreateResourceFolders();
  
@@ -90,7 +90,7 @@ index 2dc60688..39d99afa 100644
  	ApplySkin(EPRO_TEXT(""), true);
  	if(selectedLocale)
  		ApplyLocale(selectedLocale, true);
-@@ -1527,60 +1519,11 @@ bool Game::MainLoop() {
+@@ -1581,58 +1573,11 @@ bool Game::MainLoop() {
  				ApplySkin(EPRO_TEXT(""), true);
  			}
  		}
@@ -105,10 +105,10 @@ index 2dc60688..39d99afa 100644
 -				if(!repo->is_language) {
 -					for(auto& file : files) {
 -						const auto db_path = data_path + file;
--						bool db_loaded = gDataManager->LoadDB(db_path);
--						if(db_loaded)
+-						if(gDataManager->LoadDB(db_path)) {
 -							WindBot::AddDatabase(db_path);
--						refresh_db = db_loaded || refresh_db;
+-							refresh_db = true;
+-						}
 -					}
 -					gDataManager->LoadStrings(data_path + EPRO_TEXT("strings.conf"));
 -				} else {
@@ -120,11 +120,9 @@ index 2dc60688..39d99afa 100644
 -					auto langpath = Utils::ToPathString(repo->language);
 -					auto lang = Utils::ToUpperNoAccents(langpath);
 -					auto it = std::find_if(locales.begin(), locales.end(),
--										   [&lang]
--					(const std::pair<epro::path_string, std::vector<epro::path_string>>& locale)->bool
--					{
--						return Utils::ToUpperNoAccents(locale.first) == lang;
--					});
+-										   [&lang](const auto& locale) {
+-											   return Utils::ToUpperNoAccents(locale.first) == lang;
+-										   });
 -					if(it != locales.end()) {
 -						it->second.push_back(std::move(data_path));
 -					} else {
@@ -152,7 +150,7 @@ index 2dc60688..39d99afa 100644
  			for(auto& path : cores_to_load) {
  				void* ncore = nullptr;
  				if((ncore = ChangeOCGcore(Utils::working_dir + path, ocgcore))) {
-@@ -1602,10 +1545,6 @@ bool Game::MainLoop() {
+@@ -1653,10 +1598,6 @@ bool Game::MainLoop() {
  			cores_to_load.clear();
  		}
  #endif //YGOPRO_BUILD_DLL
@@ -163,7 +161,7 @@ index 2dc60688..39d99afa 100644
  		gSoundManager->Tick();
  		fps++;
  		auto now = timer->getRealTime();
-@@ -2103,123 +2042,6 @@ void Game::SaveConfig() {
+@@ -2163,123 +2104,6 @@ void Game::SaveConfig() {
  #endif
  	gGameConfig->Save(gGameConfig->config_directory / EPRO_TEXT("system.conf"));
  }
@@ -287,7 +285,7 @@ index 2dc60688..39d99afa 100644
  void Game::LoadServers() {
  	for(auto& _config : { &gGameConfig->user_configs, &gGameConfig->configs }) {
  		auto& config = *_config;
-@@ -2956,9 +2778,8 @@ void Game::ReloadElementsStrings() {
+@@ -3018,9 +2842,8 @@ void Game::ReloadElementsStrings() {
  	((irr::gui::CGUICustomTable*)roomListTable)->setColumnText(7, gDataManager->GetSysString(1988).data());
  	roomListTable->setColumnWidth(0, roomListTable->getColumnWidth(0));
  
@@ -300,7 +298,7 @@ index 2dc60688..39d99afa 100644
  	stExpectedCoreVersion->setText(GetLocalizedExpectedCore().data());
  	stCompatVersion->setText(GetLocalizedCompatVersion().data());
 diff --git a/gframe/gframe.cpp b/gframe/gframe.cpp
-index a371671f..e76b7780 100644
+index 2496607..ea7c0eb 100644
 --- a/gframe/gframe.cpp
 +++ b/gframe/gframe.cpp
 @@ -36,7 +36,6 @@ ygo::ImageDownloader* ygo::gImageDownloader = nullptr;
@@ -311,7 +309,7 @@ index a371671f..e76b7780 100644
  ygo::DeckManager* ygo::gdeckManager = nullptr;
  ygo::ClientUpdater* ygo::gClientUpdater = nullptr;
  JWrapper* gJWrapper = nullptr;
-@@ -211,7 +210,6 @@ int _tmain(int argc, epro::path_char* argv[]) {
+@@ -232,7 +231,6 @@ int _tmain(int argc, epro::path_char* argv[]) {
  		ygo::gImageDownloader = data->imageDownloader.get();
  		ygo::gDataManager = data->dataManager.get();
  		ygo::gSoundManager = data->sounds.get();
@@ -320,7 +318,7 @@ index a371671f..e76b7780 100644
  	}
  	catch(const std::exception& e) {
 diff --git a/gframe/premake5.lua b/gframe/premake5.lua
-index 30836f2d..506522dc 100644
+index fdf8fa0..2508690 100644
 --- a/gframe/premake5.lua
 +++ b/gframe/premake5.lua
 @@ -113,7 +113,7 @@ local ygopro_config=function(static_core)
@@ -334,10 +332,10 @@ index 30836f2d..506522dc 100644
  		if _OPTIONS["discord"] then
 diff --git a/gframe/repo_manager.cpp b/gframe/repo_manager.cpp
 deleted file mode 100644
-index 37afbc3e..00000000
+index 88d082e..0000000
 --- a/gframe/repo_manager.cpp
 +++ /dev/null
-@@ -1,329 +0,0 @@
+@@ -1,352 +0,0 @@
 -// Copyright (c) 2019-2020 Edoardo Lolletti <edoardo762@gmail.com>
 -// Copyright (c) 2020 Dylam De La Torre <dyxel04@gmail.com>
 -// SPDX-License-Identifier: AGPL-3.0-or-later
@@ -351,6 +349,9 @@ index 37afbc3e..00000000
 -#include "libgit2.hpp"
 -
 -static constexpr int MAX_HISTORY_LENGTH = 100;
+-static constexpr int FETCH_OBJECTS_PERCENTAGE = 60;
+-static constexpr int DELTA_OBJECTS_PERCENTAGE = 80;
+-static constexpr int CHECKOUT_PERCENTAGE = 99;
 -
 -namespace ygo {
 -
@@ -528,14 +529,15 @@ index 37afbc3e..00000000
 -
 -// private
 -
--void RepoManager::AddRepo(GitRepo repo) {
+-void RepoManager::AddRepo(GitRepo&& repo) {
 -	std::unique_lock<std::mutex> lck(syncing_mutex);
 -	if(repos_status.find(repo.repo_path) != repos_status.end())
 -		return;
 -	repos_status.emplace(repo.repo_path, 0);
--	all_repos.emplace_front(std::move(repo));
--	available_repos.push_back(&all_repos.front());
--	to_sync.push(&all_repos.front());
+-	all_repos.push_front(std::move(repo));
+-	auto* _repo = &all_repos.front();
+-	available_repos.push_back(_repo);
+-	to_sync.push(_repo);
 -	cv.notify_all();
 -}
 -
@@ -594,7 +596,7 @@ index 37afbc3e..00000000
 -			};
 -			const std::string& url = _repo.url;
 -			const std::string& path = _repo.repo_path;
--			FetchCbPayload payload{ this, path };
+-			GitCbPayload payload{ this, path };
 -			if(DoesRepoExist(path.data())) {
 -				auto repo = Git::MakeUnique(git_repository_open_ext, path.data(),
 -											GIT_REPOSITORY_OPEN_NO_SEARCH, nullptr);
@@ -609,12 +611,16 @@ index 37afbc3e..00000000
 -						auto remote = Git::MakeUnique(git_remote_lookup, repo.get(), "origin");
 -						Git::Check(git_remote_fetch(remote.get(), nullptr, &fetchOpts, nullptr));
 -						QueryPartialHistory(repo.get(), walker.get());
+-						SetRepoPercentage(path, DELTA_OBJECTS_PERCENTAGE);
 -						// git reset --hard FETCH_HEAD
+-						git_checkout_options checkoutOpts = GIT_CHECKOUT_OPTIONS_INIT;
+-						checkoutOpts.progress_cb = RepoManager::CheckoutCb;
+-						checkoutOpts.progress_payload = &payload;
 -						git_oid oid;
 -						Git::Check(git_reference_name_to_id(&oid, repo.get(), "FETCH_HEAD"));
 -						auto commit = Git::MakeUnique(git_commit_lookup, repo.get(), &oid);
 -						Git::Check(git_reset(repo.get(), reinterpret_cast<git_object*>(commit.get()),
--											 GIT_RESET_HARD, nullptr));
+-											 GIT_RESET_HARD, &checkoutOpts));
 -					}
 -					catch(const std::exception& e) {
 -						history.partial_history.clear();
@@ -635,6 +641,8 @@ index 37afbc3e..00000000
 -				git_clone_options cloneOpts = GIT_CLONE_OPTIONS_INIT;
 -				cloneOpts.fetch_opts.callbacks.transfer_progress = RepoManager::FetchCb;
 -				cloneOpts.fetch_opts.callbacks.payload = &payload;
+-				cloneOpts.checkout_opts.progress_cb = RepoManager::CheckoutCb;
+-				cloneOpts.checkout_opts.progress_payload = &payload;
 -				auto repo = Git::MakeUnique(git_clone, url.data(), path.data(), &cloneOpts);
 -				auto walker = Git::MakeUnique(git_revwalk_new, repo.get());
 -				git_revwalk_sorting(walker.get(), GIT_SORT_TOPOLOGICAL | GIT_SORT_TIME);
@@ -655,24 +663,37 @@ index 37afbc3e..00000000
 -int RepoManager::FetchCb(const git_indexer_progress* stats, void* payload) {
 -	int percent;
 -	if(stats->received_objects != stats->total_objects) {
--		percent = (75 * stats->received_objects) / stats->total_objects;
+-		percent = (FETCH_OBJECTS_PERCENTAGE * stats->received_objects) / stats->total_objects;
 -	} else if(stats->total_deltas == 0) {
--		percent = 75;
+-		percent = FETCH_OBJECTS_PERCENTAGE;
 -	} else {
--		percent = 75 + ((25 * stats->indexed_deltas) / stats->total_deltas);
+-		static constexpr auto DELTA_INCREMENT = DELTA_OBJECTS_PERCENTAGE - FETCH_OBJECTS_PERCENTAGE;
+-		percent = FETCH_OBJECTS_PERCENTAGE + ((DELTA_INCREMENT * stats->indexed_deltas) / stats->total_deltas);
 -	}
--	auto pl = static_cast<FetchCbPayload*>(payload);
+-	auto pl = static_cast<GitCbPayload*>(payload);
 -	pl->rm->SetRepoPercentage(pl->path, percent);
 -	return pl->rm->fetchReturnValue;
+-}
+-
+-void RepoManager::CheckoutCb(const char* path, size_t completed_steps, size_t total_steps, void* payload) {
+-	int percent;
+-	if(total_steps == 0)
+-		percent = CHECKOUT_PERCENTAGE;
+-	else {
+-		static constexpr auto DELTA_INCREMENT = CHECKOUT_PERCENTAGE - DELTA_OBJECTS_PERCENTAGE;
+-		percent = DELTA_OBJECTS_PERCENTAGE + ((DELTA_INCREMENT * completed_steps) / total_steps);
+-	}
+-	auto pl = static_cast<GitCbPayload*>(payload);
+-	pl->rm->SetRepoPercentage(pl->path, percent);
 -}
 -
 -}
 diff --git a/gframe/repo_manager.h b/gframe/repo_manager.h
 deleted file mode 100644
-index 75875dcf..00000000
+index 9bc4b82..0000000
 --- a/gframe/repo_manager.h
 +++ /dev/null
-@@ -1,104 +0,0 @@
+@@ -1,105 +0,0 @@
 -// Copyright (c) 2019-2020 Edoardo Lolletti <edoardo762@gmail.com>
 -// Copyright (c) 2020 Dylam De La Torre <dyxel04@gmail.com>
 -// SPDX-License-Identifier: AGPL-3.0-or-later
@@ -757,19 +778,20 @@ index 75875dcf..00000000
 -	// Initialized with GIT_OK (0), changed to cancel fetching
 -	std::atomic<int> fetchReturnValue{0};
 -
--	void AddRepo(GitRepo repo);
+-	void AddRepo(GitRepo&& repo);
 -	void SetRepoPercentage(const std::string& path, int percent);
 -	
 -	// Will be started on a new thread
 -	void CloneOrUpdateTask();
 -	
 -	// libgit2 Callbacks stuff
--	struct FetchCbPayload
+-	struct GitCbPayload
 -	{
 -		RepoManager* rm;
 -		const std::string& path;
 -	};
 -	static int FetchCb(const git_indexer_progress* stats, void* payload);
+-	static void CheckoutCb(const char* path, size_t completed_steps, size_t total_steps, void* payload);
 -};
 -
 -extern RepoManager* gRepoManager;
@@ -777,6 +799,6 @@ index 75875dcf..00000000
 -}
 -
 -#endif // REPOMANAGER_H
--- 
-2.32.0
+--
+libgit2 1.1.0
 
