@@ -355,9 +355,9 @@ built on top of that.")
    (license #f)))
 
 (define-public ignis-database-nightly
-  (let ((database-night "20211029")
-        (database-commit "bf6d26d97bfa1f6c546fa88e92444354b7c70f3a")
-        (database-hash "1dyn088bhxxbg6vsqlf5bz4675gdbq235vy8f0456jlyhy8rdn2m")
+  (let ((database-night "20211031")
+        (database-commit "db3e679f38457b3a7e49b969981828177f160ef4")
+        (database-hash "1m8ykbj1sznk7zkn17n8lkzf3rw97sskq15nf2n4bkdqixpcfkha")
         (lflists-commit "f55a209fef32622db440c3ac58320cb80cb9922f")
         (lflists-hash "122njic7grrl29907scrqjb9qz50fqxsjkpzcvy4lb869j2xmcm1"))
     (package
