@@ -118,7 +118,7 @@ trivial integration and 100% testing.")
 (define-public edopro
   (package
     (name "edopro")
-    (version "39.2.1")
+    (version "39.3.2")
     (source
      (origin
        (method git-fetch)
@@ -127,7 +127,7 @@ trivial integration and 100% testing.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "17kb4lnl1mkmcdl4ynfv5na4cz0n8rmv2v78d4cybfk9pcx5cv6i"))
+        (base32 "084a9s0410r84c82pqv5653d074zzvsjf6zj3q13wrylhs5rrrfz"))
        (patches
         (search-patches
          "edopro-utf8-source.patch"
@@ -178,6 +178,16 @@ trivial integration and 100% testing.")
                   (string-append "textfont = " font " 12\n"))
                  (("numfont = .*$")
                   (string-append "numfont = " font "\n")))
+               ;; XXX: Hack to make this work with old Irrlicht, remove this.
+               (substitute* "gframe/CGUICustomText/CGUICustomText.cpp"
+                 (("getDimension\\(Text\\)") "getDimension(Text.data())")
+                 (("getDimension\\(second\\)") "getDimension(second.data())")
+                 (("getDimension\\(word\\)") "getDimension(word.data())")
+                 (("getDimension\\(whitespace\\)") "getDimension(whitespace.data())")
+                 (("getDimension\\(line \\+ whitespace \\+ word\\.subString\\(0, j \\+ 1\\)\\)")
+                  "getDimension((line + whitespace + word.subString(0, j + 1)).data())")
+                 (("getDimension\\(BrokenText\\[i\\]\\)") "getDimension(BrokenText[i].data())")
+                 (("getDimension\\(BrokenText\\[line\\]\\)") "getDimension(BrokenText[line].data())"))
                #t)))
          (add-after 'unpack 'ya-didnt-package-all-the-textures
            (lambda _
@@ -215,15 +225,15 @@ trivial integration and 100% testing.")
      `(("curl" ,curl)
        ("edopro-core" ,edopro-core)
        ("edopro-assets"
-        ,(let ((version "39.1.2"))
+        ,(let ((version "39.3.1"))
            (origin
             (method url-fetch)
             (uri
              (string-append "https://github.com/ProjectIgnis/edopro-assets/"
                             "releases/download/" version
-                            "/ProjectIgnis-EDOPro-" version "-linux-patch.zip"))
+                            "/IgnisUpdate-" version "-linux.zip"))
             (sha256
-             (base32 "04z7rjh0lw7icq9n6fcjzyqry2j0jpmjb351rsg02xxiligdljj0")))))
+             (base32 "0b9lnqp8gqng9qhf785jap3w4fskmr6zqjllzj2f84qykbkk366y")))))
        ("font-google-noto" ,font-google-noto)
        ("freetype" ,freetype)
        ("fmt" ,fmt-7)
