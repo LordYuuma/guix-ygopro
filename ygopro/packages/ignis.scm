@@ -4,6 +4,7 @@
   #:use-module (guix git-download)
   #:use-module (guix build-system copy)
   #:use-module (guix build-system gnu)
+  #:use-module (guix gexp)
   #:use-module (guix utils)
   #:use-module ((guix licenses) #:prefix license:)
   #:use-module (ygopro packages)
@@ -115,6 +116,17 @@ trivial integration and 100% testing.")
           (base32
            "0lfhkfglbh1h5d6zhlnpxwir2z6k9z45ggk47fmhkcgbwlmija6m")))))))
 
+(define edopro-assets
+  (let ((version "39.3.1")) ; keep as close to edopro as possible
+    (origin
+      (method url-fetch)
+      (uri
+       (string-append "https://github.com/ProjectIgnis/edopro-assets/"
+                      "releases/download/" version
+                      "/IgnisUpdate-" version "-linux.zip"))
+      (sha256
+       (base32 "0b9lnqp8gqng9qhf785jap3w4fskmr6zqjllzj2f84qykbkk366y")))))
+
 (define-public edopro
   (package
     (name "edopro")
@@ -140,118 +152,100 @@ trivial integration and 100% testing.")
            (delete-file-recursively "freetype")
            (substitute* "premake5.lua"
              (("include \"freetype\"") ""))
-           (delete-file-recursively "sfAudio")
-           #t))))
+           (delete-file-recursively "sfAudio")))))
     (build-system gnu-build-system)
     (arguments
-     `(#:tests? #f ; no `check' target
-       #:make-flags `("CC=gcc" "--directory=build")
-       #:phases
-       (modify-phases %standard-phases
-         (add-after 'unpack 'patch-sources
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out"))
-                    (font (string-append
-                           (assoc-ref inputs "font-google-noto")
-                           "/share/fonts/opentype/NotoSansCJKjp-Regular.otf"))
-                    (datadir (string-append out "/share/ygopro")))
-               (rename-file "gframe/lzma/premake4.lua"
-                            "gframe/lzma/premake5.lua")
-               (substitute* (find-files "." ".*\\.(cpp|h)")
-                 (("(ocgapi|progressivebuffer)\\.h" all lib)
-                  (string-append "ygopro-core/" all)))
-               (substitute* "gframe/premake5.lua"
-                 (("(/usr/include/freetype2|../freetype/include)")
-                  (string-append (assoc-ref inputs "freetype")
-                                 "/include/freetype2"))
-                 (("/usr/include/irrlicht")
-                  (string-append (assoc-ref inputs "irrlicht")
-                                 "/include/irrlicht"))
-                 (("SDL2d") "SDL2"))
-               (substitute* "gframe/game_config.cpp"
-                 (("/etc/ygopro" all) (string-append out all))
-                 (("/usr(/share/ygopro)" all rest) (string-append out rest)))
-               (substitute* "gframe/logging.cpp"
-                 (("error.log") "/dev/stderr"))
-               (substitute* "config/system.conf"
-                 (("textfont = .*$")
-                  (string-append "textfont = " font " 12\n"))
-                 (("numfont = .*$")
-                  (string-append "numfont = " font "\n")))
-               ;; XXX: Hack to make this work with old Irrlicht, remove this.
-               (substitute* "gframe/CGUICustomText/CGUICustomText.cpp"
-                 (("getDimension\\(Text\\)") "getDimension(Text.data())")
-                 (("getDimension\\(second\\)") "getDimension(second.data())")
-                 (("getDimension\\(word\\)") "getDimension(word.data())")
-                 (("getDimension\\(whitespace\\)") "getDimension(whitespace.data())")
-                 (("getDimension\\(line \\+ whitespace \\+ word\\.subString\\(0, j \\+ 1\\)\\)")
-                  "getDimension((line + whitespace + word.subString(0, j + 1)).data())")
-                 (("getDimension\\(BrokenText\\[i\\]\\)") "getDimension(BrokenText[i].data())")
-                 (("getDimension\\(BrokenText\\[line\\]\\)") "getDimension(BrokenText[line].data())"))
-               #t)))
-         (add-after 'unpack 'ya-didnt-package-all-the-textures
-           (lambda _
-             (substitute* "gframe/image_manager.cpp"
-               (("CHECK_RETURN\\(tSettings.*\\);") ""))
-             #t))
-         (add-after 'unpack 'unpack-assets
-           (lambda* (#:key inputs #:allow-other-keys)
-             (invoke "unzip" "-o"
-                     (assoc-ref inputs "edopro-assets")
-                     "config/strings.conf")))
-         (delete 'bootstrap)
-         (replace 'configure
-           (lambda* (#:key configure-flags inputs #:allow-other-keys)
-             (invoke "premake5" "gmake"
-                     "--environment-paths" "--xdg-environment"
-                     "--sound=sdl-mixer"
-                     (string-append "--prebuilt-core="
-                                    (assoc-ref inputs "edopro-core")
-                                    "/lib"))
-             #t))
-         (replace 'install
-           (lambda* (#:key inputs outputs #:allow-other-keys)
-             (let* ((out (assoc-ref outputs "out"))
-                    (bindir (string-append out "/bin"))
-                    (datadir (string-append out "/share/ygopro")))
-               (copy-recursively "config" (string-append out "/etc/ygopro"))
-               (copy-recursively "textures"
-                                 (string-append datadir "/textures"))
-               (install-file "bin/debug/ygopro" bindir)
-               #t))))))
-    (native-inputs
-     `(("unzip" ,unzip)))
-    (inputs
-     `(("curl" ,curl)
-       ("edopro-core" ,edopro-core)
-       ("edopro-assets"
-        ,(let ((version "39.3.1"))
-           (origin
-            (method url-fetch)
-            (uri
-             (string-append "https://github.com/ProjectIgnis/edopro-assets/"
-                            "releases/download/" version
-                            "/IgnisUpdate-" version "-linux.zip"))
-            (sha256
-             (base32 "0b9lnqp8gqng9qhf785jap3w4fskmr6zqjllzj2f84qykbkk366y")))))
-       ("font-google-noto" ,font-google-noto)
-       ("freetype" ,freetype)
-       ("fmt" ,fmt-7)
-       ("glu" ,glu)
-       ("irrlicht" ,irrlicht-for-edopro)
-       ("libevent" ,libevent)
-       ("libflac" ,flac)
-       ("libgit2" ,libgit2)
-       ("libvorbis" ,libvorbis)
-       ("lua" ,lua)
-       ("mesa" ,mesa)
-       ("mpg123" ,mpg123)
-       ("nlohmann-json" ,nlohmann-json)
-       ("premake5" ,premake5)
-       ("sdl2-mixer" ,(sdl-union (list sdl2 sdl2-mixer)))
-       ("sqlite" ,sqlite)))
-    (native-search-paths
-     (package-native-search-paths ygopro))
+     (list
+      #:tests? #f ; no `check' target
+      #:make-flags #~(list "CC=gcc" "--directory=build")
+      #:phases
+      #~(modify-phases %standard-phases
+          (add-after 'unpack 'patch-sources
+            (lambda* (#:key inputs outputs #:allow-other-keys)
+              (let* ((out (assoc-ref outputs "out"))
+                     (font (search-input-file
+                            inputs
+                            "/share/fonts/opentype/NotoSansCJKjp-Regular.otf"))
+                     (datadir (string-append out "/share/ygopro")))
+                (rename-file "gframe/lzma/premake4.lua"
+                             "gframe/lzma/premake5.lua")
+                (substitute* (find-files "." ".*\\.(cpp|h)")
+                  (("(ocgapi|progressivebuffer)\\.h" all lib)
+                   (string-append "ygopro-core/" all)))
+                (substitute* "gframe/premake5.lua"
+                  (("(/usr/include/freetype2|../freetype/include)")
+                   (dirname
+                    (search-input-file inputs "include/freetype2/ft2build.h")))
+                  (("/usr/include/irrlicht")
+                   (dirname
+                    (search-input-file inputs "include/irrlicht/irrlicht.h")))
+                  (("SDL2d") "SDL2"))
+                (substitute* "gframe/game_config.cpp"
+                  (("/etc/ygopro" all) (string-append out all))
+                  (("/usr(/share/ygopro)" all rest) (string-append out rest)))
+                (substitute* "gframe/logging.cpp"
+                  (("error.log") "/dev/stderr"))
+                (substitute* "config/system.conf"
+                  (("textfont = .*$")
+                   (string-append "textfont = " font " 12\n"))
+                  (("numfont = .*$")
+                   (string-append "numfont = " font "\n")))
+                ;; XXX: Hack to make this work with old Irrlicht, remove this.
+                (substitute* "gframe/CGUICustomText/CGUICustomText.cpp"
+                  (("getDimension\\(Text\\)") "getDimension(Text.data())")
+                  (("getDimension\\(second\\)") "getDimension(second.data())")
+                  (("getDimension\\(word\\)") "getDimension(word.data())")
+                  (("getDimension\\(whitespace\\)") "getDimension(whitespace.data())")
+                  (("getDimension\\(line \\+ whitespace \\+ word\\.subString\\(0, j \\+ 1\\)\\)")
+                   "getDimension((line + whitespace + word.subString(0, j + 1)).data())")
+                  (("getDimension\\(BrokenText\\[i\\]\\)") "getDimension(BrokenText[i].data())")
+                  (("getDimension\\(BrokenText\\[line\\]\\)") "getDimension(BrokenText[line].data())")))))
+          (add-after 'unpack 'ya-didnt-package-all-the-textures
+            (lambda _
+              (substitute* "gframe/image_manager.cpp"
+                (("CHECK_RETURN\\(tSettings.*\\);") ""))))
+          (add-after 'unpack 'unpack-assets
+            (lambda* (#:key inputs #:allow-other-keys)
+              (invoke "unzip" "-o" #$edopro-assets "config/strings.conf")))
+          (delete 'bootstrap)
+          (replace 'configure
+            (lambda* (#:key configure-flags inputs #:allow-other-keys)
+              (invoke "premake5" "gmake"
+                      "--environment-paths" "--xdg-environment"
+                      "--sound=sdl-mixer"
+                      (string-append
+                       "--prebuilt-core="
+                       (dirname
+                        (search-input-file inputs "lib/libocgcore.so"))))))
+          (replace 'install
+            (lambda* (#:key outputs #:allow-other-keys)
+              (let* ((out (assoc-ref outputs "out"))
+                     (bindir (string-append out "/bin"))
+                     (datadir (string-append out "/share/ygopro")))
+                (copy-recursively "config" (string-append out "/etc/ygopro"))
+                (copy-recursively "textures"
+                                  (string-append datadir "/textures"))
+                (install-file "bin/debug/ygopro" bindir)))))))
+    (native-inputs (list unzip))
+    (inputs (list curl
+                  edopro-core
+                  font-google-noto
+                  freetype
+                  fmt-7
+                  glu
+                  irrlicht-for-edopro
+                  libevent
+                  flac
+                  libgit2
+                  libvorbis
+                  lua
+                  mesa
+                  mpg123
+                  nlohmann-json
+                  premake5
+                  (sdl-union (list sdl2 sdl2-mixer))
+                  sqlite))
+    (native-search-paths (package-native-search-paths ygopro))
     (synopsis "Bleeding-edge fork of ygopro")
     (description
      "EDOPro is a bleeding edge fork of the ygopro client.  Because it relies
