@@ -10,6 +10,7 @@
   #:use-module (ygopro packages)
   #:use-module (gnu packages build-tools)
   #:use-module (gnu packages compression)
+  #:use-module (gnu packages cpp)
   #:use-module (gnu packages curl)
   #:use-module (gnu packages fonts)
   #:use-module (gnu packages fontutils)
@@ -74,30 +75,6 @@ accommodate for new cards and features.  It is incompatible with forks not
 derived from itself.")
     (home-page "https://github.com/edo9300/ygopro")
     (license license:agpl3+)))
-
-(define nlohmann-json
-  (package
-    (name "nlohmann-json")
-    (version "3.9.1")
-    (source
-     (origin
-       (method git-fetch)
-       (uri (git-reference
-             (url "https://github.com/nlohmann/json.git")
-             (commit (string-append "v" version))))
-       (file-name (git-file-name name version))
-       (sha256
-        (base32 "0ar4mzp53lskxw3vdzw07f47njcshl3lwid9jfq6l7yx6ds2nyjc"))))
-    (build-system copy-build-system)
-    (arguments
-     `(#:install-plan
-       `(("single_include/nlohmann/json.hpp"
-          "include/nlohmann/"))))
-    (synopsis "Single-header JSON parser")
-    (description "Nlohmann JSON is a parser, which aims for intuitive syntax,
-trivial integration and 100% testing.")
-    (home-page "https://github.com/nlohmann/json")
-    (license license:expat)))
 
 (define irrlicht-for-edopro
   (let ((commit "6e2f47aa041a8bd505d419e85c963ec60af094a2")
@@ -229,19 +206,19 @@ trivial integration and 100% testing.")
     (native-inputs (list unzip))
     (inputs (list curl
                   edopro-core
+                  flac
                   font-google-noto
                   freetype
                   fmt-7
                   glu
                   irrlicht-for-edopro
                   libevent
-                  flac
+                  json-modern-cxx
                   libgit2
                   libvorbis
                   lua
                   mesa
                   mpg123
-                  nlohmann-json
                   premake5
                   (sdl-union (list sdl2 sdl2-mixer))
                   sqlite))
