@@ -26,57 +26,53 @@
   #:use-module (ygopro packages mycard))
 
 (define-public edopro-core
-  (let ((commit "fc9004a1237352766f1e63a66a70e48fb7f3d04a")
-        (revision "2"))
-    (package
-      (name "edopro-core")
-      (version (git-version "9.0" revision commit))
-      (source
-       (origin
-         (method git-fetch)
-         (uri (git-reference
-               (url "https://github.com/edo9300/ygopro-core.git")
-               (commit commit)))
-         (file-name (git-file-name "edopro-core" version))
-         (sha256
-          (base32
-           "12i1xvrrhlghvyik9hf22k2k4242cxn6lqxlayjvcw6id47w4ddp"))))
-      (build-system gnu-build-system)
-      (arguments
-       `(#:tests? #f ; no `check' target
-         #:make-flags `("CC=gcc" "--directory=build")
-         #:phases
-         (modify-phases %standard-phases
-           (add-after 'unpack 'patch-sources
-             (lambda* (#:key inputs #:allow-other-keys)
-               (substitute* "interpreter.h"
-                 (("#include <l([a-z]+).h>" all lua-cont)
-                  (string-append "extern \"C\" {\n"
-                                 "#include <l" lua-cont ".h>\n"
-                                 "}")))
-               #t))
-           (delete 'bootstrap)
-           (replace 'configure (lambda _ (invoke "premake5" "gmake")))
-           (replace 'install
-             (lambda* (#:key outputs #:allow-other-keys)
-               (let* ((out (assoc-ref outputs "out"))
-                      (lib (string-append out "/lib"))
-                      (inc (string-append out "/include/ygopro-core")))
-                 (for-each (lambda (f) (install-file f inc))
-                           (find-files "." ".*\\.h"))
-                 (install-file "bin/debug/libocgcore.so" lib)
-                 #t))))))
-      (inputs
-       `(("lua" ,lua)))
-      (native-inputs
-       `(("premake5" ,premake5)))
-      (synopsis "Bleeding-edge fork of ygopro-core")
-      (description
-       "EDOPro-Core is a bleeding-edge fork of ygopro-core with updates to
+  (package
+    (name "edopro-core")
+    (version "9.1")
+    (source
+     (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/edo9300/ygopro-core.git")
+             (commit (string-append "v" version))))
+       (file-name (git-file-name "edopro-core" version))
+       (sha256
+        (base32
+         "0hgzcbrvh7nlhsrr2clspj3mrmngp5kk4sy4z20nl6r4748fmrzj"))))
+    (build-system gnu-build-system)
+    (arguments
+     `(#:tests? #f ; no `check' target
+       #:make-flags `("CC=gcc" "--directory=build")
+       #:phases
+       (modify-phases %standard-phases
+         (add-after 'unpack 'patch-sources
+           (lambda* (#:key inputs #:allow-other-keys)
+             (substitute* "interpreter.h"
+               (("#include <l([a-z]+).h>" all lua-cont)
+                (string-append "extern \"C\" {\n"
+                               "#include <l" lua-cont ".h>\n"
+                               "}")))
+             #t))
+         (delete 'bootstrap)
+         (replace 'configure (lambda _ (invoke "premake5" "gmake")))
+         (replace 'install
+           (lambda* (#:key outputs #:allow-other-keys)
+             (let* ((out (assoc-ref outputs "out"))
+                    (lib (string-append out "/lib"))
+                    (inc (string-append out "/include/ygopro-core")))
+               (for-each (lambda (f) (install-file f inc))
+                         (find-files "." ".*\\.h"))
+               (install-file "bin/debug/libocgcore.so" lib)
+               #t))))))
+    (inputs (list lua))
+    (native-inputs (list premake5))
+    (synopsis "Bleeding-edge fork of ygopro-core")
+    (description
+     "EDOPro-Core is a bleeding-edge fork of ygopro-core with updates to
 accommodate for new cards and features.  It is incompatible with forks not
 derived from itself.")
-      (home-page "https://github.com/edo9300/ygopro")
-      (license license:agpl3+))))
+    (home-page "https://github.com/edo9300/ygopro")
+    (license license:agpl3+)))
 
 (define nlohmann-json
   (package
