@@ -332,11 +332,11 @@ built on top of that.")
    (license #f)))
 
 (define-public ignis-database-nightly
-  (let ((database-night "20220707")
-        (database-commit "5b1da03ef514f4b911327ffdac895d4db3896592")
-        (database-hash "0bsp46qjjz3z0fyn9awkb582r493n67g4s37sjg8nkv7wg41xyi8")
-        (lflists-commit "950dc32651447f313558c35370e3cb804f281a84")
-        (lflists-hash "1n5zs4p4wrqwhifn1bkzs3102mrsj4r3laj92gjxv9ry1k4idq39"))
+  (let ((database-night "20220710")
+        (database-commit "da655eb639c19a13afd7dcd1c05affaa5edfde0b")
+        (database-hash "04hww8wj6rabxc267x6q5rns7khpi1k4zi3qjb2ra9dzqjvqahip")
+        (lflists-commit "fa0c7a71b81edbd4b19ac5aa0af854108256f935")
+        (lflists-hash "0ian4k340ck7yvphyqip8lhjz09gdnmgjdfa064939anncirva4g"))
     (package
       (inherit ignis-database-baseline)
       (version (string-append database-night "-nightly"))
