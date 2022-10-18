@@ -233,7 +233,7 @@ built on top of that.")
 (define-public ignis-database-baseline
   (package
    (name "ignis-database")
-   (version "20201222")
+   (version "20220912")
    (source
     (origin
      (method git-fetch)
@@ -243,16 +243,12 @@ built on top of that.")
      (file-name (git-file-name "ignis-database" version))
      (sha256
       (base32
-       "08hg9s7c6jmxw4i5d12w2xi4qmmc34y1n86449004i5j0ivhd59k"))))
+       "126sr1x84zrhkzzh582a88mgkikv4cr6fjmi01bm529594x75jcs"))))
    (build-system copy-build-system)
-   (outputs '("out" "pre-release" "rush" "skills" "unofficial"))
+   (outputs '("out" "goat" "pre-release" "rush" "skills" "unofficial"))
    (arguments
     `(#:phases
       (modify-phases %standard-phases
-        (add-after 'unpack 'fix-names
-          (lambda* _
-            (rename-file "Proxy_Horse.cdb" "prerelease-proxy-horse.cdb")
-            #t))
         (replace 'install
           (lambda* (#:key outputs #:allow-other-keys)
             (define (install-with-output output install-plan)
@@ -271,6 +267,8 @@ built on top of that.")
              "rush" `(("cards-rush.cdb" "share/ygopro/data/")))
             (install-with-output
              "skills" `(("cards-skills.cdb" "share/ygopro/data/")))
+            (install-with-output
+             "goat" `(("goat-entries.cdb" "share/ygopro/data/")))
             (install-with-output
              "unofficial" `(("." "share/ygopro/data/"
                              #:include ("cards-unofficial.cdb"
@@ -302,8 +300,9 @@ built on top of that.")
 
               (merge-lflists
                "out"
-               '("OCG.Korea" "OCG" "TCG" "OCG.lflist.new.conf"
-                 "Traditional" "World" "GOAT"))
+               '("OCG" "0TCG" "Traditional" "World"))
+
+              (merge-lflists "goat" '("GOAT"))
 
               (merge-lflists
                "rush"
@@ -320,10 +319,10 @@ built on top of that.")
          (uri
           (git-reference
            (url "https://github.com/ProjectIgnis/LFLists")
-           (commit "e27a53f3d710f264642ab16f9deff8fa9503220c")))
+           (commit "ae9307aef8116911ba6e72686ac9eb1a58849303")))
          (sha256
           (base32
-           "1k4rkr1bjypsxypakgc8yqdwn04gl3rnrfz0sbk2iz4a2ma4bz4z"))))
+           "1n3iwcmgkjjk9i6kzjc2xwp6wfhgqs5vrcy90ppbfjbaaglnqwqb"))))
       ("sqlite" ,sqlite)))
    (synopsis "Card databases for EDOPro")
    (description "Provides various card databases for EDOPro.")
@@ -356,45 +355,7 @@ built on top of that.")
               (url "https://github.com/ProjectIgnis/LFLists")
               (commit lflists-commit)))
             (sha256 (base32 lflists-hash))))
-         ,@(package-inputs ignis-database-baseline)))
-      (outputs (cons "goat" (package-outputs ignis-database-baseline)))
-      (arguments
-       (substitute-keyword-arguments (package-arguments ignis-database-baseline)
-         ((#:phases phases)
-          `(modify-phases ,phases
-             (delete 'fix-names)
-             (add-after 'install 'install-missing-cdbs
-               (lambda* (#:key outputs #:allow-other-keys)
-                 (define (install-with-output output install-plan)
-                   ((assoc-ref %standard-phases 'install)
-                    #:outputs `(("out" . ,(assoc-ref outputs output)))
-                    #:install-plan install-plan))
-                 (install-with-output
-                  "goat" `(("goat-entries.cdb" "share/ygopro/data/")))
-                 #t))
-             (replace 'install-lflists
-               (lambda* (#:key inputs outputs #:allow-other-keys)
-                 (with-directory-excursion (assoc-ref inputs "lflists")
-                   (define (merge-lflists output lists)
-                     (call-with-output-file (string-append
-                                             (assoc-ref outputs output)
-                                             "/share/ygopro/data/lflist.conf")
-                       (lambda (port)
-                         (for-each
-                          (lambda (f)
-                            (call-with-input-file (string-append f ".lflist.conf")
-                              (lambda (in)
-                                (dump-port in port)
-                                (close-port in))))
-                          lists)
-                         (close-port port))))
-
-                   (merge-lflists
-                    "out"
-                    '("OCG" "0TCG" "Traditional" "World"))
-                   (merge-lflists "goat" '("GOAT"))
-                   (merge-lflists "rush" '("Rush" "Rush-Prerelease"))
-                   (merge-lflists "skills" '("Speed"))))))))))))
+         ,@(package-inputs ignis-database-baseline))))))
 
 (define-public ignis-scripts-baseline
   (package
