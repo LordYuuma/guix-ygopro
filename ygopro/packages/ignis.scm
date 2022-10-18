@@ -360,7 +360,7 @@ built on top of that.")
 (define-public ignis-scripts-baseline
   (package
     (name "ignis-scripts")
-    (version "20201222")
+    (version "20220912")
     (source
      (origin
        (method git-fetch)
@@ -370,7 +370,7 @@ built on top of that.")
        (file-name (git-file-name "ignis-scripts" version))
        (sha256
         (base32
-         "06rvfpsj4xfa2v2lhwh5icrqjwzh2pnkj3h9z459pc8l95y0l46g"))))
+         "1crvs2k34v4wnkc1z4l82gl59lsq0zhpf1wxhn30lcjq40f681y3"))))
     (build-system copy-build-system)
     (outputs '("out" "pre-release" "pre-errata" "rush" "skill" "unofficial"))
     (arguments
