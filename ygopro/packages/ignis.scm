@@ -14,6 +14,7 @@
   #:use-module (gnu packages curl)
   #:use-module (gnu packages fonts)
   #:use-module (gnu packages fontutils)
+  #:use-module (gnu packages freedesktop)
   #:use-module (gnu packages games)
   #:use-module (gnu packages gl)
   #:use-module (gnu packages libevent)
@@ -23,6 +24,7 @@
   #:use-module (gnu packages sdl)
   #:use-module (gnu packages sqlite)
   #:use-module (gnu packages version-control)
+  #:use-module (gnu packages xdisorg)
   #:use-module (gnu packages xiph)
   #:use-module (ygopro packages mycard))
 
@@ -76,8 +78,8 @@ derived from itself.")
     (license license:agpl3+)))
 
 (define irrlicht-for-edopro
-  (let ((commit "6e2f47aa041a8bd505d419e85c963ec60af094a2")
-        (revision "6"))
+  (let ((commit "8864940ac07c69c87afafb4b44d2af2013867bd3")
+        (revision "7"))
     (package
       (inherit irrlicht)
       (name "irrlicht-for-edopro")
@@ -88,9 +90,34 @@ derived from itself.")
          (uri (git-reference
                (url "https://github.com/edo9300/irrlicht1-8-4.git")
                (commit commit)))
+         (file-name (git-file-name "irrlicht-for-edopro" version))
          (sha256
           (base32
-           "0lfhkfglbh1h5d6zhlnpxwir2z6k9z45ggk47fmhkcgbwlmija6m")))))))
+           "1pi0al08n8sl46v7pby6ydak0yrhr78x0hh1k73a9ykpz7p0b257"))
+         (modules '((guix build utils)))
+         (snippet #~(begin
+                      (with-fluids ((%default-port-encoding #f))
+                        (substitute* (find-files "source" "\\.(cpp|h)")
+                          (("\"(w?glx?ext).h\"" all lib)
+                           (string-append "<GL/" lib ".h>"))))
+                      (delete-file "source/Irrlicht/glext.h")
+                      (delete-file "source/Irrlicht/glxext.h")
+                      (delete-file "source/Irrlicht/wglext.h")))))
+      (arguments
+       (substitute-keyword-arguments (package-arguments irrlicht)
+         ((#:phases phases #~%standard-phases)
+          #~(modify-phases #$phases
+              (add-after 'unpack 'disable-dynamic-load
+                (lambda* (#:key inputs #:allow-other-keys)
+                  (with-fluids ((%default-port-encoding #f))
+                    (substitute* (find-files "source" "\\.(cpp|h)")
+                      (("defined\\(_IRR_X11_DYNAMIC_LOAD_\\)") "0")
+                      (("#ifdef _IRR_X11_DYNAMIC_LOAD_") "#if 0"))
+                    (substitute* "source/Irrlicht/CGLXManager.cpp"
+                      (("LibGLX?") "nullptr")
+                      (("dlsym\\(.*\\)") "nullptr")))))))))
+      (inputs (modify-inputs (package-inputs irrlicht)
+                (prepend wayland libxkbcommon))))))
 
 (define edopro-assets
   (let ((version "39.3.1")) ; keep as close to edopro as possible
