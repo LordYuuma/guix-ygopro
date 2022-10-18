@@ -29,7 +29,7 @@
 (define-public edopro-core
   (package
     (name "edopro-core")
-    (version "9.1")
+    (version "10.0")
     (source
      (origin
        (method git-fetch)
@@ -39,7 +39,7 @@
        (file-name (git-file-name "edopro-core" version))
        (sha256
         (base32
-         "0hgzcbrvh7nlhsrr2clspj3mrmngp5kk4sy4z20nl6r4748fmrzj"))))
+         "08qlxq12i9a58lvh05lf1ygjj1qkbn608w3f9gkxi4sj5fk4y1rj"))))
     (build-system gnu-build-system)
     (arguments
      `(#:tests? #f ; no `check' target
