@@ -1,4 +1,4 @@
-From 6aa1045764a2e6c1e022048f2ab3d5e66f50341d Mon Sep 17 00:00:00 2001
+From 8856e3da349c495561c3f123395acaeb6b31279a Mon Sep 17 00:00:00 2001
 From: LordYuuma <lordyuuma@gmail.com>
 Date: Sat, 12 Jun 2021 01:20:18 +0200
 Subject: [PATCH] edopro: Respect XDG paths.
@@ -58,31 +58,31 @@ and screenshots folder in data_directory.
 (PathIsRelative): Implement it.
 * gframe/utils_gui.cpp (TakeScreenshot): Save in data_directory.
 ---
- gframe/data_handler.cpp     |  11 ++++++-----
- gframe/deck_manager.cpp     |  20 ++++++++++++--------
+ gframe/data_handler.cpp     |   9 +--
+ gframe/deck_manager.cpp     |  20 ++++---
  gframe/deck_manager.h       |   1 +
- gframe/game.cpp             |  58 ++++++++++++++++++++++++++++++----------------------------
- gframe/game_config.cpp      |  87 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----
- gframe/game_config.h        |  13 +++++++++++++
+ gframe/game.cpp             |  62 +++++++++++----------
+ gframe/game_config.cpp      |  85 +++++++++++++++++++++++++++-
+ gframe/game_config.h        |   7 +++
  gframe/gframe.cpp           |   1 -
- gframe/image_downloader.cpp |  34 +++++++++++++++-------------------
- gframe/image_manager.cpp    | 107 ++++++++++++++++++++++++++++++++++++++++++++++++++++-------------------------------------------------------
- gframe/image_manager.h      |   5 +++++
- gframe/premake5.lua         |   3 +++
- gframe/replay.cpp           |  13 ++++++++-----
+ gframe/image_downloader.cpp |  34 +++++-------
+ gframe/image_manager.cpp    | 107 ++++++++++++++++++------------------
+ gframe/image_manager.h      |   5 ++
+ gframe/premake5.lua         |   3 +
+ gframe/replay.cpp           |   6 +-
  gframe/single_mode.cpp      |   2 +-
- gframe/sound_manager.cpp    |  71 ++++++++++++++++++++++++++++++++++++-----------------------------------
- gframe/utils.cpp            |  45 ++++++++++++++++++++++++++++++++++++---------
+ gframe/sound_manager.cpp    |  74 +++++++++++++------------
+ gframe/utils.cpp            |  45 ++++++++++++---
  gframe/utils.h              |   1 +
- gframe/utils_gui.cpp        |   4 ++--
- premake5.lua                |   5 +++++
- 18 files changed, 308 insertions(+), 173 deletions(-)
+ gframe/utils_gui.cpp        |   4 +-
+ premake5.lua                |   5 ++
+ 18 files changed, 301 insertions(+), 170 deletions(-)
 
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
-index ecb2965..c8c8124 100644
+index 6bbafc73..2481fc8f 100644
 --- a/gframe/data_handler.cpp
 +++ b/gframe/data_handler.cpp
-@@ -132,26 +132,27 @@ DataHandler::DataHandler(epro::path_stringview working_dir) {
+@@ -140,8 +140,9 @@ DataHandler::DataHandler() {
  #endif
  	filesystem = new irr::io::CFileSystem();
  	dataManager = std::unique_ptr<DataManager>(new DataManager());
@@ -94,17 +94,7 @@ index ecb2965..c8c8124 100644
  	if(!strings_loaded)
  		throw std::runtime_error("Failed to load strings!");
  	Utils::filesystem = filesystem;
- 	Utils::working_dir = Utils::NormalizePath(working_dir);
- 	LoadZipArchives();
- 	deckManager = std::unique_ptr<DeckManager>(new DeckManager());
- 	gitManager = std::unique_ptr<RepoManager>(new RepoManager());
--	sounds = std::unique_ptr<SoundManager>(new SoundManager(configs->soundVolume / 100.0, configs->musicVolume / 100.0, configs->enablesound, configs->enablemusic, Utils::working_dir));
-+	sounds = std::unique_ptr<SoundManager>(new SoundManager(configs->soundVolume / 100.0, configs->musicVolume / 100.0, configs->enablesound, configs->enablemusic, configs->data_directory));
- 	gitManager->LoadRepositoriesFromJson(configs->user_configs);
- 	gitManager->LoadRepositoriesFromJson(configs->configs);
- 	if(gitManager->TerminateIfNothingLoaded())
- 		deckManager->StopDummyLoading();
- 	imageDownloader = std::unique_ptr<ImageDownloader>(new ImageDownloader());
+@@ -157,8 +158,8 @@ DataHandler::DataHandler() {
  	LoadDatabases();
  	LoadPicUrls();
  	deckManager->LoadLFList();
@@ -116,10 +106,10 @@ index ecb2965..c8c8124 100644
  DataHandler::~DataHandler() {
  	if(filesystem)
 diff --git a/gframe/deck_manager.cpp b/gframe/deck_manager.cpp
-index 2174835..1aceee9 100644
+index 86c24ed5..cd994dc1 100644
 --- a/gframe/deck_manager.cpp
 +++ b/gframe/deck_manager.cpp
-@@ -7,6 +7,9 @@
+@@ -6,6 +6,9 @@
  #include "data_manager.h"
  #include "game.h"
  #include <IGUIEditBox.h>
@@ -129,47 +119,43 @@ index 2174835..1aceee9 100644
  #include "Base64.h"
  #include "utils.h"
  #include "client_card.h"
-@@ -416,8 +419,8 @@ bool DeckManager::LoadDeck(epro::path_stringview file, Deck* deck, bool separate
+@@ -307,13 +310,13 @@ static bool LoadCardList(const epro::path_string& name, cardlist_type* mainlist
+ 		*retsidec = sidec;
+ 	return true;
+ }
+-bool DeckManager::LoadDeckFromFile(epro::path_stringview file, Deck& out, bool separated) {
++bool DeckManager::LoadDeckFromFile(epro::path_stringview name, Deck& out, bool separated) {
  	cardlist_type mainlist;
  	cardlist_type sidelist;
  	cardlist_type extralist;
 -	if(!LoadCardList(fmt::format(EPRO_TEXT("./deck/{}.ydk"), file), &mainlist, separated ? &extralist : nullptr, &sidelist)) {
 -		if(!LoadCardList({ file.data(), file.size() }, &mainlist, separated ? &extralist : nullptr, &sidelist))
-+	if(!LoadCardList(fmt::format(gGameConfig->data_directory / EPRO_TEXT("deck/{}.ydk"), file), &mainlist, separated ? &extralist : nullptr, &sidelist)) {
-+		if(!LoadCardList({file.data(), file.size()}, &mainlist, separated ? &extralist : nullptr, &sidelist))
- 			return false;
+-			return false;
++        const auto fullname = gGameConfig->data_directory / fmt::format(EPRO_TEXT("deck/{}.ydk"), name);
++	if(!LoadCardList(fullname, &mainlist, separated ? &extralist : nullptr, &sidelist)) {
++		return false;
  	}
- 	if(deck)
-@@ -429,16 +432,16 @@ bool DeckManager::LoadDeck(epro::path_stringview file, Deck* deck, bool separate
- bool DeckManager::LoadDeckDouble(epro::path_stringview file, epro::path_stringview file2, Deck* deck) {
- 	cardlist_type mainlist;
- 	cardlist_type sidelist;
--	LoadCardList(fmt::format(EPRO_TEXT("./deck/{}.ydk"), file), &mainlist, nullptr, &sidelist);
--	LoadCardList(fmt::format(EPRO_TEXT("./deck/{}.ydk"), file2), &mainlist, nullptr, &sidelist);
-+	LoadCardList(gGameConfig->data_directory / fmt::format(EPRO_TEXT("deck/{}.ydk"), file), &mainlist, nullptr, &sidelist);
-+	LoadCardList(gGameConfig->data_directory / fmt::format(EPRO_TEXT("deck/{}.ydk"), file2), &mainlist, nullptr, &sidelist);
- 	if(deck)
- 		LoadDeck(*deck, mainlist, sidelist);
- 	else
- 		LoadDeck(current_deck, mainlist, sidelist);
+ 	LoadDeck(out, mainlist, sidelist, separated ? &extralist : nullptr);
+ 	return true;
+@@ -403,7 +406,7 @@ bool DeckManager::LoadSide(Deck& deck, uint32_t* dbuf, uint32_t mainc, uint32_t
  	return true;
  }
- bool DeckManager::SaveDeck(Deck& deck, epro::path_stringview name) {
+ bool DeckManager::SaveDeck(epro::path_stringview name, const Deck& deck) {
 -	const auto fullname = fmt::format(EPRO_TEXT("./deck/{}.ydk"), name);
-+	const auto fullname = gGameConfig->data_directory / fmt::format(EPRO_TEXT("./deck/{}.ydk"), name);
- #if defined(__MINGW32__) && defined(UNICODE)
- 	auto fd = _wopen(fullname.data(), _O_WRONLY);
- 	if(fd == -1)
-@@ -462,7 +465,7 @@ bool DeckManager::SaveDeck(Deck& deck, epro::path_stringview name) {
++	const auto fullname = gGameConfig->data_directory / fmt::format(EPRO_TEXT("deck/{}.ydk"), name);
+ 	FileStream deckfile{ fullname, FileStream::out };
+ 	if(deckfile.fail())
+ 		return false;
+@@ -419,7 +422,7 @@ bool DeckManager::SaveDeck(epro::path_stringview name, const Deck& deck) {
  	return true;
  }
  bool DeckManager::SaveDeck(epro::path_stringview name, const cardlist_type& mainlist, const cardlist_type& extralist, const cardlist_type& sidelist) {
 -	const auto fullname = fmt::format(EPRO_TEXT("./deck/{}.ydk"), name);
-+	const auto fullname = gGameConfig->data_directory / fmt::format(EPRO_TEXT("./deck/{}.ydk"), name);
- #if defined(__MINGW32__) && defined(UNICODE)
- 	auto fd = _wopen(fullname.data(), _O_WRONLY);
- 	if(fd == -1)
-@@ -613,9 +616,10 @@ bool DeckManager::ImportDeckBase64Omega(Deck& deck, epro::wstringview buffer) {
++	const auto fullname = gGameConfig->data_directory / fmt::format(EPRO_TEXT("deck/{}.ydk"), name);
+ 	FileStream deckfile{ fullname, FileStream::out };
+ 	if(deckfile.fail())
+ 		return false;
+@@ -562,9 +565,10 @@ bool DeckManager::ImportDeckBase64Omega(Deck& deck, epro::wstringview buffer) {
  	return true;
  }
  bool DeckManager::DeleteDeck(Deck& deck, epro::path_stringview name) {
@@ -183,31 +169,31 @@ index 2174835..1aceee9 100644
  }
  }
 diff --git a/gframe/deck_manager.h b/gframe/deck_manager.h
-index c1758c2..c031e3a 100644
+index 637a7680..12906a63 100644
 --- a/gframe/deck_manager.h
 +++ b/gframe/deck_manager.h
-@@ -7,6 +7,7 @@
- #include "network.h"
+@@ -8,6 +8,7 @@
  #include "text_types.h"
  #include "data_manager.h"
+ #include "deck.h"
 +#include "game_config.h"
  
  namespace ygo {
  
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index bd36302..3842ec3 100644
+index c0cf1553..6eb3566d 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
-@@ -131,7 +131,7 @@ bool Game::Initialize() {
- 	if(!(ocgcore = LoadOCGcore(Utils::working_dir)) && !(ocgcore = LoadOCGcore(fmt::format(EPRO_TEXT("{}/expansions/"), Utils::working_dir))))
+@@ -149,7 +149,7 @@ void Game::Initialize() {
+ 	if(!(ocgcore = LoadOCGcore(Utils::GetWorkingDirectory())) && !(ocgcore = LoadOCGcore(fmt::format(EPRO_TEXT("{}/expansions/"), Utils::GetWorkingDirectory()))))
  		coreloaded = false;
  #endif
--	skinSystem = new CGUISkinSystem(fmt::format(EPRO_TEXT("{}/skin"), Utils::working_dir).data(), device);
+-	skinSystem = new CGUISkinSystem(fmt::format(EPRO_TEXT("{}/skin"), Utils::GetWorkingDirectory()).data(), device);
 +	skinSystem = new CGUISkinSystem(fmt::format(EPRO_TEXT("{}/skin"), gGameConfig->data_directory).data(), device);
  	if(!skinSystem)
  		throw std::runtime_error("Couldn't create skin system");
  	linePatternGL = 0x0f0f;
-@@ -1030,7 +1030,7 @@ bool Game::Initialize() {
+@@ -597,7 +597,7 @@ void Game::Initialize() {
  	stHandTestSettings->setEnabled(coreloaded);
  	stHandTestSettings->setTextAlignment(irr::gui::EGUIA_CENTER, irr::gui::EGUIA_CENTER);
  	defaultStrings.emplace_back(stHandTestSettings, 1375);
@@ -216,7 +202,7 @@ index bd36302..3842ec3 100644
  	wHandTest = env->addWindow(Scale(mainMenuLeftX, 200, mainMenuRightX, 450), false, gDataManager->GetSysString(1297).data());
  	wHandTest->getCloseButton()->setVisible(false);
  	wHandTest->setVisible(false);
-@@ -1181,7 +1181,7 @@ bool Game::Initialize() {
+@@ -748,7 +748,7 @@ void Game::Initialize() {
  	wReplay->getCloseButton()->setVisible(false);
  	wReplay->setVisible(false);
  	lstReplayList = irr::gui::CGUIFileSelectListBox::addFileSelectListBox(env, wReplay, LISTBOX_REPLAY_LIST, Scale(10, 30, 350, 400), filesystem, true, true, false);
@@ -225,7 +211,7 @@ index bd36302..3842ec3 100644
  	lstReplayList->addFilteredExtensions({L"yrp", L"yrpx"});
  	lstReplayList->setItemHeight(Scale(18));
  	btnLoadReplay = env->addButton(Scale(470, 355, 570, 380), wReplay, BUTTON_LOAD_REPLAY, gDataManager->GetSysString(1348).data());
-@@ -1221,7 +1221,7 @@ bool Game::Initialize() {
+@@ -788,7 +788,7 @@ void Game::Initialize() {
  	wSinglePlay->setVisible(false);
  	lstSinglePlayList = irr::gui::CGUIFileSelectListBox::addFileSelectListBox(env, wSinglePlay, LISTBOX_SINGLEPLAY_LIST, Scale(10, 30, 350, 400), filesystem, true, true, false);
  	lstSinglePlayList->setItemHeight(Scale(18));
@@ -234,16 +220,25 @@ index bd36302..3842ec3 100644
  	lstSinglePlayList->addFilteredExtensions({L"lua"});
  	btnLoadSinglePlay = env->addButton(Scale(470, 355, 570, 380), wSinglePlay, BUTTON_LOAD_SINGLEPLAY, gDataManager->GetSysString(1357).data());
  	defaultStrings.emplace_back(btnLoadSinglePlay, 1357);
-@@ -1991,7 +1991,7 @@ bool Game::ApplySkin(const epro::path_string& skinname, bool reload, bool firstr
+@@ -1238,7 +1238,7 @@ void Game::PopulateGameHostWindows() {
+ 		chkNoCheckDeckSizeSecondary = env->addCheckBox(gGameConfig->noCheckDeckSize, GetNextRect(), tDeckSettings, DONT_CHECK_DECK_SIZE, gDataManager->GetSysString(12113).data());
+ 		defaultStrings.emplace_back(chkNoCheckDeckSizeSecondary, 12113);
+ 		menuHandler.MakeElementSynchronized(chkNoCheckDeckSizeSecondary);
+-		
++
+ #define ADD_DECK_SIZE_CHECKBOXES(deck) do { \
+ 		eb##deck##Min = env->addEditBox(WStr(gGameConfig->min##deck##DeckSize), GetCurrentRectWithXOffset(310, 360), true, tDeckSettings, EDITBOX_NUMERIC); \
+ 		defaultStrings.emplace_back(env->addStaticText(gDataManager->GetSysString(12106 + idx).data(), GetCurrentRectWithXOffset(20, 300), false, false, tDeckSettings), 12106 + idx); \
+@@ -2373,7 +2373,7 @@ bool Game::ApplySkin(const epro::path_string& skinname, bool reload, bool firstr
  #include "custom_skin_enum.inl"
  #undef DECLR
  #undef CLR
 -			imageManager.ChangeTextures(fmt::format(EPRO_TEXT("./skin/{}/textures/"), prev_skin));
 +			imageManager.ChangeTextures(gGameConfig->data_directory / EPRO_TEXT("skin/") + prev_skin + EPRO_TEXT("/textures/"));
  		} else {
- 			applied = false;
- 			auto skin = env->createSkin(irr::gui::EGST_WINDOWS_METALLIC);
-@@ -2044,7 +2044,7 @@ bool Game::ApplySkin(const epro::path_string& skinname, bool reload, bool firstr
+ 			if(firstrun)
+ 				return false;
+@@ -2428,7 +2428,7 @@ bool Game::ApplySkin(const epro::path_string& skinname, bool reload, bool firstr
  }
  void Game::RefreshDeck(irr::gui::IGUIComboBox* cbDeck) {
  	cbDeck->clear();
@@ -252,16 +247,25 @@ index bd36302..3842ec3 100644
  		file.erase(file.size() - 4);
  		cbDeck->addItem(Utils::ToUnicodeIfNeeded(file).data());
  	}
-@@ -2179,7 +2179,7 @@ void Game::SaveConfig() {
- #ifdef UPDATE_URL
- 	gGameConfig->noClientUpdates = gSettings.chkUpdates->isChecked();
+@@ -2576,7 +2576,7 @@ void Game::SaveConfig() {
+ 	gGameConfig->useIntegratedGpu = gSettings.chkIntegratedGPU->isChecked();
  #endif
+ 	gGameConfig->driver_type = static_cast<irr::video::E_DRIVER_TYPE>(gSettings.cbVideoDriver->getItemData(gSettings.cbVideoDriver->getSelected()));
 -	gGameConfig->Save(EPRO_TEXT("./config/system.conf"));
 +	gGameConfig->Save(gGameConfig->config_directory / EPRO_TEXT("system.conf"));
  }
  Game::RepoGui* Game::AddGithubRepositoryStatusWindow(const GitRepo* repo) {
  	std::wstring name = BufferIO::DecodeUTF8(repo->repo_name);
-@@ -3355,6 +3355,8 @@ std::wstring Game::ReadPuzzleMessage(epro::wstringview script_name) {
+@@ -3624,7 +3624,7 @@ void Game::OnResize() {
+ 	repos_with_min_x(tabSettings.scrSoundVolume);
+ 	repos_with_min_x(tabSettings.scrMusicVolume);
+ 	repos_with_min_x(btnTabShowSettings);
+-	
++
+ 	SetCentered(gSettings.window);
+ 
+ 	ResizePhaseButtons();
+@@ -3773,6 +3773,8 @@ std::wstring Game::ReadPuzzleMessage(epro::wstringview script_name) {
  	return BufferIO::DecodeUTF8(res);
  }
  epro::path_string Game::FindScript(epro::path_stringview name, irr::io::IReadFile** retarchive) {
@@ -270,7 +274,7 @@ index bd36302..3842ec3 100644
  	for(auto& path : script_dirs) {
  		if(path == EPRO_TEXT("archives")) {
  			if(auto tmp = Utils::FindFileInArchives(EPRO_TEXT("script/"), name)) {
-@@ -3490,32 +3492,32 @@ void Game::PopulateResourcesDirectories() {
+@@ -3899,32 +3901,32 @@ void Game::PopulateResourcesDirectories() {
  				cover_dirs.push_back(image_dir / EPRO_TEXT("cover/"));
  				field_dirs.push_back(image_dir / EPRO_TEXT("field/"));
  			});
@@ -323,7 +327,7 @@ index bd36302..3842ec3 100644
  		locales.emplace_back(locale, std::vector<epro::path_string>());
  	}
  }
-@@ -3532,7 +3534,7 @@ void Game::ApplyLocale(size_t index, bool forced) {
+@@ -3941,7 +3943,7 @@ void Game::ApplyLocale(size_t index, bool forced) {
  	if(index > 0) {
  		try {
  			gGameConfig->locale = locales[index - 1].first;
@@ -333,13 +337,17 @@ index bd36302..3842ec3 100644
  				gDataManager->LoadLocaleDB(fmt::format(EPRO_TEXT("{}/{}"), locale, file));
  			}
 diff --git a/gframe/game_config.cpp b/gframe/game_config.cpp
-index 3106f61..7c58b12 100644
+index e0038f70..3b2e4c7d 100644
 --- a/gframe/game_config.cpp
 +++ b/gframe/game_config.cpp
-@@ -9,21 +9,97 @@
- #include <fcntl.h>
- #include <ext/stdio_filebuf.h>
- #endif
+@@ -6,14 +6,93 @@
+ #include "config.h"
+ #include "logging.h"
+ #include "file_stream.h"
++#if defined(__MINGW32__) && defined(UNICODE)
++#include <fcntl.h>
++#include <ext/stdio_filebuf.h>
++#endif
 +#if XDG_ENVIRONMENT && _WIN32
 +#include <Shlobj.h>
 +#include <Shlobj_core.h>
@@ -423,59 +431,27 @@ index 3106f61..7c58b12 100644
 +
  	if(configs.empty()) {
  		{
-+			auto configs_json = config_directory / EPRO_TEXT("configs.json");
- #if defined(__MINGW32__) && defined(UNICODE)
--			auto fd = _wopen(EPRO_TEXT("./config/configs.json"), _O_RDONLY);
-+			auto fd = _wopen(EPRO_TEXT(configs_json), _O_RDONLY);
- 			if(fd == -1)
- 				goto load_user_conf;
- 			__gnu_cxx::stdio_filebuf<char> b(fd, std::ios::in);
- 			std::istream conf_file(&b);
- #else
--			std::ifstream conf_file(EPRO_TEXT("./config/configs.json"));
-+			std::ifstream conf_file(EPRO_TEXT(configs_json));
- #endif
+-			FileStream conf_file{ EPRO_TEXT("./config/configs.json"), FileStream::in };
++			FileStream conf_file{ config_directory / EPRO_TEXT("configs.json"), FileStream::in };
  			if(!conf_file.fail()) {
  				try {
-@@ -39,14 +115,15 @@ GameConfig::GameConfig() {
- 		load_user_conf:
- #endif
+ 					conf_file >> configs;
+@@ -25,7 +104,7 @@ GameConfig::GameConfig() {
+ 			}
+ 		}
  		{
-+			auto configs_json = config_directory / EPRO_TEXT("user_configs.json");
- #if defined(__MINGW32__) && defined(UNICODE)
--			auto fd = _wopen(EPRO_TEXT("./config/user_configs.json"), _O_RDONLY);
-+			auto fd = _wopen(EPRO_TEXT(configs_json), _O_RDONLY);
- 			if(fd == -1)
- 				return;
- 			__gnu_cxx::stdio_filebuf<char> b(fd, std::ios::in);
- 			std::istream user_conf_file(&b);
- #else
--			std::ifstream user_conf_file(EPRO_TEXT("./config/user_configs.json"));
-+			std::ifstream user_conf_file(EPRO_TEXT(configs_json));
- #endif
+-			FileStream user_conf_file{ EPRO_TEXT("./config/user_configs.json"), FileStream::in };
++			FileStream user_conf_file{ config_directory / EPRO_TEXT("user_configs.json"), FileStream::in };
  			if(!user_conf_file.fail()) {
  				try {
+ 					user_conf_file >> user_configs;
 diff --git a/gframe/game_config.h b/gframe/game_config.h
-index ef4f76d..09c8e86 100644
+index f9a40ae6..9b46fcd5 100644
 --- a/gframe/game_config.h
 +++ b/gframe/game_config.h
-@@ -17,7 +17,13 @@ struct GameConfig
- {
- 	GameConfig();
- 	bool Load(const epro::path_char* filename);
-+	inline bool Load(const epro::path_string& path) {
-+		return Load(path.c_str());
-+	}
- 	bool Save(const epro::path_char* filename);
-+	inline bool Save(const epro::path_string& path) {
-+		return Save(path.c_str());
-+	}
- 
- 	irr::video::E_DRIVER_TYPE driver_type{ irr::video::EDT_COUNT };
- #if defined(__linux__) && !defined(__ANDROID__) && (IRRLICHT_VERSION_MAJOR==1 && IRRLICHT_VERSION_MINOR==9)
-@@ -111,6 +117,13 @@ struct GameConfig
+@@ -36,6 +36,13 @@ struct GameConfig
+ 	std::wstring roompass; // NOT SERIALIZED
  	std::string ssl_certificate_path;
- 	std::string override_ssl_certificate_path;
  
 +	epro::path_string cache_directory = EPRO_TEXT("./");
 +	epro::path_string config_directory = EPRO_TEXT("./config");
@@ -488,10 +464,10 @@ index ef4f76d..09c8e86 100644
  	nlohmann::json user_configs;
  };
 diff --git a/gframe/gframe.cpp b/gframe/gframe.cpp
-index da37fc0..d04c6c9 100644
+index dfee0ad0..5a2436f8 100644
 --- a/gframe/gframe.cpp
 +++ b/gframe/gframe.cpp
-@@ -185,7 +185,6 @@ int _tmain(int argc, epro::path_char* argv[]) {
+@@ -203,7 +203,6 @@ int _tmain(int argc, epro::path_char* argv[]) {
  		ygo::gImageDownloader = data->imageDownloader.get();
  		ygo::gDataManager = data->dataManager.get();
  		ygo::gSoundManager = data->sounds.get();
@@ -500,10 +476,10 @@ index da37fc0..d04c6c9 100644
  		ygo::gdeckManager = data->deckManager.get();
  	}
 diff --git a/gframe/image_downloader.cpp b/gframe/image_downloader.cpp
-index 8509976..3c14183 100644
+index 33b69885..871e9f7a 100644
 --- a/gframe/image_downloader.cpp
 +++ b/gframe/image_downloader.cpp
-@@ -123,28 +123,24 @@ void ImageDownloader::DownloadPic() {
+@@ -121,28 +121,24 @@ void ImageDownloader::DownloadPic() {
  		auto& map_elem = downloading_images[type][code];
  		map_elem.status = downloadStatus::DOWNLOADING;
  		lck.unlock();
@@ -542,18 +518,18 @@ index 8509976..3c14183 100644
 -				break;
 -			}
 -		}
--		auto dest_folder = fmt::format(to_string_view(dest), code);
+-		auto dest_folder = fmt::format(epro::to_fmtstring_view(dest), code);
 +		}();
  		CURLcode res{ static_cast<CURLcode>(1) };
  		for(auto& src : pic_urls) {
  			if(src.type != type)
 diff --git a/gframe/image_manager.cpp b/gframe/image_manager.cpp
-index d6bca82..94e0ce8 100644
+index b3460ca8..94673ebe 100644
 --- a/gframe/image_manager.cpp
 +++ b/gframe/image_manager.cpp
-@@ -14,15 +14,49 @@
- 
- static int constexpr IMAGES_LOAD_PER_FRAME_MAX = 50;
+@@ -12,15 +12,49 @@
+ #include "image_downloader.h"
+ #include "game.h"
  
 -#define BASE_PATH EPRO_TEXT("./textures/")
 +#define BASE_PATH EPRO_TEXT("textures/")
@@ -607,7 +583,7 @@ index d6bca82..94e0ce8 100644
  #define CHECK_RETURN(what, name) do { if(!what) { throw std::runtime_error("Couldn't load texture: " name); }} while(0)
  ImageManager::ImageManager() {
  	stop_threads = false;
-@@ -52,7 +86,8 @@ ImageManager::~ImageManager() {
+@@ -51,7 +85,8 @@ ImageManager::~ImageManager() {
  }
  bool ImageManager::Initial() {
  	timestamp_id = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -617,7 +593,7 @@ index d6bca82..94e0ce8 100644
  	GET_TEXTURE_SIZED(tCover[0], "cover", CARD_IMG_WIDTH, CARD_IMG_HEIGHT);
  	CHECK_RETURN(tCover[0], "cover");
  	GET_TEXTURE_SIZED(tCover[1], "cover2", CARD_IMG_WIDTH, CARD_IMG_HEIGHT);
-@@ -153,21 +188,10 @@ bool ImageManager::Initial() {
+@@ -152,21 +187,10 @@ bool ImageManager::Initial() {
  	return true;
  }
  
@@ -641,7 +617,7 @@ index d6bca82..94e0ce8 100644
  void ImageManager::ChangeTextures(epro::path_stringview _path) {
  	if(_path == textures_path)
  		return;
-@@ -219,7 +243,7 @@ void ImageManager::ChangeTextures(epro::path_stringview _path) {
+@@ -218,7 +242,7 @@ void ImageManager::ChangeTextures(epro::path_stringview _path) {
  	RefreshCovers();
  }
  void ImageManager::ResetTextures() {
@@ -711,7 +687,7 @@ index d6bca82..94e0ce8 100644
  void ImageManager::LoadPic() {
  	Utils::SetThreadName("PicLoader");
 diff --git a/gframe/image_manager.h b/gframe/image_manager.h
-index a086839..686c639 100644
+index e9ff8492..7e3ee3eb 100644
 --- a/gframe/image_manager.h
 +++ b/gframe/image_manager.h
 @@ -138,11 +138,16 @@ public:
@@ -732,10 +708,10 @@ index a086839..686c639 100644
  	std::atomic<chrono_time> timestamp_id;
  	std::map<epro::path_string, irr::video::ITexture*> g_txrCache;
 diff --git a/gframe/premake5.lua b/gframe/premake5.lua
-index 241e346..6b9ce25 100644
+index a6923154..9e0b65a9 100644
 --- a/gframe/premake5.lua
 +++ b/gframe/premake5.lua
-@@ -30,6 +30,9 @@ local ygopro_config=function(static_core)
+@@ -51,6 +51,9 @@ local ygopro_config=function(static_core)
  	if _OPTIONS["environment-paths"] then
  		defines { "YGOPRO_ENVIRONMENT_PATHS" }
  	end
@@ -744,20 +720,20 @@ index 241e346..6b9ce25 100644
 +	end
  
  	includedirs "../ocgcore"
- 	links { "clzma", "freetype", "Irrlicht" }
+ 	links { "clzma", "Irrlicht" }
 diff --git a/gframe/replay.cpp b/gframe/replay.cpp
-index f8b2a32..99e658c 100644
+index 580c628d..f4217608 100644
 --- a/gframe/replay.cpp
 +++ b/gframe/replay.cpp
-@@ -4,6 +4,7 @@
+@@ -3,6 +3,7 @@
  #include <fmt/format.h>
  #include "lzma/LzmaLib.h"
  #include "common.h"
 +#include "game_config.h"
  #include "utils.h"
- #if defined(__MINGW32__) && defined(UNICODE)
- #include <fcntl.h>
-@@ -84,7 +85,8 @@ void Replay::EndRecord(size_t size) {
+ #include "file_stream.h"
+ 
+@@ -77,7 +78,8 @@ void Replay::EndRecord(size_t size) {
  	is_recording = false;
  }
  void Replay::SaveReplay(const epro::path_string& name) {
@@ -766,37 +742,21 @@ index f8b2a32..99e658c 100644
 +	auto replay_file = fileopen(replay_fname.data(), "wb");
  	if(replay_file == nullptr)
  		return;
- 	fwrite(&pheader, 1, sizeof(pheader), replay_file);
-@@ -139,19 +141,20 @@ bool Replay::OpenReplay(const epro::path_string& name) {
- #if defined(__MINGW32__) && defined(UNICODE)
- 	auto fd = _wopen(name.data(), _O_RDONLY | _O_BINARY);
- 	if(fd == -1) {
--		auto fd = _wopen((EPRO_TEXT("./replay/") + name).data(), _O_RDONLY | _O_BINARY);
-+		auto name2 = gGameConfig->data_directory / EPRO_TEXT("replay/") + name;
-+		auto fd = _wopen(name2.data(), _O_RDONLY | _O_BINARY);
- 		if(fd == -1) {
+ 	auto header_len = (pheader.base.flag & REPLAY_EXTENDED_HEADER) ? sizeof(ExtendedReplayHeader) : sizeof(ReplayHeader);
+@@ -133,7 +135,7 @@ bool Replay::OpenReplay(const epro::path_string& name) {
+ 	std::vector<uint8_t> contents;
+ 	FileStream replay_file{ name, FileStream::in | FileStream::binary };
+ 	if(replay_file.fail()) {
+-		FileStream replay_file2{ EPRO_TEXT("./replay/") + name, FileStream::in | FileStream::binary };
++		FileStream replay_file2{gGameConfig->data_directory /  EPRO_TEXT("replay/") + name, FileStream::in | FileStream::binary };
+ 		if(replay_file2.fail()) {
  			replay_name.clear();
  			return false;
- 		}
- 	}
- 	__gnu_cxx::stdio_filebuf<char> b(fd, std::ios::in);
- 	std::istream replay_file(&b);
- #else
- 	std::ifstream replay_file(name, std::ifstream::binary);
--	if(replay_file.fail()) {
--		replay_file.open(EPRO_TEXT("./replay/") + name, std::ifstream::binary);
--		if(replay_file.fail()) {
-+	if(!replay_file.is_open()) {
-+		replay_file.open(gGameConfig->data_directory / EPRO_TEXT("replay/") + name, std::ifstream::binary);
-+		if(!replay_file.is_open()) {
- 			replay_name.clear();
- 			return false;
- 		}
 diff --git a/gframe/single_mode.cpp b/gframe/single_mode.cpp
-index 06ce524..9070696 100644
+index 5b681799..13463ba3 100644
 --- a/gframe/single_mode.cpp
 +++ b/gframe/single_mode.cpp
-@@ -147,7 +147,7 @@ restart:
+@@ -155,7 +155,7 @@ restart:
  		if(open_file) {
  			script_name = Utils::ToUTF8IfNeeded(open_file_name);
  			if(!mainGame->LoadScript(pduel, script_name)) {
@@ -806,10 +766,25 @@ index 06ce524..9070696 100644
  			}
  		} else {
 diff --git a/gframe/sound_manager.cpp b/gframe/sound_manager.cpp
-index 42c97ec..2e604b3 100644
+index 2a61fcb1..1ea24a6c 100644
 --- a/gframe/sound_manager.cpp
 +++ b/gframe/sound_manager.cpp
-@@ -53,15 +53,15 @@ bool SoundManager::IsUsable() {
+@@ -12,12 +12,13 @@
+ #include "sound_sfml.h"
+ #define BACKEND SoundSFML
+ #endif
++#include "game_config.h"
+ 
+ namespace ygo {
+ SoundManager::SoundManager(double sounds_volume, double music_volume, bool sounds_enabled, bool music_enabled) {
+ #ifdef BACKEND
+ 	fmt::print("Using: " STR(BACKEND)" for audio playback.\n");
+-	working_dir = Utils::ToUTF8IfNeeded(Utils::GetWorkingDirectory());
++	working_dir = Utils::ToUTF8IfNeeded(gGameConfig->data_directory);
+ 	soundsEnabled = sounds_enabled;
+ 	musicEnabled = music_enabled;
+ 	try {
+@@ -53,15 +54,15 @@ bool SoundManager::IsUsable() {
  }
  void SoundManager::RefreshBGMList() {
  #ifdef BACKEND
@@ -834,7 +809,7 @@ index 42c97ec..2e604b3 100644
  		list.clear();
  	RefreshBGMDir(EPRO_TEXT(""), BGM::DUEL);
  	RefreshBGMDir(EPRO_TEXT("duel"), BGM::DUEL);
-@@ -76,35 +76,36 @@ void SoundManager::RefreshBGMList() {
+@@ -76,35 +77,36 @@ void SoundManager::RefreshBGMList() {
  void SoundManager::RefreshSoundsList() {
  #ifdef BACKEND
  	static constexpr std::pair<SFX, epro::path_stringview> fx[]{
@@ -890,13 +865,13 @@ index 42c97ec..2e604b3 100644
  	const auto extensions = mixer->GetSupportedSoundExtensions();
  	for(const auto& sound : fx) {
  		for(const auto& ext : extensions) {
--			const auto filename = fmt::format(to_string_view(sound.second), ext);
-+			const auto filename0 = fmt::format(to_string_view(sound.second), ext);
+-			const auto filename = fmt::format(epro::to_fmtstring_view(sound.second), ext);
++			const auto filename0 = fmt::format(epro::to_fmtstring_view(sound.second), ext);
 +			const auto filename = Utils::ToPathString(working_dir) / filename0;
  			if(Utils::FileExists(filename)) {
  				SFXList[sound.first] = Utils::ToUTF8IfNeeded(filename);
  				break;
-@@ -115,7 +116,7 @@ void SoundManager::RefreshSoundsList() {
+@@ -115,7 +117,7 @@ void SoundManager::RefreshSoundsList() {
  }
  void SoundManager::RefreshBGMDir(epro::path_stringview path, BGM scene) {
  #ifdef BACKEND
@@ -906,15 +881,16 @@ index 42c97ec..2e604b3 100644
  		BGMList[BGM::ALL].push_back(conv);
  		BGMList[scene].push_back(std::move(conv));
 diff --git a/gframe/utils.cpp b/gframe/utils.cpp
-index e9f4b7d..2cc04ad 100644
+index 8c5cfc62..3faceade 100644
 --- a/gframe/utils.cpp
 +++ b/gframe/utils.cpp
-@@ -1,10 +1,13 @@
+@@ -1,4 +1,5 @@
  #include "utils.h"
 +#include "game_config.h"
  #include <cmath> // std::round
  #include <fstream>
- #ifdef _WIN32
+ #include "config.h"
+@@ -6,6 +7,8 @@
  #define WIN32_LEAN_AND_MEAN
  #include <Windows.h>
  #include <shellapi.h> // ShellExecute
@@ -923,7 +899,7 @@ index e9f4b7d..2cc04ad 100644
  #else
  #ifndef _GNU_SOURCE
  #define _GNU_SOURCE
-@@ -31,6 +34,8 @@ using Stat = struct stat;
+@@ -33,6 +36,8 @@ using Stat = struct stat;
  #endif //_WIN32
  #include <IFileArchive.h>
  #include <IFileSystem.h>
@@ -931,8 +907,8 @@ index e9f4b7d..2cc04ad 100644
 +#include <sstream>
  #include <fmt/format.h>
  #include <IOSOperator.h>
- #include "config.h"
-@@ -62,6 +67,16 @@ static inline void NameThread(const char* threadName) {
+ #include "bufferio.h"
+@@ -66,6 +71,16 @@ inline void NameThreadMsvc(const char* threadName) {
  	__try {	RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR*)&info); }
  	__except(EXCEPTION_EXECUTE_HANDLER) {}
  }
@@ -948,9 +924,9 @@ index e9f4b7d..2cc04ad 100644
 +}
  #pragma warning(pop)
  #endif
- using SetThreadDescription_t = HRESULT(WINAPI*)(HANDLE, PCWSTR);
-@@ -101,6 +116,14 @@ namespace ygo {
- #endif //_WIN32
+ const auto PSetThreadDescription = [] {
+@@ -144,6 +159,14 @@ namespace ygo {
+ 		return false;
  	}
  
 +	bool Utils::PathIsRelative(epro::path_stringview path) {
@@ -963,8 +939,8 @@ index e9f4b7d..2cc04ad 100644
 +
  	bool Utils::MakeDirectory(epro::path_stringview path) {
  #ifdef _WIN32
- 		return CreateDirectory(path.data(), nullptr) || ERROR_ALREADY_EXISTS == GetLastError();
-@@ -239,15 +262,19 @@ namespace ygo {
+ 		return SetLastErrorStringIfFailed(CreateDirectory(path.data(), nullptr) || ERROR_ALREADY_EXISTS == GetLastError());
+@@ -301,15 +324,19 @@ namespace ygo {
  
  	void Utils::CreateResourceFolders() {
  		//create directories if missing
@@ -994,22 +970,22 @@ index e9f4b7d..2cc04ad 100644
  
  	std::vector<epro::path_string> Utils::FindFiles(epro::path_stringview path, const std::vector<epro::path_stringview>& extensions, int subdirectorylayers) {
 diff --git a/gframe/utils.h b/gframe/utils.h
-index 6fc2408..631a11b 100644
+index 221fa77d..d165cf67 100644
 --- a/gframe/utils.h
 +++ b/gframe/utils.h
 @@ -56,6 +56,7 @@ namespace ygo {
  		static irr::io::IFileSystem* filesystem;
  		static irr::IOSOperator* OSOperator;
- 		static epro::path_string working_dir;
+ 		static epro::stringview GetLastErrorString();
 +		static bool PathIsRelative(epro::path_stringview path);
  		static bool MakeDirectory(epro::path_stringview path);
- #ifdef __linux__
  		static bool FileCopyFD(int source, int destination);
+ 		static bool FileCopy(epro::path_stringview source, epro::path_stringview destination);
 diff --git a/gframe/utils_gui.cpp b/gframe/utils_gui.cpp
-index f149569..033de18 100644
+index c1d1ba57..778fa149 100644
 --- a/gframe/utils_gui.cpp
 +++ b/gframe/utils_gui.cpp
-@@ -210,7 +210,7 @@ bool GUIUtils::TakeScreenshot(irr::IrrlichtDevice* device) {
+@@ -188,7 +188,7 @@ bool GUIUtils::TakeScreenshot(irr::IrrlichtDevice* device) {
  	if(!image)
  		return false;
  	const auto now = std::time(nullptr);
@@ -1018,7 +994,7 @@ index f149569..033de18 100644
  	auto written = driver->writeImageToFile(image, { filename.data(), static_cast<irr::u32>(filename.size()) });
  	if(!written)
  		device->getLogger()->log(L"Failed to take screenshot.", irr::ELL_WARNING);
-@@ -356,7 +356,7 @@ void GUIUtils::ShowErrorWindow(epro::stringview context, epro::stringview messag
+@@ -339,7 +339,7 @@ void GUIUtils::ShowErrorWindow(epro::stringview context, epro::stringview messag
  		nullptr, //icon url, use default, you can change it depending message_type flags
  		nullptr, //not used
  		nullptr, //localization of strings
@@ -1028,7 +1004,7 @@ index f149569..033de18 100644
  		nullptr, //default "ok" text in button
  		nullptr, //alternate button title
 diff --git a/premake5.lua b/premake5.lua
-index 2eb82d8..ad27106 100644
+index e7da2911..52b69994 100644
 --- a/premake5.lua
 +++ b/premake5.lua
 @@ -64,6 +64,11 @@ newoption {
@@ -1040,9 +1016,9 @@ index 2eb82d8..ad27106 100644
 +	trigger = "xdg-environment",
 +	description = "Use XDG config, data and cache directories."
 +}
- workspace "ygo"
- 	location "build"
- 	language "C++"
---
-libgit2 1.3.0
+ newoption {
+ 	trigger = "no-core",
+ 	description = "Ignore the ocgcore subproject and only generate the solution for yroprodll"
+-- 
+2.38.0
 

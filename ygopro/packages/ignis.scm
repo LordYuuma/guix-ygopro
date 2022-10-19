@@ -141,7 +141,7 @@ derived from itself.")
 (define-public edopro
   (package
     (name "edopro")
-    (version "39.3.2")
+    (version "40.0.2")
     (source
      (origin
        (method git-fetch)
@@ -150,7 +150,7 @@ derived from itself.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "084a9s0410r84c82pqv5653d074zzvsjf6zj3q13wrylhs5rrrfz"))
+        (base32 "0qgabk4as30b89lxakc0v7q4gjv2cdil81qx42h3ar0kz6mwgfnj"))
        (patches
         (search-patches
          "edopro-utf8-source.patch"
@@ -160,7 +160,6 @@ derived from itself.")
        (modules '((guix build utils)))
        (snippet
         '(begin
-           (delete-file-recursively "freetype")
            (substitute* "premake5.lua"
              (("include \"freetype\"") ""))
            (delete-file-recursively "sfAudio")))))
@@ -171,6 +170,13 @@ derived from itself.")
       #:make-flags #~(list "CC=gcc" "--directory=build")
       #:phases
       #~(modify-phases %standard-phases
+          (add-after 'set-paths 'set-freetype2-includepath
+            (lambda* (#:key inputs #:allow-other-keys)
+              (let ((dir (search-input-directory inputs "include/freetype2"))
+                    (prepend (lambda (path dir)
+                               (setenv path (string-append dir ":" (getenv path))))))
+                (prepend "C_INCLUDE_PATH" dir)
+                (prepend "CPLUS_INCLUDE_PATH" dir))))
           (add-after 'unpack 'patch-sources
             (lambda* (#:key inputs outputs #:allow-other-keys)
               (let* ((out (assoc-ref outputs "out"))
@@ -181,7 +187,7 @@ derived from itself.")
                 (rename-file "gframe/lzma/premake4.lua"
                              "gframe/lzma/premake5.lua")
                 (substitute* (find-files "." ".*\\.(cpp|h)")
-                  (("(ocgapi|progressivebuffer)\\.h" all lib)
+                  (("ocgapi\\.h" all)
                    (string-append "ygopro-core/" all)))
                 (substitute* "gframe/premake5.lua"
                   (("(/usr/include/freetype2|../freetype/include)")
@@ -200,24 +206,15 @@ derived from itself.")
                   (("textfont = .*$")
                    (string-append "textfont = " font " 12\n"))
                   (("numfont = .*$")
-                   (string-append "numfont = " font "\n")))
-                ;; XXX: Hack to make this work with old Irrlicht, remove this.
-                (substitute* "gframe/CGUICustomText/CGUICustomText.cpp"
-                  (("getDimension\\(Text\\)") "getDimension(Text.data())")
-                  (("getDimension\\(second\\)") "getDimension(second.data())")
-                  (("getDimension\\(word\\)") "getDimension(word.data())")
-                  (("getDimension\\(whitespace\\)") "getDimension(whitespace.data())")
-                  (("getDimension\\(line \\+ whitespace \\+ word\\.subString\\(0, j \\+ 1\\)\\)")
-                   "getDimension((line + whitespace + word.subString(0, j + 1)).data())")
-                  (("getDimension\\(BrokenText\\[i\\]\\)") "getDimension(BrokenText[i].data())")
-                  (("getDimension\\(BrokenText\\[line\\]\\)") "getDimension(BrokenText[line].data())")))))
-          (add-after 'unpack 'ya-didnt-package-all-the-textures
-            (lambda _
-              (substitute* "gframe/image_manager.cpp"
-                (("CHECK_RETURN\\(tSettings.*\\);") ""))))
+                   (string-append "numfont = " font "\n"))))))
           (add-after 'unpack 'unpack-assets
             (lambda* (#:key inputs #:allow-other-keys)
-              (invoke "unzip" "-o" #$edopro-assets "config/strings.conf")))
+              (install-file (search-input-file inputs "config/strings.conf")
+                            "config")
+              (copy-recursively (search-input-directory inputs "config/languages")
+                                "config/languages")
+              (copy-recursively (search-input-directory inputs "textures")
+                                "textures")))
           (delete 'bootstrap)
           (replace 'configure
             (lambda* (#:key configure-flags inputs #:allow-other-keys)
@@ -236,9 +233,11 @@ derived from itself.")
                 (copy-recursively "config" (string-append out "/etc/ygopro"))
                 (copy-recursively "textures"
                                   (string-append datadir "/textures"))
-                (install-file "bin/debug/ygopro" bindir)))))))
+                (for-each (lambda (bin) (install-file bin bindir))
+                          (find-files "bin" "ygopro"))))))))
     (native-inputs (list unzip))
     (inputs (list curl
+                  edopro-assets
                   edopro-core
                   flac
                   font-google-noto
