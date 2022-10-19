@@ -120,15 +120,23 @@ derived from itself.")
                 (prepend wayland libxkbcommon))))))
 
 (define edopro-assets
-  (let ((version "39.3.1")) ; keep as close to edopro as possible
+  (let ((version "40.0.0")
+        (commit "712e4e3c205318699f0d4872cec3abd0be13b4ba"))
     (origin
-      (method url-fetch)
-      (uri
-       (string-append "https://github.com/ProjectIgnis/edopro-assets/"
-                      "releases/download/" version
-                      "/IgnisUpdate-" version "-linux.zip"))
+      (method git-fetch)
+      (uri (git-reference
+            (url "https://github.com/ProjectIgnis/Distribution")
+            (commit commit)))
+      (file-name (git-file-name "edopro-assets" version))
       (sha256
-       (base32 "0b9lnqp8gqng9qhf785jap3w4fskmr6zqjllzj2f84qykbkk366y")))))
+       (base32 "0plz4hb0gzng5jrn67nbyyjf7wlfcx31iywy51rxsg5hxr6ih5kw"))
+      (modules '((guix build utils) (ice-9 ftw)))
+      (snippet
+       #~(begin
+           (for-each (lambda (dir)
+                       (unless (member dir '("." ".." "config" "textures"))
+                         (delete-file-recursively dir)))
+                     (scandir ".")))))))
 
 (define-public edopro
   (package
