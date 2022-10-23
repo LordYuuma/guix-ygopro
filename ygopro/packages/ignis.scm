@@ -364,11 +364,11 @@ built on top of that.")
    (license #f)))
 
 (define-public ignis-database-nightly
-  (let ((database-night "20221022")
-        (database-commit "0b3401e16e7e6c2123e9e691c0a0f75b7dd05d49")
-        (database-hash "1bddki5984mn0nrgjrpzrm17k5kk29vqyvd3h5skxmaplfzf9dki")
-        (lflists-commit "54030475b368fd1944fea83baeda7a34a77eb3b8")
-        (lflists-hash "1dd75y33lb8sx94vl6qd7xvh1k1hdpwqa62z2584lhfgg68j88zk"))
+  (let ((database-night "20221023")
+        (database-commit "085821f0267547b88430a3a4181dea3d2abf738e")
+        (database-hash "1y27l4cvzygxkiz4x199khaksc6njfx4w29j1ipf3aakp8s6ly0n")
+        (lflists-commit "be52b7318fadcdd4196356ace589157b12c7ecf8")
+        (lflists-hash "1k13b014xw8si0j662gk08m46kfgn9wz1pdgpfcnch7l104c80bk"))
     (package
       (inherit ignis-database-baseline)
       (version (string-append database-night "-nightly"))
@@ -440,9 +440,9 @@ built on top of that.")
     (license license:agpl3+)))
 
 (define-public ignis-scripts-nightly
-  (let ((scripts-night "20221022")
-        (scripts-commit "6d4509b071f5356a20fabafeedfb232c6177bfbe")
-        (scripts-hash "19c64c0vwns86r67x7kk5y5jqxdh2yyg7ls2gap7dvnccd0knmlk"))
+  (let ((scripts-night "20221023")
+        (scripts-commit "a4d211e9753a6be74c2ec897dfbc63e347e6a94f")
+        (scripts-hash "0bz0r8ssy35kypfm07wxmg1q9s5lfygbiv5hcz9yb469jbdcdz93"))
     (package
       (inherit ignis-scripts-baseline)
       (version (string-append scripts-night "-nightly"))
