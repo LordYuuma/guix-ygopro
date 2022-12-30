@@ -440,9 +440,9 @@ built on top of that.")
     (license license:agpl3+)))
 
 (define-public ignis-scripts-nightly
-  (let ((scripts-night "20221229")
-        (scripts-commit "0f903715f48c6a84d016b396f9f280fd48a0f991")
-        (scripts-hash "10rxb5q0cynlw45gcg111b7nmxi0adskaql2711h5c2ckmm9sxla"))
+  (let ((scripts-night "20221230")
+        (scripts-commit "a2648e10943c3bb04cefc33d0a739a31ee2fd463")
+        (scripts-hash "0na0pzqfcqrhjvba5crcpxi9axwln3n2a2wbbf7p8dr6zis20inm"))
     (package
       (inherit ignis-scripts-baseline)
       (version (string-append scripts-night "-nightly"))
