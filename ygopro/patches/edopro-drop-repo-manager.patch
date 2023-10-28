@@ -1,4 +1,4 @@
-From 2124a8beba01e3c00e9245052e47959c7d786734 Mon Sep 17 00:00:00 2001
+From e93bb9e71e4f319b6c4f4a541557071ddce2d529 Mon Sep 17 00:00:00 2001
 From: Lord Yuuma <lordyuuma@gmail.com>
 Date: Sat, 12 Jun 2021 02:27:25 +0200
 Subject: [PATCH] Drop RepoManager.
@@ -11,17 +11,17 @@ Subject: [PATCH] Drop RepoManager.
  gframe/game.h            |  15 --
  gframe/gframe.cpp        |   2 -
  gframe/premake5.lua      |   4 +-
- gframe/repo_manager.cpp  | 381 ---------------------------------------
+ gframe/repo_manager.cpp  | 380 ---------------------------------------
  gframe/repo_manager.h    | 107 -----------
- 9 files changed, 3 insertions(+), 725 deletions(-)
+ 9 files changed, 3 insertions(+), 724 deletions(-)
  delete mode 100644 gframe/repo_manager.cpp
  delete mode 100644 gframe/repo_manager.h
 
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
-index 037b39c7..639eec6f 100644
+index 5bf5aa4e..9bd56612 100644
 --- a/gframe/data_handler.cpp
 +++ b/gframe/data_handler.cpp
-@@ -131,12 +131,7 @@ DataHandler::DataHandler() {
+@@ -132,12 +132,7 @@ DataHandler::DataHandler() {
  	Utils::filesystem = filesystem;
  	LoadZipArchives();
  	deckManager = std::unique_ptr<DeckManager>(new DeckManager());
@@ -55,10 +55,10 @@ index d86e94d2..52c8c044 100644
  	std::unique_ptr<SoundManager> sounds = nullptr;
  	std::unique_ptr<DataManager> dataManager = nullptr;
 diff --git a/gframe/event_handler.cpp b/gframe/event_handler.cpp
-index f72ab26d..89bd1336 100644
+index 21b1618f..305491a0 100644
 --- a/gframe/event_handler.cpp
 +++ b/gframe/event_handler.cpp
-@@ -68,8 +68,6 @@ inline constexpr bool TransformEvent(const irr::SEvent&, bool&) {
+@@ -69,8 +69,6 @@ inline constexpr bool TransformEvent(const irr::SEvent&, bool&) {
  
  namespace ygo {
  
@@ -67,7 +67,7 @@ index f72ab26d..89bd1336 100644
  bool ClientField::OnEvent(const irr::SEvent& event) {
  	bool stopPropagation = false;
  	if(OnCommonEvent(event, stopPropagation))
-@@ -1879,23 +1877,6 @@ bool ClientField::OnCommonEvent(const irr::SEvent& event, bool& stopPropagation)
+@@ -1878,23 +1876,6 @@ bool ClientField::OnCommonEvent(const irr::SEvent& event, bool& stopPropagation)
  				mainGame->lstChat->setRelativePosition(lstsSize);
  				return true;
  			}
@@ -91,7 +91,7 @@ index f72ab26d..89bd1336 100644
  			case BUTTON_RELOAD_SKIN: {
  				mainGame->should_reload_skin = true;
  				break;
-@@ -2035,11 +2016,6 @@ bool ClientField::OnCommonEvent(const irr::SEvent& event, bool& stopPropagation)
+@@ -2034,11 +2015,6 @@ bool ClientField::OnCommonEvent(const irr::SEvent& event, bool& stopPropagation)
  				gGameConfig->confirm_clear_deck = static_cast<irr::gui::IGUICheckBox*>(event.GUIEvent.Caller)->isChecked();
  				return true;
  			}
@@ -104,7 +104,7 @@ index f72ab26d..89bd1336 100644
  				gGameConfig->saveHandTest = static_cast<irr::gui::IGUICheckBox*>(event.GUIEvent.Caller)->isChecked();
  				return true;
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index 3c93610c..608b4835 100644
+index 933e2926..25710f1e 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
 @@ -5,7 +5,6 @@
@@ -115,7 +115,7 @@ index 3c93610c..608b4835 100644
  #include "image_downloader.h"
  #include "config.h"
  #include "game.h"
-@@ -195,12 +194,7 @@ void Game::Initialize() {
+@@ -192,12 +191,7 @@ void Game::Initialize() {
  	stCommitLog = irr::gui::CGUICustomText::addCustomText(L"", false, env, wCommitsLog, -1, Scale(5, 30, 505, 430));
  	stCommitLog->setWordWrap(true);
  	((irr::gui::CGUICustomText*)stCommitLog)->enableScrollBar();
@@ -128,7 +128,7 @@ index 3c93610c..608b4835 100644
  	mAbout = mTopMenu->getSubMenu(mTopMenu->addItem(gDataManager->GetSysString(1970).data(), 2, true, true));
  	wAbout = env->addWindow(Scale(0, 0, 450, 700), false, L"", mAbout);
  	wAbout->getCloseButton()->setVisible(false);
-@@ -1088,7 +1082,6 @@ void Game::Initialize() {
+@@ -1091,7 +1085,6 @@ void Game::Initialize() {
  
  	Utils::CreateResourceFolders();
  
@@ -136,7 +136,7 @@ index 3c93610c..608b4835 100644
  	ApplySkin(EPRO_TEXT(""), true);
  	auto selectedLocale = gSettings.cbCurrentLocale->getSelected();
  	if(selectedLocale != 0)
-@@ -1955,61 +1948,11 @@ bool Game::MainLoop() {
+@@ -1970,61 +1963,11 @@ bool Game::MainLoop() {
  				ApplySkin(EPRO_TEXT(""), true);
  			}
  		}
@@ -199,7 +199,7 @@ index 3c93610c..608b4835 100644
  			for(auto& path : cores_to_load) {
  				void* ncore = nullptr;
  				if((ncore = ChangeOCGcore(Utils::GetWorkingDirectory() + path, ocgcore))) {
-@@ -2030,10 +1973,6 @@ bool Game::MainLoop() {
+@@ -2045,10 +1988,6 @@ bool Game::MainLoop() {
  			cores_to_load.clear();
  		}
  #endif //YGOPRO_BUILD_DLL
@@ -210,7 +210,7 @@ index 3c93610c..608b4835 100644
  		gSoundManager->Tick();
  		fps++;
  		auto now = timer->getRealTime();
-@@ -2363,10 +2302,6 @@ bool Game::ApplySkin(const epro::path_string& skinname, bool reload, bool firstr
+@@ -2378,10 +2317,6 @@ bool Game::ApplySkin(const epro::path_string& skinname, bool reload, bool firstr
  		((irr::gui::CGUICustomCheckBox*)chkShowPassword)->setColor(roomlistcolor);
  		((irr::gui::CGUICustomCheckBox*)chkShowActiveRooms)->setColor(roomlistcolor);
  		fpsCounter->setOverrideColor(skin::FPS_TEXT_COLOR_VAL);
@@ -221,8 +221,8 @@ index 3c93610c..608b4835 100644
  		updateProgressTop->setColors(skin::PROGRESSBAR_FILL_COLOR_VAL, skin::PROGRESSBAR_EMPTY_COLOR_VAL);
  		updateProgressBottom->setColors(skin::PROGRESSBAR_FILL_COLOR_VAL, skin::PROGRESSBAR_EMPTY_COLOR_VAL);
  		btnPSAD->setImage(imageManager.tCover[0]);
-@@ -2598,122 +2533,6 @@ void Game::SaveConfig() {
- 	gGameConfig->driver_type = static_cast<irr::video::E_DRIVER_TYPE>(gSettings.cbVideoDriver->getItemData(gSettings.cbVideoDriver->getSelected()));
+@@ -2619,122 +2554,6 @@ void Game::SaveConfig() {
+ #endif
  	gGameConfig->Save(EPRO_TEXT("./config/system.conf"));
  }
 -Game::RepoGui* Game::AddGithubRepositoryStatusWindow(const GitRepo* repo) {
@@ -344,7 +344,7 @@ index 3c93610c..608b4835 100644
  void Game::LoadServers() {
  	for(auto& _config : { &gGameConfig->user_configs, &gGameConfig->configs }) {
  		auto& config = *_config;
-@@ -3535,7 +3354,6 @@ void Game::ReloadElementsStrings() {
+@@ -3576,7 +3395,6 @@ void Game::ReloadElementsStrings() {
  	((irr::gui::CGUICustomTable*)roomListTable)->setColumnText(7, gDataManager->GetSysString(1988).data());
  	roomListTable->setColumnWidth(0, roomListTable->getColumnWidth(0));
  
@@ -352,7 +352,7 @@ index 3c93610c..608b4835 100644
  	mTopMenu->setItemText(1, gDataManager->GetSysString(1970).data()); //mAbout
  	mTopMenu->setItemText(2, gDataManager->GetSysString(2040).data()); //mVersion
  	RefreshUICoreVersion();
-@@ -3618,10 +3436,6 @@ void Game::OnResize() {
+@@ -3659,10 +3477,6 @@ void Game::OnResize() {
  	stHintMsg->setRelativePosition(ResizeWin(500, 60, 820, 90));
  
  	ResizeCardinfoWindow(gGameConfig->keep_cardinfo_aspect_ratio);
@@ -364,7 +364,7 @@ index 3c93610c..608b4835 100644
  
  	auto clearSize = Resize(160, 300 - Scale(7), 260, 325 - Scale(7));
 diff --git a/gframe/game.h b/gframe/game.h
-index a2b2c083..a458165d 100644
+index df2385bd..c3b3ebac 100644
 --- a/gframe/game.h
 +++ b/gframe/game.h
 @@ -61,8 +61,6 @@ namespace irr {
@@ -404,10 +404,10 @@ index a2b2c083..a458165d 100644
  	uint32_t delta_time;
  	uint32_t delta_frames;
 diff --git a/gframe/gframe.cpp b/gframe/gframe.cpp
-index 91dae44a..db3685ea 100644
+index 9fd134b6..934560c3 100644
 --- a/gframe/gframe.cpp
 +++ b/gframe/gframe.cpp
-@@ -40,7 +40,6 @@ ygo::ImageDownloader* ygo::gImageDownloader = nullptr;
+@@ -41,7 +41,6 @@ ygo::ImageDownloader* ygo::gImageDownloader = nullptr;
  ygo::DataManager* ygo::gDataManager = nullptr;
  ygo::SoundManager* ygo::gSoundManager = nullptr;
  ygo::GameConfig* ygo::gGameConfig = nullptr;
@@ -415,7 +415,7 @@ index 91dae44a..db3685ea 100644
  ygo::DeckManager* ygo::gdeckManager = nullptr;
  ygo::ClientUpdater* ygo::gClientUpdater = nullptr;
  JWrapper* gJWrapper = nullptr;
-@@ -206,7 +205,6 @@ int _tmain(int argc, epro::path_char* argv[]) {
+@@ -208,7 +207,6 @@ int _tmain(int argc, epro::path_char* argv[]) {
  		ygo::gDataManager = data->dataManager.get();
  		ygo::gSoundManager = data->sounds.get();
  		ygo::gGameConfig = data->configs.get();
@@ -424,10 +424,10 @@ index 91dae44a..db3685ea 100644
  	}
  	catch(const std::exception& e) {
 diff --git a/gframe/premake5.lua b/gframe/premake5.lua
-index d3612c6e..d53cbc78 100644
+index 533b9faf..52e89b24 100644
 --- a/gframe/premake5.lua
 +++ b/gframe/premake5.lua
-@@ -129,13 +129,13 @@ local ygopro_config=function(static_core)
+@@ -139,13 +139,13 @@ local ygopro_config=function(static_core)
  		if _OPTIONS["discord"] then
  			links "discord-rpc"
  		end
@@ -442,13 +442,13 @@ index d3612c6e..d53cbc78 100644
 +		links { "sqlite3", "event" }
  
  	filter "system:macosx or ios"
- 		defines "LUA_USE_MACOSX"
+ 		links { "ssl", "crypto" }
 diff --git a/gframe/repo_manager.cpp b/gframe/repo_manager.cpp
 deleted file mode 100644
-index 688c4097..00000000
+index 512cbbfe..00000000
 --- a/gframe/repo_manager.cpp
 +++ /dev/null
-@@ -1,381 +0,0 @@
+@@ -1,380 +0,0 @@
 -// Copyright (c) 2019-2020 Edoardo Lolletti <edoardo762@gmail.com>
 -// Copyright (c) 2020 Dylam De La Torre <dyxel04@gmail.com>
 -// SPDX-License-Identifier: AGPL-3.0-or-later
@@ -466,10 +466,8 @@ index 688c4097..00000000
 -static constexpr int DELTA_OBJECTS_PERCENTAGE = 80;
 -static constexpr int CHECKOUT_PERCENTAGE = 99;
 -
--#if LIBGIT2_VER_MAJOR>0 || LIBGIT2_VER_MINOR>=99
--#define git_oid_zero(oid) git_oid_is_zero(oid)
--#else
--#define git_oid_zero(oid) git_oid_iszero(oid)
+-#if LIBGIT2_VER_MAJOR<=0 && LIBGIT2_VER_MINOR<99
+-#define git_oid_is_zero(oid) git_oid_iszero(oid)
 -#endif
 -
 -namespace ygo {
@@ -527,7 +525,7 @@ index 688c4097..00000000
 -	git_libgit2_init();
 -	if(gGameConfig->ssl_certificate_path.size() && Utils::FileExists(Utils::ToPathString(gGameConfig->ssl_certificate_path)))
 -		git_libgit2_opts(GIT_OPT_SET_SSL_CERT_LOCATIONS, gGameConfig->ssl_certificate_path.data(), "");
--#ifdef _WIN32
+-#if EDOPRO_WINDOWS
 -	else
 -		git_libgit2_opts(GIT_OPT_SET_SSL_CERT_LOCATIONS, "SYSTEM", "");
 -#endif
@@ -555,7 +553,7 @@ index 688c4097..00000000
 -
 -size_t RepoManager::GetUpdatingReposNumber() const {
 -	return available_repos.size();
--};
+-}
 -
 -std::vector<const GitRepo*> RepoManager::GetAllRepos() const {
 -	std::vector<const GitRepo*> res;
@@ -722,7 +720,7 @@ index 688c4097..00000000
 -				Git::Check(git_revwalk_push_head(walker));
 -				for(git_oid oid; git_revwalk_next(&oid, walker) == 0;) {
 -					auto commit = Git::MakeUnique(git_commit_lookup, repo, &oid);
--					if(git_oid_zero(&oid) || history.full_history.size() > MAX_HISTORY_LENGTH)
+-					if(git_oid_is_zero(&oid) || history.full_history.size() > MAX_HISTORY_LENGTH)
 -						break;
 -					AppendCommit(history.full_history, commit.get());
 -				}
@@ -818,12 +816,13 @@ index 688c4097..00000000
 -}
 -
 -void RepoManager::CheckoutCb(const char* path, size_t completed_steps, size_t total_steps, void* payload) {
+-	(void)path;
 -	int percent;
 -	if(total_steps == 0)
 -		percent = CHECKOUT_PERCENTAGE;
 -	else {
 -		static constexpr auto DELTA_INCREMENT = CHECKOUT_PERCENTAGE - DELTA_OBJECTS_PERCENTAGE;
--		percent = DELTA_OBJECTS_PERCENTAGE + ((DELTA_INCREMENT * completed_steps) / total_steps);
+-		percent = static_cast<int>(DELTA_OBJECTS_PERCENTAGE + ((DELTA_INCREMENT * completed_steps) / total_steps));
 -	}
 -	auto pl = static_cast<GitCbPayload*>(payload);
 -	pl->rm->SetRepoPercentage(pl->path, percent);
@@ -944,5 +943,5 @@ index 3f6f12cb..00000000
 -
 -#endif // REPOMANAGER_H
 -- 
-2.39.1
+2.41.0
 

@@ -141,7 +141,7 @@ derived from itself.")
 (define-public edopro
   (package
     (name "edopro")
-    (version "40.1.1")
+    (version "40.1.3")
     (source
      (origin
        (method git-fetch)
@@ -150,7 +150,7 @@ derived from itself.")
              (commit version)))
        (file-name (git-file-name name version))
        (sha256
-        (base32 "0nmcjf8ac64ghkncx8lzysmnp9pf704s54qrmgdsiw6v5l903wvm"))
+        (base32 "1xq0bgxj4inzvsymiprkw8lh8gk7gmkdshzma91q8f6bvjn8vihw"))
        (patches
         (search-patches
          "edopro-respect-YGOPRO_-_PATH.patch"

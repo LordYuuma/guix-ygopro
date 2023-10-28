@@ -1,4 +1,4 @@
-From 5f3e7203096c64b02c69ad6280cfd569cd63f61f Mon Sep 17 00:00:00 2001
+From 13b9ef9893c3f8e180172b48b39f5419fb903c94 Mon Sep 17 00:00:00 2001
 From: LordYuuma <lordyuuma@gmail.com>
 Date: Sat, 12 Jun 2021 01:20:18 +0200
 Subject: [PATCH] edopro: Respect YGOPRO environment paths.
@@ -29,11 +29,11 @@ Define YGOPRO_ENVIRONMENT_PATHS.
  8 files changed, 81 insertions(+), 4 deletions(-)
 
 diff --git a/gframe/data_handler.cpp b/gframe/data_handler.cpp
-index 639eec6f..6a6900dc 100644
+index 9bd56612..9d24489f 100644
 --- a/gframe/data_handler.cpp
 +++ b/gframe/data_handler.cpp
-@@ -19,13 +19,28 @@
- #ifdef EDOPRO_IOS
+@@ -20,13 +20,28 @@
+ #if EDOPRO_IOS
  #include "iOS/COSiOSOperator.h"
  #endif
 +#include "deck_manager.h"
@@ -64,7 +64,7 @@ index 639eec6f..6a6900dc 100644
  	}
  	for(auto& file : Utils::FindFiles(EPRO_TEXT("./expansions/"), { EPRO_TEXT("cdb") }, 2)) {
  		epro::path_string db = EPRO_TEXT("./expansions/") + file;
-@@ -33,6 +48,7 @@ void DataHandler::LoadDatabases() {
+@@ -34,6 +49,7 @@ void DataHandler::LoadDatabases() {
  			WindBot::AddDatabase(db);
  	}
  	LoadArchivesDB();
@@ -73,7 +73,7 @@ index 639eec6f..6a6900dc 100644
  void DataHandler::LoadArchivesDB() {
  	for(auto& archive : Utils::archives) {
 diff --git a/gframe/deck_manager.cpp b/gframe/deck_manager.cpp
-index 473eb7c5..f88e950e 100644
+index 41c63126..7ba07391 100644
 --- a/gframe/deck_manager.cpp
 +++ b/gframe/deck_manager.cpp
 @@ -93,9 +93,11 @@ bool DeckManager::LoadLFListFolder(epro::path_stringview _path) {
@@ -89,10 +89,10 @@ index 473eb7c5..f88e950e 100644
  	nolimit.listName = L"N/A"; // N/A
  	nolimit.hash = 0;
 diff --git a/gframe/game.cpp b/gframe/game.cpp
-index 608b4835..2490d0e8 100644
+index 25710f1e..64c064f6 100644
 --- a/gframe/game.cpp
 +++ b/gframe/game.cpp
-@@ -3691,6 +3691,31 @@ void Game::UpdateUnzipBar(unzip_payload* payload) {
+@@ -3732,6 +3732,31 @@ void Game::UpdateUnzipBar(unzip_payload* payload) {
  	status.progressBottom = payload->percentage;
  }
  void Game::PopulateResourcesDirectories() {
@@ -124,7 +124,7 @@ index 608b4835..2490d0e8 100644
  	script_dirs.push_back(EPRO_TEXT("./expansions/script/"));
  	auto expansions_subdirs = Utils::FindSubfolders(EPRO_TEXT("./expansions/script/"));
  	script_dirs.insert(script_dirs.end(), std::make_move_iterator(expansions_subdirs.begin()), std::make_move_iterator(expansions_subdirs.end()));
-@@ -3707,6 +3732,7 @@ void Game::PopulateResourcesDirectories() {
+@@ -3748,6 +3773,7 @@ void Game::PopulateResourcesDirectories() {
  	field_dirs.push_back(EPRO_TEXT("./expansions/pics/field/"));
  	field_dirs.push_back(EPRO_TEXT("archives"));
  	field_dirs.push_back(EPRO_TEXT("./pics/field/"));
@@ -133,10 +133,10 @@ index 608b4835..2490d0e8 100644
  
  void Game::PopulateLocales() {
 diff --git a/gframe/premake5.lua b/gframe/premake5.lua
-index d53cbc78..f402ed38 100644
+index 52e89b24..6a0af2a6 100644
 --- a/gframe/premake5.lua
 +++ b/gframe/premake5.lua
-@@ -53,6 +53,10 @@ local ygopro_config=function(static_core)
+@@ -64,6 +64,10 @@ local ygopro_config=function(static_core)
  	else
  		excludes { "CGUITTFont/bundled_font.cpp" }
  	end
@@ -148,10 +148,10 @@ index d53cbc78..f402ed38 100644
  	links { "clzma", "Irrlicht" }
  	filter "system:macosx or ios"
 diff --git a/gframe/text_types.h b/gframe/text_types.h
-index 5bdbc793..a1d28fca 100644
+index 629aaa7d..79f47601 100644
 --- a/gframe/text_types.h
 +++ b/gframe/text_types.h
-@@ -71,4 +71,18 @@ using fmt::sprintf;
+@@ -72,4 +72,18 @@ using fmt::sprintf;
  
  }
  using namespace nonstd::literals;
@@ -173,10 +173,10 @@ index 5bdbc793..a1d28fca 100644
 +
 +#endif /* TEXT_TYPES_H_ */
 diff --git a/gframe/utils.cpp b/gframe/utils.cpp
-index 698afbb3..16f09118 100644
+index a19a1565..7c8aa46c 100644
 --- a/gframe/utils.cpp
 +++ b/gframe/utils.cpp
-@@ -524,6 +524,16 @@ namespace ygo {
+@@ -552,6 +552,16 @@ namespace ygo {
  		return true;
  	}
  
@@ -191,10 +191,10 @@ index 698afbb3..16f09118 100644
 +	}
 +
  	static const epro::path_string exe_path = []()->epro::path_string {
- #ifdef _WIN32
+ #if EDOPRO_WINDOWS
  		TCHAR exepath[MAX_PATH];
 diff --git a/gframe/utils.h b/gframe/utils.h
-index 44e8550f..ff00c9f5 100644
+index d31b5f97..85d08f56 100644
 --- a/gframe/utils.h
 +++ b/gframe/utils.h
 @@ -74,6 +74,7 @@ namespace ygo {
@@ -206,7 +206,7 @@ index 44e8550f..ff00c9f5 100644
  		static std::vector<epro::path_string> FindSubfolders(epro::path_stringview path, int subdirectorylayers = 1, bool addparentpath = true);
  		static std::vector<uint32_t> FindFiles(irr::io::IFileArchive* archive, epro::path_stringview path, const std::vector<epro::path_stringview>& extensions, int subdirectorylayers = 0);
 diff --git a/premake5.lua b/premake5.lua
-index 0c14efaf..c2fbb210 100644
+index 1de69dc9..9ef41c56 100644
 --- a/premake5.lua
 +++ b/premake5.lua
 @@ -60,6 +60,10 @@ newoption {
@@ -221,5 +221,5 @@ index 0c14efaf..c2fbb210 100644
  	trigger = "no-core",
  	description = "Ignore the ocgcore subproject and only generate the solution for yroprodll"
 -- 
-2.39.1
+2.41.0
 
